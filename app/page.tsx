@@ -8,7 +8,6 @@ import { Loader2, Zap, Trophy, Skull, Clock, Info, ShieldCheck, Coins } from "lu
 import { useGame, BULLET_COLORS, GameResult } from "@/hooks/useGame";
 import { Toaster, toast } from "sonner";
 import { PublicKey } from "@solana/web3.js";
-import RouletteBarrel from "@/components/RouletteBarrel";
 import MiningBlock from "@/components/MiningBlock";
 
 const WalletMultiButton = dynamic(
@@ -53,7 +52,7 @@ export default function Home() {
     return idx >= 0 ? idx : null;
   }, [gameState?.players, publicKey]);
 
-  const playerCount = (isSpinning || countdown !== null || isWaitingForResult) ? 3 : actualPlayerCount;
+  const playerCount = actualPlayerCount;
 
   // Dynamic extraction estimate: (TotalPot * 0.95) / (PlayersCount / 3) / EntryFee
   const extractionEstimate = useMemo(() => {
@@ -415,10 +414,10 @@ export default function Home() {
                   <motion.div key="unconnected" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full text-center p-3 sm:p-4 border border-dashed border-zinc-800 rounded-xl text-zinc-600 font-bold uppercase tracking-widest text-xs sm:text-sm">
                     Connect Wallet to Start
                   </motion.div>
-                ) : (isSpinning || countdown !== null || isWaitingForResult) ? (
+                ) : (isSpinning || countdown !== null) ? (
                   <motion.div key="spinning" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-2 text-[#14F195] font-black tracking-widest">
-                    {(isSpinning || isWaitingForResult) ? <Loader2 className="animate-spin w-7 h-7 sm:w-8 sm:h-8" /> : null}
-                    <span className="text-sm sm:text-base">{isSpinning ? "EXTRACTING MEV..." : isWaitingForResult ? "RESOLVING BLOCK..." : "PREPARING..."}</span>
+                    {isSpinning ? <Loader2 className="animate-spin w-7 h-7 sm:w-8 sm:h-8" /> : null}
+                    <span className="text-sm sm:text-base">{isSpinning ? "EXTRACTING MEV..." : countdown !== null ? `BLOCK RESOLVING IN ${countdown}...` : "PREPARING..."}</span>
                   </motion.div>
                 ) : myPlayerIndex !== null ? (
                   <motion.div key="ingame" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="flex flex-col items-center gap-3 w-full">
@@ -429,7 +428,7 @@ export default function Home() {
                         <span className="text-white font-black tracking-wider uppercase text-base sm:text-lg">{BULLET_COLORS[myPlayerIndex % BULLET_COLORS.length].name}</span>
                       </div>
                     </div>
-                    {playerCount < 3 && <p className="text-zinc-500 text-[10px] sm:text-xs font-bold uppercase tracking-widest animate-pulse">Waiting for searchers ({playerCount}/3 min)...</p>}
+                    {actualPlayerCount < 3 && <p className="text-zinc-500 text-[10px] sm:text-xs font-bold uppercase tracking-widest animate-pulse">Waiting for searchers ({actualPlayerCount}/3 min)...</p>}
                   </motion.div>
                 ) : (
                   <motion.button
