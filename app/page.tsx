@@ -168,18 +168,33 @@ export default function Home() {
   const triggerCrank = useCallback(async () => {
     if (Date.now() - lastCrankTimeRef.current < 10000) return;
     lastCrankTimeRef.current = Date.now();
+    
+    console.log(`[triggerCrank] Calling crank for room ${roomId}...`);
+    
     try {
       const res = await fetch('/api/crank', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roomId }),
       });
+      
       let data: any = {};
       try { data = await res.json(); } catch { return; }
-      if (!res.ok && !data.error?.includes('not ready')) {
+      
+      console.log(`[triggerCrank] Response:`, data);
+      
+      if (res.ok && data.action === 'refund') {
+        toast.success('Refund processed! Check your wallet.');
+      } else if (!res.ok && !data.error?.includes('not ready')) {
         console.error('[crank] error:', data);
+        if (data.error?.includes('CRANK_PRIVATE_KEY')) {
+          toast.error('Crank not configured. Contact admin.');
+        }
       }
-    } catch (err) { console.error('[crank] fetch failed:', err); }
+    } catch (err) { 
+      console.error('[crank] fetch failed:', err);
+      toast.error('Failed to trigger crank. Try again.');
+    }
   }, [roomId]);
 
   useEffect(() => {
