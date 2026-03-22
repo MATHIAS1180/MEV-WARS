@@ -49,6 +49,7 @@ export function useGame(roomId: number) {
       const parser = new EventParser(PROGRAM_ID, new BorshCoder(IDL as any));
       const winners: { pubkey: string; amount: number }[] = [];
       let totalPot = 0;
+      let isRefund = false;
 
       for (const event of parser.parseLogs(logs)) {
         if (event.name === 'WinnerExtractedEvent') {
@@ -59,6 +60,14 @@ export function useGame(roomId: number) {
           const d = event.data as any;
           totalPot = d.totalPot.toNumber();
         }
+        if (event.name === 'GameRefundedEvent') {
+          isRefund = true;
+        }
+      }
+
+      // If refund event detected, return null (no winner)
+      if (isRefund) {
+        return null;
       }
 
       if (winners.length > 0) {

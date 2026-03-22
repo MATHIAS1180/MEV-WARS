@@ -190,96 +190,24 @@ export default function Home() {
     }
   }, [gameState?.playerCount, txPending, triggerCrank]);
 
-  // ─── RPC Status ───────────────────────────────────────────────────────────
+  // ─── Detect Refund (player count drops to 0 with <3 players) ─────────────
+  const prevPlayerCountForRefundRef = useRef<number>(0);
   useEffect(() => {
-    if (isScanningLogs) {
-      setIsWaitingForResult(true);
-    } else if (!gameResult) {
+    const prev = prevPlayerCountForRefundRef.current;
+    const current = actualPlayerCount;
+    
+    // If player count dropped from 1-2 to 0, it's a refund
+    if (prev > 0 && prev < 3 && current === 0 && myPlayerIndex !== null) {
+      toast.success('BLOCK REJECTED: Refund processed automatically. Funds returned to wallet.');
+      setIsSpinning(false);
+      setCountdown(null);
+      setTxPending(false);
+      setFrozenDisplay(null);
       setIsWaitingForResult(false);
     }
-  }, [isScanningLogs, gameResult]);
-
-  // ─── Watchdog ─────────────────────────────────────────────────────────────
-  const watchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    if (actualPlayerCount === 0 && !gameResult && (isSpinning || countdown !== null || frozenDisplay || isWaitingForResult)) {
-      watchdogRef.current = setTimeout(() => {
-        setIsSpinning(false);
-        setCountdown(null);
-        setTxPending(false);
-        setFrozenDisplay(null);
-        setIsWaitingForResult(false);
-        stableFetch();
-      }, 15000);
-    } else {
-      if (watchdogRef.current) { clearTimeout(watchdogRef.current); watchdogRef.current = null; }
-    }
-    return () => { if (watchdogRef.current) clearTimeout(watchdogRef.current); };
-  }, [actualPlayerCount, gameResult, isSpinning, countdown, frozenDisplay, isWaitingForResult, stableFetch]);
-
-  // ─── Block Expiration Timer (30s from first searcher) ────────────────────
-  const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
-  useEffect(() => {
-    if (gameState && isWaiting && actualPlayerCount > 0) {
-      const iv = setInterval(() => {
-        const blockStart = gameState.blockStartTime
-          ? Number(gameState.blockStartTime.toString())
-          : gameState.lastActivityTime
-            ? Number(gameState.lastActivityTime.toString())
-            : Date.now() / 1000;
-        const elapsed = Math.floor(Date.now() / 1000) - blockStart;
-        const r = BLOCK_EXPIRATION_SECONDS - elapsed;
-        const remaining = r > 0 ? r : 0;
-        setTimeRemaining(remaining);
-
-        // Auto-trigger crank when timer hits 0
-        if (remaining === 0) {
-          triggerCrank();
-        }
-      }, 1000);
-      return () => clearInterval(iv);
-    }
-    setTimeRemaining(null);
-  }, [gameState, isWaiting, actualPlayerCount, triggerCrank]);
-
-  // ─── Join Handler ─────────────────────────────────────────────────────────
-  const handleJoin = async () => {
-    if (!publicKey) return;
-    const myKey = publicKey.toString();
-    if (!lastPlayersRef.current.includes(myKey)) lastPlayersRef.current.push(myKey);
-
-    try {
-      setTxPending(true);
-      const txPromise = joinGame(activeRoom.lamports);
-      toast.promise(txPromise, {
-        loading: 'Submitting bundle to Mempool...',
-        success: 'Searcher registered in block.',
-        error: (e: any) => `Failed: ${e.message}`,
-      });
-      const txResult = await txPromise;
-      if (txResult === true) setIsWaitingForResult(true);
-    } catch (e) { console.error(e); }
-    finally { setTxPending(false); }
-  };
-
-  const handleRefundIdle = async () => {
-    try {
-      setTxPending(true);
-      toast.promise(
-        fetch('/api/crank', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ roomId }),
-        }).then(r => r.json()),
-        {
-          loading: 'BLOCK REJECTED: Refunding searchers...',
-          success: 'Refund confirmed.',
-          error: (e: any) => `Failed: ${e.message}`,
-        }
-      );
-    } catch (e) { console.error(e); }
-    finally { setTxPending(false); }
-  };
+    
+    prevPlayerCountForRefundRef.current = current;
+  }, [actualPlayerCount, myPlayerIndex]);
 
   return (
     <main className="min-h-screen relative flex flex-col items-center overflow-x-hidden">
@@ -419,11 +347,6 @@ export default function Home() {
               <p className="text-2xl sm:text-3xl font-black text-white">
                 {timeRemaining !== null ? `${Math.floor(timeRemaining / 60)}:${(timeRemaining % 60).toString().padStart(2, '0')}` : '--:--'}
               </p>
-              {timeRemaining === 0 && myPlayerIndex !== null && (
-                <button onClick={handleRefundIdle} className="mt-2 sm:mt-3 w-full py-2 bg-red-500/10 border border-red-500 text-red-500 text-[9px] sm:text-[10px] font-black uppercase rounded-lg animate-pulse">
-                  BLOCK REJECTED — Claim Refund
-                </button>
-              )}
             </motion.div>
           </div>
         </div>
