@@ -41,7 +41,6 @@ export default function Home() {
   const [txPending, setTxPending] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [showResult, setShowResult] = useState<{ type: 'win' | 'lose', msg: string, amount?: number } | null>(null);
-  const [frozenDisplay, setFrozenDisplay] = useState<{ pot: number; winner: number } | null>(null);
   const [isProcessingResult, setIsProcessingResult] = useState(false);
 
   const actualPlayerCount = gameState?.playerCount ?? 0;
@@ -114,7 +113,6 @@ export default function Home() {
     const frozenPlayers = [...lastPlayersRef.current];
     const frozenResult = { ...gameResult };
 
-    setFrozenDisplay({ pot: frozenResult.totalPot / 1e9, winner: frozenResult.winnerAmount / 1e9 });
     setIsSpinning(false);
     setCountdown(5);
 
@@ -143,18 +141,29 @@ export default function Home() {
 
           const myKey = publicKey?.toString() ?? '';
           const wasInGame = frozenPlayers.includes(myKey);
-          const isWinner = frozenResult.winners?.includes(myKey) ?? frozenResult.winner === myKey;
+          
+          // Check if player is winner - check both winners array and single winner
+          const isWinner = frozenResult.winners?.includes(myKey) || frozenResult.winner === myKey;
           const winAmt = (frozenResult.winnerAmount / 1e9).toFixed(4);
 
-          console.log('[page] Showing result - wasInGame:', wasInGame, 'isWinner:', isWinner);
+          console.log('[page] Result check:', {
+            myKey: myKey.slice(0, 8),
+            wasInGame,
+            isWinner,
+            winners: frozenResult.winners?.map(w => w.slice(0, 8)),
+            singleWinner: frozenResult.winner?.slice(0, 8),
+            frozenPlayers: frozenPlayers.map(p => p.slice(0, 8))
+          });
 
           if (wasInGame && isWinner) {
+            console.log('[page] Player WON!');
             setShowResult({
               type: 'win',
               msg: `BLOCK CAPTURED! MEV extraction successful. +${winAmt} SOL sent to wallet.`,
               amount: parseFloat(winAmt),
             });
           } else if (wasInGame && !isWinner) {
+            console.log('[page] Player LOST');
             setShowResult({
               type: 'lose',
               msg: "FRONT-RUNNED! Better luck on the next block.",
@@ -163,12 +172,27 @@ export default function Home() {
 
           setGameResult(null);
           lastPlayersRef.current = [];
+          
+          // Wait for user to close the result modal, then refresh
+          const checkAndRefresh = setInterval(() => {
+            if (!showResult) {
+              clearInterval(checkAndRefresh);
+              setRotation(0);
+              setIsProcessingResult(false);
+              myPlayerIndexRef.current = null;
+              stableFetch();
+            }
+          }, 500);
+          
+          // Force refresh after 10 seconds even if modal not closed
           setTimeout(() => {
-            setFrozenDisplay(null);
+            clearInterval(checkAndRefresh);
+            setShowResult(null);
             setRotation(0);
             setIsProcessingResult(false);
+            myPlayerIndexRef.current = null;
             stableFetch();
-          }, 1000);
+          }, 10000);
         }, 5000);
       }
     }, 1000);
@@ -186,7 +210,6 @@ export default function Home() {
     setShowResult(null);
     setIsSpinning(false);
     setCountdown(null);
-    setFrozenDisplay(null);
     setTxPending(false);
     setIsProcessingResult(false);
     lastPlayersRef.current = [];
@@ -289,7 +312,6 @@ export default function Home() {
       setIsSpinning(false);
       setCountdown(null);
       setTxPending(false);
-      setFrozenDisplay(null);
       wasInGameRef.current = false;
       
       // Force refresh game state
@@ -309,7 +331,6 @@ export default function Home() {
       const timer = setTimeout(() => {
         setIsSpinning(false);
         setCountdown(null);
-        setFrozenDisplay(null);
       }, 1000);
       return () => clearTimeout(timer);
     }
@@ -318,19 +339,18 @@ export default function Home() {
   // ─── Watchdog ─────────────────────────────────────────────────────────────
   const watchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    if (actualPlayerCount === 0 && !gameResult && (isSpinning || countdown !== null || frozenDisplay)) {
+    if (actualPlayerCount === 0 && !gameResult && (isSpinning || countdown !== null)) {
       watchdogRef.current = setTimeout(() => {
         setIsSpinning(false);
         setCountdown(null);
         setTxPending(false);
-        setFrozenDisplay(null);
         stableFetch();
       }, 15000);
     } else {
       if (watchdogRef.current) { clearTimeout(watchdogRef.current); watchdogRef.current = null; }
     }
     return () => { if (watchdogRef.current) clearTimeout(watchdogRef.current); };
-  }, [actualPlayerCount, gameResult, isSpinning, countdown, frozenDisplay, stableFetch]);
+  }, [actualPlayerCount, gameResult, isSpinning, countdown, stableFetch]);
 
   // ─── Block Expiration Timer (30s from first searcher) ────────────────────
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
