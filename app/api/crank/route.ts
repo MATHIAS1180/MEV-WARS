@@ -49,8 +49,9 @@ export async function POST(req: NextRequest) {
 
     const state: any = await program.account.game.fetch(gamePda);
     const playerCount: number = state.playerCount;
+    const blockStartTime: number = state.blockStartTime ? Number(state.blockStartTime.toString()) : 0;
 
-    console.log(`[crank] Room ${roomId} — playerCount=${playerCount}`);
+    console.log(`[crank] Room ${roomId} — playerCount=${playerCount}, blockStartTime=${blockStartTime}`);
 
     if (playerCount === 0) {
       return NextResponse.json({ error: 'Game is empty', detail: 'playerCount=0' }, { status: 400 });
@@ -60,6 +61,54 @@ export async function POST(req: NextRequest) {
     const currentPlayers: PublicKey[] = (state.players as PublicKey[])
       .slice(0, playerCount)
       .filter((p: PublicKey) => p.toString() !== PublicKey.default.toString());
+
+    // Check if timer expired (30 seconds)
+    const now = Math.floor(Date.now() / 1000);
+    const elapsed = now - blockStartTime;
+    const timerExpired = elapsed >= 30;
+
+    // If timer expired and <3 players, refund
+    if (timerExpired && playerCount < 3) {
+      console.log(`[crank] Calling refund_expired_game for ${playerCount} searchers...`);
+
+      const refundTx = await program.methods
+        .refundExpiredGame(roomId)
+        .accounts({ game: gamePda })
+        .remainingAccounts(currentPlayers.map(p => ({ pubkey: p, isWritable: true, isSigner: false })))
+        .transaction();
+
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+      refundTx.recentBlockhash = blockhash;
+      refundTx.feePayer = crankKeypair.publicKey;
+
+      const sim = await connection.simulateTransaction(refundTx, [crankKeypair]);
+      if (sim.value.err) {
+        console.error('[crank] refund simulation failed:', sim.value.err, sim.value.logs);
+        return NextResponse.json({
+          error: 'refund_expired_game simulation failed',
+          detail: sim.value.err,
+          logs: sim.value.logs,
+        }, { status: 400 });
+      }
+
+      refundTx.sign(crankKeypair);
+      const finalSig = await connection.sendRawTransaction(refundTx.serialize());
+      const confirmation = await connection.confirmTransaction(
+        { signature: finalSig, blockhash, lastValidBlockHeight }, 'confirmed'
+      );
+
+      if (confirmation.value.err) {
+        throw new Error(`refund_expired_game TX failed: ${JSON.stringify(confirmation.value.err)}`);
+      }
+
+      console.log('[crank] refund_expired_game confirmed:', finalSig);
+      return NextResponse.json({ success: true, signature: finalSig, action: 'refund' });
+    }
+
+    // Otherwise, settle winners (requires >=3 players)
+    if (playerCount < 3) {
+      return NextResponse.json({ error: 'Not enough players', detail: 'Need at least 3 players to settle' }, { status: 400 });
+    }
 
     console.log(`[crank] Calling settle_winner for ${playerCount} searchers...`);
 
@@ -98,7 +147,7 @@ export async function POST(req: NextRequest) {
     }
 
     console.log('[crank] settle_winner confirmed:', finalSig);
-    return NextResponse.json({ success: true, signature: finalSig });
+    return NextResponse.json({ success: true, signature: finalSig, action: 'settle' });
 
   } catch (error: any) {
     console.error('[crank] Error:', error);

@@ -3,11 +3,11 @@ use anchor_lang::system_program;
 use anchor_lang::solana_program::hash::hash;
 use std::str::FromStr;
 
-declare_id!("78sJmBoRvgC7LrCi85otiH5ebxVLDYwW6jUMBLd5JSco");
+declare_id!("6kBgAR5grqnabjUq6x5GMmjVWjHFoRJZgGcKGuy5zPJc");
 
-// No MAX_PLAYERS cap — unlimited searchers per block
 pub const MAX_PLAYERS: usize = 30;
 pub const TREASURY_PUBKEY: &str = "FC2km6B1ub8fBf4FdLFs1hbJjmLx6EJbdAzN9Ajnb8nt";
+pub const BLOCK_EXPIRATION_SECONDS: i64 = 30;
 
 #[program]
 pub mod solana_russian_roulette {
@@ -22,7 +22,7 @@ pub mod solana_russian_roulette {
         game.pot_amount = 0;
         game.resolve_slot = 0;
         game.last_activity_time = Clock::get()?.unix_timestamp;
-        game.block_start_time = 0; // not started yet
+        game.block_start_time = 0;
 
         for i in 0..MAX_PLAYERS {
             game.players[i] = Pubkey::default();
@@ -59,7 +59,6 @@ pub mod solana_russian_roulette {
 
         let clock = Clock::get()?;
 
-        // Start block timer on first searcher joining
         if game.player_count == 1 {
             game.last_activity_time = clock.unix_timestamp;
             game.block_start_time = clock.unix_timestamp;
@@ -76,46 +75,58 @@ pub mod solana_russian_roulette {
         Ok(())
     }
 
-    /// Settle the block. Can be triggered:
-    ///   - when current_slot > entry_slot (PRNG via future block hash is safe)
-    ///   - by the crank when 30s elapsed OR a multiple of 3 players is reached
+    /// Refund all players if timer expired and <3 players
+    pub fn refund_expired_game(ctx: Context<RefundExpiredGame>, room_id: u8) -> Result<()> {
+        let game = &mut ctx.accounts.game;
+        let clock = Clock::get()?;
+
+        require!(game.state == GameState::Waiting, ErrorCode::GameNotInWaitingState);
+        require!(game.player_count > 0, ErrorCode::GameEmpty);
+        require!(game.player_count < 3, ErrorCode::TooManyPlayers);
+
+        // Check if 30 seconds have passed since first player joined
+        let elapsed = clock.unix_timestamp - game.block_start_time;
+        require!(elapsed >= BLOCK_EXPIRATION_SECONDS, ErrorCode::TimerNotExpired);
+
+        let player_count = game.player_count as usize;
+        let refund_amount = game.entry_fee;
+
+        // Refund all players
+        for i in 0..player_count {
+            let player_pubkey = game.players[i];
+            if let Some(account) = ctx.remaining_accounts.iter().find(|a| a.key() == player_pubkey) {
+                **game.to_account_info().try_borrow_mut_lamports()? -= refund_amount;
+                **account.try_borrow_mut_lamports()? += refund_amount;
+            }
+        }
+
+        emit!(GameRefundedEvent { game: game.key() });
+
+        // Reset game
+        game.player_count = 0;
+        game.pot_amount = 0;
+        game.block_start_time = 0;
+        for i in 0..MAX_PLAYERS {
+            game.players[i] = Pubkey::default();
+        }
+        game.last_activity_time = clock.unix_timestamp;
+        game.resolve_slot = 0;
+
+        Ok(())
+    }
+
+    /// Settle the game when 3+ players
     pub fn settle_winner(ctx: Context<SettleWinner>, room_id: u8) -> Result<()> {
         let game = &mut ctx.accounts.game;
 
         require!(game.state == GameState::Waiting, ErrorCode::GameNotInWaitingState);
 
         let clock = Clock::get()?;
-        // Guarantee the block hash was unknowable at deposit time
         require!(clock.slot > game.resolve_slot, ErrorCode::DrawTooEarly);
 
         let player_count = game.player_count as usize;
+        require!(player_count >= 3, ErrorCode::NotEnoughPlayers);
 
-        if player_count < 3 {
-            // BLOC REJETÉ — refund 100% to all searchers
-            let refund_amount = game.entry_fee;
-            for i in 0..player_count {
-                let player_pubkey = game.players[i];
-                if let Some(account) = ctx.remaining_accounts.iter().find(|a| a.key() == player_pubkey) {
-                    **game.to_account_info().try_borrow_mut_lamports()? -= refund_amount;
-                    **account.try_borrow_mut_lamports()? += refund_amount;
-                }
-            }
-
-            emit!(GameRefundedEvent { game: game.key() });
-
-            // Reset block
-            game.player_count = 0;
-            game.pot_amount = 0;
-            game.block_start_time = 0;
-            for i in 0..MAX_PLAYERS {
-                game.players[i] = Pubkey::default();
-            }
-            game.last_activity_time = clock.unix_timestamp;
-            game.resolve_slot = 0;
-            return Ok(());
-        }
-
-        // 1 winner per 3 searchers
         let num_winners = player_count / 3;
 
         let treasury_key = Pubkey::from_str(TREASURY_PUBKEY).unwrap();
@@ -124,8 +135,6 @@ pub mod solana_russian_roulette {
             .find(|a| a.key() == treasury_key)
             .ok_or(ErrorCode::InvalidTreasury)?;
 
-        // PRNG seed: future slot hash + timestamp + all player pubkeys
-        // The slot is guaranteed to be > entry_slot so the hash was unknown at deposit time
         let mut seed_data = Vec::new();
         seed_data.extend_from_slice(&clock.slot.to_le_bytes());
         seed_data.extend_from_slice(&clock.unix_timestamp.to_le_bytes());
@@ -151,7 +160,6 @@ pub mod solana_russian_roulette {
         }
 
         let total_pot = game.pot_amount;
-        // 5% treasury / 95% winners pool
         let house_cut = total_pot * 5 / 100;
         let reward_pool = total_pot - house_cut;
         let cut_per_winner = reward_pool / num_winners as u64;
@@ -182,7 +190,6 @@ pub mod solana_russian_roulette {
             winners_count: num_winners as u8,
         });
 
-        // Reset block
         game.player_count = 0;
         game.pot_amount = 0;
         game.resolve_slot = 0;
@@ -237,6 +244,17 @@ pub struct SettleWinner<'info> {
     pub game: Account<'info, Game>,
 }
 
+#[derive(Accounts)]
+#[instruction(room_id: u8)]
+pub struct RefundExpiredGame<'info> {
+    #[account(
+        mut,
+        seeds = [b"room".as_ref(), &[room_id]],
+        bump = game.bump
+    )]
+    pub game: Account<'info, Game>,
+}
+
 #[account]
 pub struct Game {
     pub room_id: u8,
@@ -247,7 +265,7 @@ pub struct Game {
     pub pot_amount: u64,
     pub resolve_slot: u64,
     pub last_activity_time: i64,
-    pub block_start_time: i64, // timestamp when first searcher joined
+    pub block_start_time: i64,
     pub bump: u8,
 }
 
@@ -309,4 +327,12 @@ pub enum ErrorCode {
     DrawTooEarly,
     #[msg("Invalid treasury address.")]
     InvalidTreasury,
+    #[msg("Game is empty.")]
+    GameEmpty,
+    #[msg("Timer has not expired yet. Wait 30 seconds.")]
+    TimerNotExpired,
+    #[msg("Too many players for refund. Game must have less than 3 players.")]
+    TooManyPlayers,
+    #[msg("Not enough players. Need at least 3 players to settle.")]
+    NotEnoughPlayers,
 }

@@ -5,7 +5,7 @@
 ### 🌐 URLs
 - **Site Live** : https://mev-wars-casino.vercel.app
 - **GitHub** : https://github.com/MATHIAS1180/MEV-WARS
-- **Program ID** : `78sJmBoRvgC7LrCi85otiH5ebxVLDYwW6jUMBLd5JSco`
+- **Program ID** : `6kBgAR5grqnabjUq6x5GMmjVWjHFoRJZgGcKGuy5zPJc`
 
 ---
 
@@ -177,7 +177,7 @@ Clique "JOIN BLOCK" et teste !
 ## 📞 SUPPORT
 
 - **GitHub Issues** : https://github.com/MATHIAS1180/MEV-WARS/issues
-- **Solana Explorer** : https://explorer.solana.com/address/78sJmBoRvgC7LrCi85otiH5ebxVLDYwW6jUMBLd5JSco?cluster=devnet
+- **Solana Explorer** : https://explorer.solana.com/address/6kBgAR5grqnabjUq6x5GMmjVWjHFoRJZgGcKGuy5zPJc?cluster=devnet
 
 ---
 

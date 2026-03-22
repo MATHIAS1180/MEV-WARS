@@ -6,9 +6,9 @@
 **https://mev-wars-casino.vercel.app**
 
 ### 📦 Smart Contract
-**Program ID** : `78sJmBoRvgC7LrCi85otiH5ebxVLDYwW6jUMBLd5JSco`
+**Program ID** : `6kBgAR5grqnabjUq6x5GMmjVWjHFoRJZgGcKGuy5zPJc`
 **Network** : Solana Devnet
-**Explorer** : https://explorer.solana.com/address/78sJmBoRvgC7LrCi85otiH5ebxVLDYwW6jUMBLd5JSco?cluster=devnet
+**Explorer** : https://explorer.solana.com/address/6kBgAR5grqnabjUq6x5GMmjVWjHFoRJZgGcKGuy5zPJc?cluster=devnet
 
 ### 📂 GitHub
 **Repo** : https://github.com/MATHIAS1180/MEV-WARS

@@ -1,7 +1,7 @@
 import { Connection, PublicKey } from '@solana/web3.js';
 import { Idl } from '@coral-xyz/anchor';
 
-export const PROGRAM_ID = new PublicKey("78sJmBoRvgC7LrCi85otiH5ebxVLDYwW6jUMBLd5JSco");
+export const PROGRAM_ID = new PublicKey("6kBgAR5grqnabjUq6x5GMmjVWjHFoRJZgGcKGuy5zPJc");
 export const TREASURY_PUBKEY = new PublicKey("FC2km6B1ub8fBf4FdLFs1hbJjmLx6EJbdAzN9Ajnb8nt");
 
 // Localhost for local dev — override via NEXT_PUBLIC_RPC_URL in .env
@@ -32,6 +32,15 @@ export const IDL: Idl = {
         { name: "game", isMut: true, isSigner: false },
         { name: "player", isMut: true, isSigner: true },
         { name: "systemProgram", isMut: false, isSigner: false }
+      ],
+      args: [
+        { name: "roomId", type: "u8" }
+      ]
+    },
+    {
+      name: "refundExpiredGame",
+      accounts: [
+        { name: "game", isMut: true, isSigner: false }
       ],
       args: [
         { name: "roomId", type: "u8" }
@@ -116,6 +125,10 @@ export const IDL: Idl = {
     { code: 6001, name: "PlayerAlreadyJoined", msg: "You have already joined this game." },
     { code: 6002, name: "PlayerNotInGame", msg: "You are not in this game." },
     { code: 6003, name: "DrawTooEarly", msg: "Draw too early. Settle winner block must be > last join block." },
-    { code: 6004, name: "InvalidTreasury", msg: "Invalid treasury address." }
+    { code: 6004, name: "InvalidTreasury", msg: "Invalid treasury address." },
+    { code: 6005, name: "GameEmpty", msg: "Game is empty." },
+    { code: 6006, name: "TimerNotExpired", msg: "Timer has not expired yet. Wait 30 seconds." },
+    { code: 6007, name: "TooManyPlayers", msg: "Too many players for refund. Game must have less than 3 players." },
+    { code: 6008, name: "NotEnoughPlayers", msg: "Not enough players. Need at least 3 players to settle." }
   ]
 };

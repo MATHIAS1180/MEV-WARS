@@ -32,7 +32,7 @@ const POLL_INTERVAL_MS = 3000;
 
 const ROOM_IDS = [101, 102, 103];
 
-const PROGRAM_ID = new PublicKey('78sJmBoRvgC7LrCi85otiH5ebxVLDYwW6jUMBLd5JSco');
+const PROGRAM_ID = new PublicKey('6kBgAR5grqnabjUq6x5GMmjVWjHFoRJZgGcKGuy5zPJc');
 const TREASURY_PUBKEY = new PublicKey('FC2km6B1ub8fBf4FdLFs1hbJjmLx6EJbdAzN9Ajnb8nt');
 
 // ─── IDL (minimal subset needed for crank) ───────────────────────────────────
@@ -41,6 +41,11 @@ const IDL: any = {
   version: '0.1.0',
   name: 'solana_russian_roulette',
   instructions: [
+    {
+      name: 'refundExpiredGame',
+      accounts: [{ name: 'game', isMut: true, isSigner: false }],
+      args: [{ name: 'roomId', type: 'u8' }],
+    },
     {
       name: 'settleWinner',
       accounts: [{ name: 'game', isMut: true, isSigner: false }],
@@ -99,6 +104,53 @@ function loadKeypair(): Keypair {
   }
 
   throw new Error('No keypair found. Set CRANK_PRIVATE_KEY or create ~/.config/solana/id.json');
+}
+
+// ─── Refund expired game ──────────────────────────────────────────────────────
+
+async function refundExpiredGame(
+  program: Program,
+  connection: Connection,
+  crankKeypair: Keypair,
+  roomId: number
+): Promise<void> {
+  const [gamePda] = PublicKey.findProgramAddressSync(
+    [Buffer.from('room'), Buffer.from([roomId])],
+    PROGRAM_ID
+  );
+
+  const state: any = await program.account.game.fetch(gamePda);
+  const playerCount: number = state.playerCount;
+
+  if (playerCount === 0 || playerCount >= 3) return;
+
+  const currentPlayers: PublicKey[] = (state.players as PublicKey[])
+    .slice(0, playerCount)
+    .filter((p: PublicKey) => p.toString() !== PublicKey.default.toString());
+
+  console.log(`[crank] Room ${roomId} — refunding ${playerCount} searchers...`);
+
+  const refundTx = await program.methods
+    .refundExpiredGame(roomId)
+    .accounts({ game: gamePda })
+    .remainingAccounts(currentPlayers.map(p => ({ pubkey: p, isWritable: true, isSigner: false })))
+    .transaction();
+
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+  refundTx.recentBlockhash = blockhash;
+  refundTx.feePayer = crankKeypair.publicKey;
+
+  const sim = await connection.simulateTransaction(refundTx, [crankKeypair]);
+  if (sim.value.err) {
+    console.error(`[crank] Room ${roomId} refund simulation failed:`, sim.value.err);
+    console.error('[crank] Logs:', sim.value.logs?.slice(-5));
+    return;
+  }
+
+  refundTx.sign(crankKeypair);
+  const sig = await connection.sendRawTransaction(refundTx.serialize());
+  await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed');
+  console.log(`[crank] Room ${roomId} refunded! TX: ${sig}`);
 }
 
 // ─── Settle a room ────────────────────────────────────────────────────────────
@@ -197,8 +249,18 @@ async function main() {
         const timerExpired = elapsed >= BLOCK_EXPIRATION_SECONDS;
         const multipleOfThree = playerCount >= 3 && playerCount % 3 === 0;
 
-        const shouldSettle = timerExpired || multipleOfThree;
         const cooldown = (lastCrankTime[roomId] ?? 0) + 10; // 10s cooldown
+
+        // Refund if timer expired and <3 players
+        if (timerExpired && playerCount < 3 && now > cooldown) {
+          console.log(`[crank] Room ${roomId} — trigger: timer expired with ${playerCount} searchers (refund)`);
+          lastCrankTime[roomId] = now;
+          await refundExpiredGame(program, connection, crankKeypair, roomId);
+          continue;
+        }
+
+        // Settle if timer expired OR multiple of 3 players (and >=3 players)
+        const shouldSettle = (timerExpired || multipleOfThree) && playerCount >= 3;
 
         if (shouldSettle && now > cooldown) {
           const reason = timerExpired ? `timer expired (${elapsed}s)` : `${playerCount} searchers (multiple of 3)`;

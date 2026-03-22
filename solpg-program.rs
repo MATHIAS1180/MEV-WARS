@@ -14,10 +14,11 @@ use anchor_lang::system_program;
 use anchor_lang::solana_program::hash::hash;
 use std::str::FromStr;
 
-declare_id!("78sJmBoRvgC7LrCi85otiH5ebxVLDYwW6jUMBLd5JSco");
+declare_id!("6kBgAR5grqnabjUq6x5GMmjVWjHFoRJZgGcKGuy5zPJc");
 
 pub const MAX_PLAYERS: usize = 30;
 pub const TREASURY_PUBKEY: &str = "FC2km6B1ub8fBf4FdLFs1hbJjmLx6EJbdAzN9Ajnb8nt";
+pub const BLOCK_EXPIRATION_SECONDS: i64 = 30;
 
 #[program]
 pub mod solana_russian_roulette {
@@ -85,6 +86,47 @@ pub mod solana_russian_roulette {
         Ok(())
     }
 
+    /// Refund all players if timer expired and <3 players
+    pub fn refund_expired_game(ctx: Context<RefundExpiredGame>, room_id: u8) -> Result<()> {
+        let game = &mut ctx.accounts.game;
+        let clock = Clock::get()?;
+
+        require!(game.state == GameState::Waiting, ErrorCode::GameNotInWaitingState);
+        require!(game.player_count > 0, ErrorCode::GameEmpty);
+        require!(game.player_count < 3, ErrorCode::TooManyPlayers);
+
+        // Check if 30 seconds have passed since first player joined
+        let elapsed = clock.unix_timestamp - game.block_start_time;
+        require!(elapsed >= BLOCK_EXPIRATION_SECONDS, ErrorCode::TimerNotExpired);
+
+        let player_count = game.player_count as usize;
+        let refund_amount = game.entry_fee;
+
+        // Refund all players
+        for i in 0..player_count {
+            let player_pubkey = game.players[i];
+            if let Some(account) = ctx.remaining_accounts.iter().find(|a| a.key() == player_pubkey) {
+                **game.to_account_info().try_borrow_mut_lamports()? -= refund_amount;
+                **account.try_borrow_mut_lamports()? += refund_amount;
+            }
+        }
+
+        emit!(GameRefundedEvent { game: game.key() });
+
+        // Reset game
+        game.player_count = 0;
+        game.pot_amount = 0;
+        game.block_start_time = 0;
+        for i in 0..MAX_PLAYERS {
+            game.players[i] = Pubkey::default();
+        }
+        game.last_activity_time = clock.unix_timestamp;
+        game.resolve_slot = 0;
+
+        Ok(())
+    }
+
+    /// Settle the game when 3+ players
     pub fn settle_winner(ctx: Context<SettleWinner>, room_id: u8) -> Result<()> {
         let game = &mut ctx.accounts.game;
 
@@ -94,29 +136,7 @@ pub mod solana_russian_roulette {
         require!(clock.slot > game.resolve_slot, ErrorCode::DrawTooEarly);
 
         let player_count = game.player_count as usize;
-
-        if player_count < 3 {
-            let refund_amount = game.entry_fee;
-            for i in 0..player_count {
-                let player_pubkey = game.players[i];
-                if let Some(account) = ctx.remaining_accounts.iter().find(|a| a.key() == player_pubkey) {
-                    **game.to_account_info().try_borrow_mut_lamports()? -= refund_amount;
-                    **account.try_borrow_mut_lamports()? += refund_amount;
-                }
-            }
-
-            emit!(GameRefundedEvent { game: game.key() });
-
-            game.player_count = 0;
-            game.pot_amount = 0;
-            game.block_start_time = 0;
-            for i in 0..MAX_PLAYERS {
-                game.players[i] = Pubkey::default();
-            }
-            game.last_activity_time = clock.unix_timestamp;
-            game.resolve_slot = 0;
-            return Ok(());
-        }
+        require!(player_count >= 3, ErrorCode::NotEnoughPlayers);
 
         let num_winners = player_count / 3;
 
@@ -235,6 +255,17 @@ pub struct SettleWinner<'info> {
     pub game: Account<'info, Game>,
 }
 
+#[derive(Accounts)]
+#[instruction(room_id: u8)]
+pub struct RefundExpiredGame<'info> {
+    #[account(
+        mut,
+        seeds = [b"room".as_ref(), &[room_id]],
+        bump = game.bump
+    )]
+    pub game: Account<'info, Game>,
+}
+
 #[account]
 pub struct Game {
     pub room_id: u8,
@@ -307,4 +338,12 @@ pub enum ErrorCode {
     DrawTooEarly,
     #[msg("Invalid treasury address.")]
     InvalidTreasury,
+    #[msg("Game is empty.")]
+    GameEmpty,
+    #[msg("Timer has not expired yet. Wait 30 seconds.")]
+    TimerNotExpired,
+    #[msg("Too many players for refund. Game must have less than 3 players.")]
+    TooManyPlayers,
+    #[msg("Not enough players. Need at least 3 players to settle.")]
+    NotEnoughPlayers,
 }

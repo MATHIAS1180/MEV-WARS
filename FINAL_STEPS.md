@@ -2,7 +2,7 @@
 
 ## ✅ Ce qui est fait :
 - ✅ Smart contract déployé sur devnet
-- ✅ Program ID : `78sJmBoRvgC7LrCi85otiH5ebxVLDYwW6jUMBLd5JSco`
+- ✅ Program ID : `6kBgAR5grqnabjUq6x5GMmjVWjHFoRJZgGcKGuy5zPJc`
 - ✅ Frontend mis à jour avec le nouveau Program ID
 - ✅ Code pushé sur GitHub
 - ✅ Vercel est en train de redéployer (2-3 min)
@@ -47,7 +47,7 @@ Va sur **https://vercel.com/dashboard** et vérifie que le déploiement est term
 
 ### Check le Program ID
 ```bash
-solana program show 78sJmBoRvgC7LrCi85otiH5ebxVLDYwW6jUMBLd5JSco --url devnet
+solana program show 6kBgAR5grqnabjUq6x5GMmjVWjHFoRJZgGcKGuy5zPJc --url devnet
 ```
 
 ### Check les rooms
@@ -131,7 +131,7 @@ Sur Solana Explorer :
 Ton casino MEV Wars est maintenant **LIVE** sur Solana ! 🚀
 
 **Site** : https://mev-wars-casino.vercel.app
-**Program ID** : `78sJmBoRvgC7LrCi85otiH5ebxVLDYwW6jUMBLd5JSco`
+**Program ID** : `6kBgAR5grqnabjUq6x5GMmjVWjHFoRJZgGcKGuy5zPJc`
 **GitHub** : https://github.com/MATHIAS1180/MEV-WARS
 
 ---
