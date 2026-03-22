@@ -184,8 +184,11 @@ export default function Home() {
       console.log(`[triggerCrank] Response:`, data);
       
       if (res.ok && data.action === 'refund') {
-        toast.success('Refund processed! Check your wallet.');
-      } else if (!res.ok && !data.error?.includes('not ready')) {
+        // Refund notification will be shown by the refund detection useEffect
+        console.log('[triggerCrank] Refund processed successfully');
+      } else if (res.ok && data.action === 'settle') {
+        console.log('[triggerCrank] Settlement processed successfully');
+      } else if (!res.ok && !data.error?.includes('not ready') && !data.error?.includes('Game is empty')) {
         console.error('[crank] error:', data);
         if (data.error?.includes('CRANK_PRIVATE_KEY')) {
           toast.error('Crank not configured. Contact admin.');
@@ -193,7 +196,6 @@ export default function Home() {
       }
     } catch (err) { 
       console.error('[crank] fetch failed:', err);
-      toast.error('Failed to trigger crank. Try again.');
     }
   }, [roomId]);
 
@@ -207,22 +209,41 @@ export default function Home() {
 
   // ─── Detect Refund (player count drops to 0 with <3 players) ─────────────
   const prevPlayerCountForRefundRef = useRef<number>(0);
+  const wasInGameRef = useRef<boolean>(false);
+  
+  useEffect(() => {
+    // Track if user was in game
+    if (myPlayerIndex !== null && actualPlayerCount > 0) {
+      wasInGameRef.current = true;
+    }
+  }, [myPlayerIndex, actualPlayerCount]);
+
   useEffect(() => {
     const prev = prevPlayerCountForRefundRef.current;
     const current = actualPlayerCount;
     
-    // If player count dropped from 1-2 to 0, it's a refund
-    if (prev > 0 && prev < 3 && current === 0 && myPlayerIndex !== null) {
-      toast.success('BLOCK REJECTED: Refund processed automatically. Funds returned to wallet.');
+    // If player count dropped from 1-2 to 0 and user was in game, it's a refund
+    if (prev > 0 && prev < 3 && current === 0 && wasInGameRef.current) {
+      toast.success('BLOCK EXPIRED: Not enough searchers. Your funds have been automatically refunded to your wallet.', {
+        duration: 5000,
+      });
+      
+      // Reset UI states
       setIsSpinning(false);
       setCountdown(null);
       setTxPending(false);
       setFrozenDisplay(null);
       setIsWaitingForResult(false);
+      wasInGameRef.current = false;
+      
+      // Force refresh game state
+      setTimeout(() => {
+        stableFetch();
+      }, 1000);
     }
     
     prevPlayerCountForRefundRef.current = current;
-  }, [actualPlayerCount, myPlayerIndex]);
+  }, [actualPlayerCount, stableFetch]);
 
   // ─── Force reset UI when actualPlayerCount is 0 and no game result ───────
   useEffect(() => {
@@ -356,12 +377,7 @@ export default function Home() {
               <p className="text-[10px] sm:text-xs font-black text-zinc-500 tracking-widest mb-1 uppercase">Active Searchers</p>
               <div className="flex items-end gap-1 sm:gap-2">
                 <span className="text-3xl sm:text-4xl font-black neon-text-purple">{playerCount}</span>
-                <span className="text-zinc-700 text-lg sm:text-xl font-bold mb-0.5">/ ∞</span>
-              </div>
-              <div className="flex gap-2 mt-3">
-                {[0, 1, 2].map(i => (
-                  <div key={i} className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full ${i < playerCount ? 'bg-current' : 'bg-white/5'}`} style={{ color: i < playerCount ? BULLET_COLORS[i % BULLET_COLORS.length].color : 'inherit' }} />
-                ))}
+                <span className="text-zinc-700 text-lg sm:text-xl font-bold mb-0.5">/ 30</span>
               </div>
             </motion.div>
 
