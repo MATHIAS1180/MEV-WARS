@@ -73,6 +73,7 @@ export default function RecentHistory({ programId, rpcUrl, rooms, currentRoomId 
   const fetchInitialHistory = useCallback(async (connection: Connection) => {
     const historyMap: Record<number, GameHistory[]> = {};
 
+    // Fetch all rooms in parallel for faster loading
     const fetchPromises = rooms.map(async (roomId) => {
       try {
         const [gamePda] = PublicKey.findProgramAddressSync(
@@ -80,33 +81,50 @@ export default function RecentHistory({ programId, rpcUrl, rooms, currentRoomId 
           programId
         );
 
-        const signatures = await connection.getSignaturesForAddress(gamePda, { limit: 10 });
+        console.log(`[RecentHistory] Fetching signatures for room ${roomId}...`);
+        const signatures = await connection.getSignaturesForAddress(gamePda, { limit: 15 });
+        console.log(`[RecentHistory] Found ${signatures.length} signatures for room ${roomId}`);
+        
         const roomHistory: GameHistory[] = [];
         
-        for (const sig of signatures) {
-          try {
-            const tx = await connection.getTransaction(sig.signature, {
-              maxSupportedTransactionVersion: 0,
-              commitment: 'confirmed',
-            });
+        // Fetch transactions in parallel batches of 5 for speed
+        const batchSize = 5;
+        for (let i = 0; i < signatures.length; i += batchSize) {
+          const batch = signatures.slice(i, i + batchSize);
+          const txPromises = batch.map(async (sig) => {
+            try {
+              const tx = await connection.getTransaction(sig.signature, {
+                maxSupportedTransactionVersion: 0,
+                commitment: 'confirmed',
+              });
 
-            if (tx?.meta?.logMessages) {
-              const game = parseGameFromLogs(tx.meta.logMessages, roomId, sig.signature);
-              if (game) roomHistory.push(game);
+              if (tx?.meta?.logMessages) {
+                const game = parseGameFromLogs(tx.meta.logMessages, roomId, sig.signature);
+                if (game) return game;
+              }
+            } catch (e) {
+              // Skip failed transactions
             }
-          } catch (e) {
-            // Skip failed transactions
-          }
+            return null;
+          });
+          
+          const results = await Promise.all(txPromises);
+          roomHistory.push(...results.filter((g): g is GameHistory => g !== null));
+          
+          // Stop if we have enough games
+          if (roomHistory.length >= 10) break;
         }
         
-        historyMap[roomId] = roomHistory;
+        historyMap[roomId] = roomHistory.slice(0, 10);
+        console.log(`[RecentHistory] Loaded ${roomHistory.length} games for room ${roomId}`);
       } catch (e) {
-        console.error(`Error fetching room ${roomId}:`, e);
+        console.error(`[RecentHistory] Error fetching room ${roomId}:`, e);
         historyMap[roomId] = [];
       }
     });
 
     await Promise.all(fetchPromises);
+    console.log('[RecentHistory] All rooms loaded:', historyMap);
     return historyMap;
   }, [rooms, programId, parseGameFromLogs]);
 
@@ -114,11 +132,17 @@ export default function RecentHistory({ programId, rpcUrl, rooms, currentRoomId 
     const connection = new Connection(rpcUrl, 'confirmed');
     connectionRef.current = connection;
 
-    // Fetch initial history immediately
+    // Set loading to false immediately to show the component
+    setLoading(false);
+
+    // Fetch initial history in background
+    console.log('[RecentHistory] Starting to fetch initial history...');
     fetchInitialHistory(connection).then((initialHistory) => {
       console.log('[RecentHistory] Initial history loaded:', initialHistory);
       setHistoryByRoom(initialHistory);
-      setLoading(false);
+    }).catch((error) => {
+      console.error('[RecentHistory] Error fetching initial history:', error);
+      setHistoryByRoom({});
     });
 
     // Subscribe to all room PDAs for real-time updates using logs subscription
@@ -194,12 +218,28 @@ export default function RecentHistory({ programId, rpcUrl, rooms, currentRoomId 
 
   const roomLabel = currentRoomId ? getRoomLabel(currentRoomId) : 'All Rooms';
 
-  if (loading) {
+  // Show loading state only if we have no data at all
+  const hasAnyData = Object.keys(historyByRoom).length > 0;
+  const isLoadingData = loading || !hasAnyData;
+
+  if (displayHistory.length === 0 && isLoadingData) {
     return (
       <div className="w-full glass-card p-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Recent Games</h3>
-          <span className="text-[9px] text-zinc-700">Loading...</span>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Recent Games - {roomLabel}</h3>
+          <div className="flex items-center gap-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-zinc-600 animate-pulse" />
+            <span className="text-[9px] text-zinc-600 uppercase tracking-wider font-bold">Loading...</span>
+          </div>
+        </div>
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex-shrink-0 w-[180px] bg-white/[0.02] border border-white/5 rounded-lg p-2.5 animate-pulse">
+              <div className="h-4 bg-white/5 rounded mb-2" />
+              <div className="h-3 bg-white/5 rounded mb-1.5" />
+              <div className="h-3 bg-white/5 rounded w-2/3" />
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -210,7 +250,13 @@ export default function RecentHistory({ programId, rpcUrl, rooms, currentRoomId 
       <div className="w-full glass-card p-3">
         <div className="flex items-center justify-between">
           <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Recent Games - {roomLabel}</h3>
-          <span className="text-[9px] text-zinc-700">No games yet</span>
+          <div className="flex items-center gap-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#14F195] animate-pulse" />
+            <span className="text-[9px] text-[#14F195] uppercase tracking-wider font-bold">Live</span>
+          </div>
+        </div>
+        <div className="mt-2 text-center py-4">
+          <span className="text-[10px] text-zinc-600">No games yet in this room</span>
         </div>
       </div>
     );
