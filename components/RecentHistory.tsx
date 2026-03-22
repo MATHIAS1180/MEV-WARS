@@ -15,7 +15,6 @@ interface GameHistory {
   winnersCount: number;
   multiplier: number;
   timestamp: number;
-  winners: string[]; // Array of winner addresses
 }
 
 interface Props {
@@ -40,7 +39,6 @@ export default function RecentHistory({ programId, rooms, currentRoomId }: Props
       let totalPot = 0;
       let winnersCount = 0;
       let hasSettledEvent = false;
-      const winners: string[] = [];
 
       for (const event of events) {
         if (event.name === 'GameSettledEvent') {
@@ -48,10 +46,6 @@ export default function RecentHistory({ programId, rooms, currentRoomId }: Props
           const data = event.data as any;
           totalPot = data.totalPot?.toNumber() || 0;
           winnersCount = data.winnersCount || 0;
-        }
-        if (event.name === 'WinnerExtractedEvent') {
-          const data = event.data as any;
-          winners.push(data.winner.toString());
         }
       }
 
@@ -69,7 +63,6 @@ export default function RecentHistory({ programId, rooms, currentRoomId }: Props
           winnersCount,
           multiplier,
           timestamp: Date.now(),
-          winners,
         };
       }
     } catch (e) {
@@ -196,11 +189,6 @@ export default function RecentHistory({ programId, rooms, currentRoomId }: Props
     }
   };
 
-  const truncateAddress = (address: string) => {
-    if (!address) return '...';
-    return `${address.slice(0, 4)}...${address.slice(-4)}`;
-  };
-
   // Get history for current room - instant switch, no loading
   const displayHistory = currentRoomId 
     ? (historyByRoom[currentRoomId] || [])
@@ -211,19 +199,19 @@ export default function RecentHistory({ programId, rooms, currentRoomId }: Props
   // Show skeleton only on very first load
   if (!isInitialized) {
     return (
-      <div className="w-full glass-card p-2.5">
-        <div className="flex items-center justify-between mb-1.5">
-          <h3 className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Recent Games</h3>
-          <div className="flex items-center gap-1">
-            <div className="w-1.5 h-1.5 rounded-full bg-zinc-600 animate-pulse" />
-            <span className="text-[8px] text-zinc-600 uppercase tracking-wider font-bold">Loading</span>
+      <div className="w-full glass-card p-2">
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Recent Games</h3>
+          <div className="flex items-center gap-0.5">
+            <div className="w-1 h-1 rounded-full bg-zinc-600 animate-pulse" />
+            <span className="text-[7px] text-zinc-600 uppercase tracking-wider font-bold">Loading</span>
           </div>
         </div>
         <div className="flex gap-1.5 overflow-x-auto pb-1">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="flex-shrink-0 w-[140px] bg-white/[0.02] border border-white/5 rounded-lg p-2 animate-pulse">
-              <div className="h-3 bg-white/5 rounded mb-1.5" />
-              <div className="h-2.5 bg-white/5 rounded mb-1" />
+            <div key={i} className="flex-shrink-0 w-[110px] bg-white/[0.02] border border-white/5 rounded p-1.5 animate-pulse">
+              <div className="h-3 bg-white/5 rounded mb-1" />
+              <div className="h-2 bg-white/5 rounded mb-1" />
               <div className="h-2 bg-white/5 rounded w-2/3" />
             </div>
           ))}
@@ -235,43 +223,43 @@ export default function RecentHistory({ programId, rooms, currentRoomId }: Props
   // Empty state
   if (displayHistory.length === 0) {
     return (
-      <div className="w-full glass-card p-2.5">
-        <div className="flex items-center justify-between mb-1.5">
-          <h3 className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Recent Games - {roomLabel}</h3>
-          <div className="flex items-center gap-1">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#14F195] animate-pulse" />
-            <span className="text-[8px] text-[#14F195] uppercase tracking-wider font-bold">Live</span>
+      <div className="w-full glass-card p-2">
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Recent Games - {roomLabel}</h3>
+          <div className="flex items-center gap-0.5">
+            <div className="w-1 h-1 rounded-full bg-[#14F195] animate-pulse" />
+            <span className="text-[7px] text-[#14F195] uppercase tracking-wider font-bold">Live</span>
           </div>
         </div>
-        <div className="py-4 text-center">
-          <span className="text-[9px] text-zinc-600 font-medium">No games yet</span>
+        <div className="py-3 text-center">
+          <span className="text-[8px] text-zinc-600 font-medium">No games yet</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full glass-card p-2.5">
-      <div className="flex items-center justify-between mb-1.5">
-        <h3 className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Recent Games - {roomLabel}</h3>
+    <div className="w-full glass-card p-2">
+      <div className="flex items-center justify-between mb-1">
+        <h3 className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Recent Games - {roomLabel}</h3>
         <div className="flex items-center gap-1">
           <div className="flex items-center gap-0.5">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#14F195] animate-pulse" />
-            <span className="text-[8px] text-[#14F195] uppercase tracking-wider font-bold">Live</span>
+            <div className="w-1 h-1 rounded-full bg-[#14F195] animate-pulse" />
+            <span className="text-[7px] text-[#14F195] uppercase tracking-wider font-bold">Live</span>
           </div>
           <button
             onClick={() => scroll('left')}
             className="p-0.5 rounded bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
             aria-label="Scroll left"
           >
-            <ChevronLeft className="w-2.5 h-2.5 text-zinc-400" />
+            <ChevronLeft className="w-2 h-2 text-zinc-400" />
           </button>
           <button
             onClick={() => scroll('right')}
             className="p-0.5 rounded bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
             aria-label="Scroll right"
           >
-            <ChevronRight className="w-2.5 h-2.5 text-zinc-400" />
+            <ChevronRight className="w-2 h-2 text-zinc-400" />
           </button>
         </div>
       </div>
@@ -290,13 +278,13 @@ export default function RecentHistory({ programId, rooms, currentRoomId }: Props
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
               transition={{ duration: 0.2 }}
-              className="flex-shrink-0 w-[140px] bg-white/[0.02] border border-white/5 rounded-lg p-2 hover:bg-white/[0.04] hover:border-white/10 transition-all"
+              className="flex-shrink-0 w-[110px] bg-white/[0.02] border border-white/5 rounded p-1.5 hover:bg-white/[0.04] hover:border-white/10 transition-all"
             >
               {/* Header: Multiplier + Explorer Link */}
-              <div className="flex items-center justify-between mb-1.5">
-                <div className="flex items-center gap-1">
-                  <Trophy className="w-2.5 h-2.5 text-[#14F195]" />
-                  <span className="text-[#14F195] font-bold text-xs">{game.multiplier.toFixed(2)}x</span>
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-0.5">
+                  <Trophy className="w-2 h-2 text-[#14F195]" />
+                  <span className="text-[#14F195] font-bold text-[10px]">{game.multiplier.toFixed(2)}x</span>
                 </div>
                 <a
                   href={`https://explorer.solana.com/tx/${game.signature}?cluster=devnet`}
@@ -305,12 +293,12 @@ export default function RecentHistory({ programId, rooms, currentRoomId }: Props
                   className="text-zinc-500 hover:text-[#9945FF] transition-colors"
                   aria-label="View on Solana Explorer"
                 >
-                  <ExternalLink className="w-2.5 h-2.5" />
+                  <ExternalLink className="w-2 h-2" />
                 </a>
               </div>
 
               {/* Room + Players + Winners */}
-              <div className="flex items-center gap-1.5 text-[8px] text-zinc-400 mb-1">
+              <div className="flex items-center gap-1 text-[7px] text-zinc-400 mb-1">
                 <span className="text-[#9945FF] font-bold">{getRoomLabel(game.roomId)}</span>
                 <span className="text-zinc-700">•</span>
                 <span>{game.playerCount}P</span>
@@ -318,25 +306,8 @@ export default function RecentHistory({ programId, rooms, currentRoomId }: Props
                 <span className="text-[#14F195]">{game.winnersCount}W</span>
               </div>
 
-              {/* Winner Address */}
-              {game.winners && game.winners.length > 0 && (
-                <div className="mb-1">
-                  <div className="text-[7px] text-zinc-600 uppercase tracking-wider mb-0.5">Winner{game.winners.length > 1 ? 's' : ''}</div>
-                  <div className="flex flex-col gap-0.5">
-                    {game.winners.slice(0, 2).map((winner, idx) => (
-                      <div key={idx} className="text-[8px] font-mono text-zinc-400 truncate">
-                        {truncateAddress(winner)}
-                      </div>
-                    ))}
-                    {game.winners.length > 2 && (
-                      <div className="text-[7px] text-zinc-600">+{game.winners.length - 2} more</div>
-                    )}
-                  </div>
-                </div>
-              )}
-
               {/* Total Pot */}
-              <div className="text-[8px] font-mono text-zinc-500 pt-1 border-t border-white/5">
+              <div className="text-[7px] font-mono text-zinc-500">
                 {game.totalPot.toFixed(3)} SOL
               </div>
             </motion.div>
