@@ -411,7 +411,7 @@ export default function Home() {
       <section className="w-full max-w-[1600px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-4 sm:pt-6 pb-6 sm:pb-10 flex flex-col items-center">
         <header className="w-full flex justify-between items-center mb-4 sm:mb-6 lg:mb-8">
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-            <img src="/images/trigger-logo.png" alt="Trigger.Sol" className="h-16 sm:h-20 md:h-28 lg:h-36 w-auto filter drop-shadow-[0_0_15px_rgba(153,69,255,0.6)]" />
+            <img src="/images/trigger-logo.png" alt="Trigger.Sol" className="h-20 sm:h-24 md:h-32 lg:h-40 xl:h-48 w-auto filter drop-shadow-[0_0_15px_rgba(153,69,255,0.6)]" />
           </motion.div>
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
             <WalletMultiButton />
@@ -419,13 +419,13 @@ export default function Home() {
         </header>
 
         {/* Room Switcher */}
-        <div className="flex gap-1 sm:gap-2 lg:gap-3 p-1 bg-white/5 rounded-xl sm:rounded-2xl border border-white/10 mb-4 sm:mb-6 lg:mb-8 w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg">
+        <div className="flex gap-2 sm:gap-3 lg:gap-4 p-1.5 sm:p-2 bg-white/5 rounded-xl sm:rounded-2xl border border-white/10 mb-4 sm:mb-6 lg:mb-8 w-full max-w-md sm:max-w-lg lg:max-w-2xl">
           {ROOMS.map(room => (
             <button
               key={room.id}
               onClick={() => !countdown && setRoomId(room.id)}
               disabled={!!countdown}
-              className={`flex-1 flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-5 py-2.5 rounded-lg sm:rounded-xl font-bold transition-all text-xs sm:text-sm ${
+              className={`flex-1 flex items-center justify-center gap-2 sm:gap-3 px-4 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-5 rounded-lg sm:rounded-xl font-bold transition-all text-sm sm:text-base lg:text-lg xl:text-xl ${
                 roomId === room.id
                   ? 'bg-gradient-to-r from-[#9945FF] to-[#14F195] text-white shadow-lg'
                   : 'text-zinc-500 hover:text-zinc-300'
@@ -451,19 +451,19 @@ export default function Home() {
 
           {/* Stats Left */}
           <div className="lg:col-span-3 xl:col-span-3 grid grid-cols-2 lg:grid-cols-1 gap-3 lg:gap-4 xl:gap-6">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-card p-4 sm:p-6">
-              <p className="text-[10px] sm:text-xs font-black text-zinc-500 tracking-widest mb-1 uppercase">Active Searchers</p>
-              <div className="flex items-end gap-1 sm:gap-2">
-                <span className="text-3xl sm:text-4xl font-black neon-text-purple">{playerCount}</span>
-                <span className="text-zinc-700 text-lg sm:text-xl font-bold mb-0.5">/ 30</span>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-card p-4 sm:p-5 lg:p-6 xl:p-8">
+              <p className="text-xs sm:text-sm lg:text-base font-black text-zinc-500 tracking-widest mb-2 uppercase">Active Searchers</p>
+              <div className="flex items-end gap-2">
+                <span className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black neon-text-purple">{playerCount}</span>
+                <span className="text-zinc-700 text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-bold mb-1">/ 30</span>
               </div>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-card p-4 sm:p-6">
-              <p className="text-[10px] sm:text-xs font-black text-zinc-500 tracking-widest mb-1 uppercase">Extraction Estimate</p>
-              <p className="text-2xl sm:text-3xl font-black neon-text-cyan">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-card p-4 sm:p-5 lg:p-6 xl:p-8">
+              <p className="text-xs sm:text-sm lg:text-base font-black text-zinc-500 tracking-widest mb-2 uppercase">Extraction Estimate</p>
+              <p className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-black neon-text-cyan">
                 {extractionEstimate > 0 ? `${extractionEstimate.toFixed(2)}x` : '--'}
-                <span className="text-xs sm:text-sm font-bold opacity-50 ml-1">Win</span>
+                <span className="text-sm sm:text-base lg:text-lg xl:text-xl font-bold opacity-50 ml-2">Win</span>
               </p>
             </motion.div>
           </div>
@@ -486,7 +486,7 @@ export default function Home() {
             </div>
 
             {/* Main Action Button */}
-            <div className="mt-6 sm:mt-10 w-full max-w-xs sm:max-w-sm min-h-[70px] flex items-center justify-center">
+            <div className="mt-8 sm:mt-10 lg:mt-12 xl:mt-14 w-full max-w-md sm:max-w-lg lg:max-w-xl min-h-[80px] sm:min-h-[90px] lg:min-h-[100px] flex items-center justify-center">
               <AnimatePresence mode="wait">
                 {!connected ? (
                   <motion.div key="unconnected" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full text-center p-3 sm:p-4 border border-dashed border-zinc-800 rounded-xl text-zinc-600 font-bold uppercase tracking-widest text-xs sm:text-sm">
@@ -517,9 +517,9 @@ export default function Home() {
                     key="play"
                     initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
                     onClick={handleJoin} disabled={txPending}
-                    className="btn-solana w-full py-4 sm:py-5 lg:py-6 text-base sm:text-lg lg:text-xl shadow-[0_0_40px_rgba(153,69,255,0.4)] disabled:opacity-50"
+                    className="btn-solana w-full py-5 sm:py-6 lg:py-7 xl:py-8 text-lg sm:text-xl lg:text-2xl xl:text-3xl shadow-[0_0_40px_rgba(153,69,255,0.4)] disabled:opacity-50 font-black"
                   >
-                    {txPending ? <Loader2 className="animate-spin mx-auto w-7 h-7" /> : `JOIN BLOCK — ${activeRoom.label}`}
+                    {txPending ? <Loader2 className="animate-spin mx-auto w-8 h-8 lg:w-10 lg:h-10" /> : `JOIN BLOCK — ${activeRoom.label}`}
                   </motion.button>
                 )}
               </AnimatePresence>
@@ -528,18 +528,18 @@ export default function Home() {
 
           {/* Stats Right */}
           <div className="lg:col-span-3 xl:col-span-3 grid grid-cols-2 lg:grid-cols-1 gap-3 lg:gap-4 xl:gap-6">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="glass-card p-4 sm:p-6">
-              <p className="text-[10px] sm:text-xs font-black text-zinc-500 tracking-widest mb-1 uppercase">Block Liquidity</p>
-              <p className="text-3xl sm:text-4xl font-black neon-text-cyan">{potAmount.toFixed(3)} <span className="text-xs sm:text-sm font-bold opacity-50">SOL</span></p>
-              <div className="mt-1.5 text-[9px] sm:text-[10px] text-zinc-600 font-bold tracking-widest">→ Pool: {(potAmount * 0.95).toFixed(3)} SOL</div>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="glass-card p-4 sm:p-5 lg:p-6 xl:p-8">
+              <p className="text-xs sm:text-sm lg:text-base font-black text-zinc-500 tracking-widest mb-2 uppercase">Block Liquidity</p>
+              <p className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black neon-text-cyan">{potAmount.toFixed(3)} <span className="text-sm sm:text-base lg:text-lg xl:text-xl font-bold opacity-50">SOL</span></p>
+              <div className="mt-2 text-xs sm:text-sm lg:text-base text-zinc-600 font-bold tracking-widest">→ Pool: {(potAmount * 0.95).toFixed(3)} SOL</div>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="glass-card p-4 sm:p-6">
-              <div className="flex items-center gap-1.5 sm:gap-2 mb-2">
-                <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-zinc-500" />
-                <p className="text-[10px] sm:text-xs font-black text-zinc-500 tracking-widest uppercase">Block Expiration</p>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="glass-card p-4 sm:p-5 lg:p-6 xl:p-8">
+              <div className="flex items-center gap-2 mb-2">
+                <Clock className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-zinc-500" />
+                <p className="text-xs sm:text-sm lg:text-base font-black text-zinc-500 tracking-widest uppercase">Block Expiration</p>
               </div>
-              <p className="text-2xl sm:text-3xl font-black text-white">
+              <p className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-black text-white">
                 {timeRemaining !== null ? `${Math.floor(timeRemaining / 60)}:${(timeRemaining % 60).toString().padStart(2, '0')}` : '--:--'}
               </p>
             </motion.div>
