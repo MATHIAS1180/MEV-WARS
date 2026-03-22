@@ -207,9 +207,9 @@ export default function RecentHistory({ programId, rooms, currentRoomId }: Props
             <span className="text-[7px] text-zinc-600 uppercase tracking-wider font-bold">Loading</span>
           </div>
         </div>
-        <div className="flex gap-1.5 overflow-x-auto">
+        <div className="flex gap-2 overflow-x-auto">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="flex-shrink-0 w-[120px] bg-white/[0.02] border border-white/5 rounded p-2 animate-pulse">
+            <div key={i} className="flex-1 min-w-[140px] max-w-[200px] bg-white/[0.02] border border-white/5 rounded p-2 animate-pulse">
               <div className="h-3 bg-white/5 rounded mb-1.5" />
               <div className="h-2.5 bg-white/5 rounded mb-1" />
               <div className="h-2 bg-white/5 rounded w-2/3" />
@@ -266,7 +266,7 @@ export default function RecentHistory({ programId, rooms, currentRoomId }: Props
       
       <div 
         ref={scrollContainerRef}
-        className="flex gap-1.5 overflow-x-auto custom-scrollbar-horizontal"
+        className="flex gap-2 overflow-x-auto custom-scrollbar-horizontal"
         style={{ scrollbarWidth: 'thin' }}
       >
         <AnimatePresence mode="popLayout">
@@ -278,7 +278,7 @@ export default function RecentHistory({ programId, rooms, currentRoomId }: Props
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
               transition={{ duration: 0.2 }}
-              className="flex-shrink-0 w-[120px] bg-white/[0.02] border border-white/5 rounded p-2 hover:bg-white/[0.04] hover:border-white/10 transition-all"
+              className="flex-1 min-w-[140px] max-w-[200px] bg-white/[0.02] border border-white/5 rounded p-2 hover:bg-white/[0.04] hover:border-white/10 transition-all"
             >
               {/* Header: Multiplier + Explorer Link */}
               <div className="flex items-center justify-between mb-1.5">
