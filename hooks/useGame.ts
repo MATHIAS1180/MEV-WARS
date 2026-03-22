@@ -147,14 +147,37 @@ export function useGame(roomId: number) {
           console.log('[useGame] Game settled detected! prev:', prev, 'current:', decoded.playerCount);
           setIsScanningLogs(true);
           
+          // Calculate number of winners (1 per 3 players)
+          const numWinners = Math.floor(prev / 3);
+          const totalPot = decoded.potAmount?.toNumber() || 0;
+          const rewardPool = totalPot * 0.95;
+          const perWinner = rewardPool / numWinners;
+          
+          // Get all players who were in the game
+          const allPlayers = (decoded.players as any[])
+            .slice(0, prev)
+            .map((p: any) => p.toString())
+            .filter((p: string) => p !== PublicKey.default.toString());
+          
+          // Select random winners (simple random for mock, will be replaced by real result)
+          const shuffled = [...allPlayers].sort(() => Math.random() - 0.5);
+          const mockWinners = shuffled.slice(0, numWinners);
+          
+          console.log('[useGame] Creating mock result:', {
+            players: prev,
+            numWinners,
+            totalPot,
+            perWinner,
+            mockWinners
+          });
+          
           // Start with a mock result immediately to trigger countdown
-          // This will be replaced by the real result when found
           const mockResult: GameResult = {
-            winner: decoded.players[0]?.toString() || '',
+            winner: mockWinners[0] || '',
             winnerIndex: 0,
-            winners: [decoded.players[0]?.toString() || ''],
-            totalPot: decoded.potAmount?.toNumber() || 0,
-            winnerAmount: (decoded.potAmount?.toNumber() || 0) * 0.95,
+            winners: mockWinners,
+            totalPot: totalPot,
+            winnerAmount: perWinner,
           };
           
           let retries = 10;
