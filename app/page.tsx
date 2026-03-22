@@ -177,6 +177,8 @@ export default function Home() {
 
   // ─── Auto-Crank ───────────────────────────────────────────────────────────
   const lastCrankTimeRef = useRef(0);
+  const crankRetryCountRef = useRef(0);
+  
   const triggerCrank = useCallback(async () => {
     if (Date.now() - lastCrankTimeRef.current < 10000) return;
     lastCrankTimeRef.current = Date.now();
@@ -196,25 +198,41 @@ export default function Home() {
       console.log(`[triggerCrank] Response:`, data);
       
       if (res.ok && data.action === 'refund') {
-        // Refund notification will be shown by the refund detection useEffect
         console.log('[triggerCrank] Refund processed successfully');
+        crankRetryCountRef.current = 0;
       } else if (res.ok && data.action === 'settle') {
         console.log('[triggerCrank] Settlement processed successfully');
+        crankRetryCountRef.current = 0;
+      } else if (!res.ok && data.shouldRetry && crankRetryCountRef.current < 5) {
+        // Slot not ready yet, retry after a short delay
+        crankRetryCountRef.current++;
+        console.log(`[triggerCrank] Slot not ready, retrying in 1s (attempt ${crankRetryCountRef.current}/5)...`);
+        setTimeout(() => {
+          lastCrankTimeRef.current = 0; // Reset to allow retry
+          triggerCrank();
+        }, 1000);
       } else if (!res.ok && !data.error?.includes('not ready') && !data.error?.includes('Game is empty')) {
         console.error('[crank] error:', data);
+        crankRetryCountRef.current = 0;
         if (data.error?.includes('CRANK_PRIVATE_KEY')) {
           toast.error('Crank not configured. Contact admin.');
         }
+      } else {
+        crankRetryCountRef.current = 0;
       }
     } catch (err) { 
       console.error('[crank] fetch failed:', err);
+      crankRetryCountRef.current = 0;
     }
   }, [roomId]);
 
   useEffect(() => {
     const pc = gameState?.playerCount ?? 0;
+    console.log('[page] Player count changed:', pc, 'txPending:', txPending);
+    
     // Trigger crank when a multiple of 3 searchers is reached
     if (pc > 0 && pc % 3 === 0 && !txPending) {
+      console.log('[page] Multiple of 3 reached, triggering crank...');
       triggerCrank();
     }
   }, [gameState?.playerCount, txPending, triggerCrank]);
@@ -269,12 +287,14 @@ export default function Home() {
 
   // ─── RPC Status ───────────────────────────────────────────────────────────
   useEffect(() => {
-    if (isScanningLogs) {
+    // Only show "RESOLVING BLOCK" when we're actually scanning for results
+    // AND the player count has dropped to 0 (game has been resolved on-chain)
+    if (isScanningLogs && actualPlayerCount === 0) {
       setIsWaitingForResult(true);
     } else if (!gameResult) {
       setIsWaitingForResult(false);
     }
-  }, [isScanningLogs, gameResult]);
+  }, [isScanningLogs, gameResult, actualPlayerCount]);
 
   // ─── Watchdog ─────────────────────────────────────────────────────────────
   const watchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -333,8 +353,7 @@ export default function Home() {
         success: 'Searcher registered in block.',
         error: (e: any) => `Failed: ${e.message}`,
       });
-      const txResult = await txPromise;
-      if (txResult === true) setIsWaitingForResult(true);
+      await txPromise;
     } catch (e) { console.error(e); }
     finally { setTxPending(false); }
   };

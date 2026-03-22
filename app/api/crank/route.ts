@@ -129,6 +129,20 @@ export async function POST(req: NextRequest) {
     const sim = await connection.simulateTransaction(settleTx, [crankKeypair]);
     if (sim.value.err) {
       console.error('[crank] simulation failed:', sim.value.err, sim.value.logs);
+      
+      // Check if it's a "DrawTooEarly" error (slot not ready yet)
+      const logs = sim.value.logs || [];
+      const isDrawTooEarly = logs.some(log => log.includes('DrawTooEarly') || log.includes('0x1772'));
+      
+      if (isDrawTooEarly) {
+        console.log('[crank] DrawTooEarly - slot not ready yet, will retry automatically');
+        return NextResponse.json({
+          error: 'Slot not ready yet',
+          detail: 'DrawTooEarly - crank will retry',
+          shouldRetry: true,
+        }, { status: 400 });
+      }
+      
       return NextResponse.json({
         error: 'settle_winner simulation failed',
         detail: sim.value.err,
