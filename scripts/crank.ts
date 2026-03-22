@@ -32,7 +32,7 @@ const POLL_INTERVAL_MS = 3000;
 
 const ROOM_IDS = [101, 102, 103];
 
-const PROGRAM_ID = new PublicKey('88DPR42LhZwDC3SfJR2xwszbs7rm547JK18WC2Vsc8zd');
+const PROGRAM_ID = new PublicKey('78sJmBoRvgC7LrCi85otiH5ebxVLDYwW6jUMBLd5JSco');
 const TREASURY_PUBKEY = new PublicKey('FC2km6B1ub8fBf4FdLFs1hbJjmLx6EJbdAzN9Ajnb8nt');
 
 // ─── IDL (minimal subset needed for crank) ───────────────────────────────────

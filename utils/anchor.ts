@@ -1,7 +1,7 @@
 import { Connection, PublicKey } from '@solana/web3.js';
 import { Idl } from '@coral-xyz/anchor';
 
-export const PROGRAM_ID = new PublicKey("88DPR42LhZwDC3SfJR2xwszbs7rm547JK18WC2Vsc8zd");
+export const PROGRAM_ID = new PublicKey("78sJmBoRvgC7LrCi85otiH5ebxVLDYwW6jUMBLd5JSco");
 export const TREASURY_PUBKEY = new PublicKey("FC2km6B1ub8fBf4FdLFs1hbJjmLx6EJbdAzN9Ajnb8nt");
 
 // Localhost for local dev — override via NEXT_PUBLIC_RPC_URL in .env

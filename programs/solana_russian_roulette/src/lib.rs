@@ -3,7 +3,7 @@ use anchor_lang::system_program;
 use anchor_lang::solana_program::hash::hash;
 use std::str::FromStr;
 
-declare_id!("88DPR42LhZwDC3SfJR2xwszbs7rm547JK18WC2Vsc8zd");
+declare_id!("78sJmBoRvgC7LrCi85otiH5ebxVLDYwW6jUMBLd5JSco");
 
 // No MAX_PLAYERS cap — unlimited searchers per block
 pub const MAX_PLAYERS: usize = 30;
