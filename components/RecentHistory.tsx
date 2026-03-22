@@ -1,8 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Connection, PublicKey } from "@solana/web3.js";
+import { Program, AnchorProvider, BorshCoder, EventParser } from "@coral-xyz/anchor";
 import { motion } from "framer-motion";
 import { ExternalLink, Trophy, Users } from "lucide-react";
+import { IDL } from "@/utils/anchor";
 
 interface GameHistory {
   signature: string;
@@ -34,9 +36,10 @@ export default function RecentHistory({ roomId, programId, rpcUrl }: Props) {
         );
 
         // Get recent transactions for this game account
-        const signatures = await connection.getSignaturesForAddress(gamePda, { limit: 10 });
+        const signatures = await connection.getSignaturesForAddress(gamePda, { limit: 20 });
         
         const historyData: GameHistory[] = [];
+        const parser = new EventParser(programId, new BorshCoder(IDL as any));
 
         for (const sig of signatures) {
           try {
@@ -47,38 +50,32 @@ export default function RecentHistory({ roomId, programId, rpcUrl }: Props) {
 
             if (!tx?.meta?.logMessages) continue;
 
-            // Parse logs for GameSettledEvent
-            const logs = tx.meta.logMessages;
+            // Parse events from logs
+            const events = parser.parseLogs(tx.meta.logMessages);
+            
             let totalPot = 0;
             let winnersCount = 0;
             const winners: string[] = [];
+            let hasSettledEvent = false;
 
-            for (const log of logs) {
-              // Look for event data in logs
-              if (log.includes('GameSettledEvent')) {
-                // Extract data from subsequent logs
-                const potMatch = logs.find(l => l.includes('total_pot'));
-                const winnersMatch = logs.find(l => l.includes('winners_count'));
-                
-                if (potMatch) {
-                  const match = potMatch.match(/total_pot:\s*(\d+)/);
-                  if (match) totalPot = parseInt(match[1]);
-                }
-                if (winnersMatch) {
-                  const match = winnersMatch.match(/winners_count:\s*(\d+)/);
-                  if (match) winnersCount = parseInt(match[1]);
-                }
+            for (const event of events) {
+              if (event.name === 'GameSettledEvent') {
+                hasSettledEvent = true;
+                const data = event.data as any;
+                totalPot = data.totalPot?.toNumber() || 0;
+                winnersCount = data.winnersCount || 0;
               }
               
-              if (log.includes('WinnerExtractedEvent')) {
-                const winnerMatch = log.match(/winner:\s*([A-Za-z0-9]{32,44})/);
-                if (winnerMatch && !winners.includes(winnerMatch[1])) {
-                  winners.push(winnerMatch[1]);
+              if (event.name === 'WinnerExtractedEvent') {
+                const data = event.data as any;
+                const winnerPubkey = data.winner?.toString();
+                if (winnerPubkey && !winners.includes(winnerPubkey)) {
+                  winners.push(winnerPubkey);
                 }
               }
             }
 
-            if (totalPot > 0 && winnersCount > 0) {
+            if (hasSettledEvent && totalPot > 0 && winnersCount > 0) {
               const playerCount = winnersCount * 3; // 1 winner per 3 players
               const entryFee = totalPot / playerCount;
               const prizePerWinner = (totalPot * 0.95) / winnersCount;
@@ -109,8 +106,8 @@ export default function RecentHistory({ roomId, programId, rpcUrl }: Props) {
 
     fetchHistory();
     
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchHistory, 30000);
+    // Refresh every 15 seconds
+    const interval = setInterval(fetchHistory, 15000);
     return () => clearInterval(interval);
   }, [roomId, programId, rpcUrl]);
 
@@ -118,7 +115,7 @@ export default function RecentHistory({ roomId, programId, rpcUrl }: Props) {
     return (
       <div className="glass-card p-6">
         <h3 className="text-sm font-black text-zinc-500 uppercase tracking-widest mb-4">Recent Games</h3>
-        <p className="text-zinc-600 text-xs">Loading...</p>
+        <p className="text-zinc-600 text-xs">Loading history...</p>
       </div>
     );
   }
@@ -127,14 +124,17 @@ export default function RecentHistory({ roomId, programId, rpcUrl }: Props) {
     return (
       <div className="glass-card p-6">
         <h3 className="text-sm font-black text-zinc-500 uppercase tracking-widest mb-4">Recent Games</h3>
-        <p className="text-zinc-600 text-xs">No games played yet</p>
+        <p className="text-zinc-600 text-xs">No games played yet in this room</p>
       </div>
     );
   }
 
   return (
     <div className="glass-card p-6">
-      <h3 className="text-sm font-black text-zinc-500 uppercase tracking-widest mb-4">Recent Games</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-black text-zinc-500 uppercase tracking-widest">Recent Games</h3>
+        <span className="text-[10px] text-zinc-700 uppercase tracking-wider">Room {roomId}</span>
+      </div>
       <div className="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar">
         {history.map((game, index) => (
           <motion.div
