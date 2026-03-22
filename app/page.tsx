@@ -408,8 +408,8 @@ export default function Home() {
       <div className="scanlines" />
       <Toaster position="top-center" theme="dark" />
 
-      <section className="w-full max-w-6xl px-3 sm:px-6 pt-4 sm:pt-8 pb-8 sm:pb-12 flex flex-col items-center">
-        <header className="w-full flex justify-between items-center mb-6 sm:mb-10">
+      <section className="w-full max-w-[1600px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-4 sm:pt-6 pb-6 sm:pb-10 flex flex-col items-center">
+        <header className="w-full flex justify-between items-center mb-4 sm:mb-6 lg:mb-8">
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
             <img src="/images/trigger-logo.png" alt="Trigger.Sol" className="h-16 sm:h-20 md:h-28 lg:h-36 w-auto filter drop-shadow-[0_0_15px_rgba(153,69,255,0.6)]" />
           </motion.div>
@@ -419,7 +419,7 @@ export default function Home() {
         </header>
 
         {/* Room Switcher */}
-        <div className="flex gap-1 sm:gap-3 p-1 bg-white/5 rounded-xl sm:rounded-2xl border border-white/10 mb-6 sm:mb-10 w-full max-w-xs sm:max-w-sm md:max-w-md">
+        <div className="flex gap-1 sm:gap-2 lg:gap-3 p-1 bg-white/5 rounded-xl sm:rounded-2xl border border-white/10 mb-4 sm:mb-6 lg:mb-8 w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg">
           {ROOMS.map(room => (
             <button
               key={room.id}
@@ -438,7 +438,7 @@ export default function Home() {
         </div>
 
         {/* Recent History - Horizontal Scroll */}
-        <div className="w-full mb-4 sm:mb-6">
+        <div className="w-full mb-3 sm:mb-4 lg:mb-6">
           <RecentHistory 
             programId={PROGRAM_ID} 
             rooms={[101, 102, 103]}
@@ -447,10 +447,10 @@ export default function Home() {
         </div>
 
         {/* Game Area */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-10 w-full items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 xl:grid-cols-12 gap-3 sm:gap-4 lg:gap-6 xl:gap-8 w-full items-start">
 
           {/* Stats Left */}
-          <div className="lg:col-span-3 grid grid-cols-2 lg:grid-cols-1 gap-3 lg:gap-6">
+          <div className="lg:col-span-3 xl:col-span-3 grid grid-cols-2 lg:grid-cols-1 gap-3 lg:gap-4 xl:gap-6">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-card p-4 sm:p-6">
               <p className="text-[10px] sm:text-xs font-black text-zinc-500 tracking-widest mb-1 uppercase">Active Searchers</p>
               <div className="flex items-end gap-1 sm:gap-2">
@@ -469,7 +469,7 @@ export default function Home() {
           </div>
 
           {/* Center Barrel */}
-          <div className="lg:col-span-6 flex flex-col items-center justify-center order-first lg:order-none">
+          <div className="lg:col-span-6 xl:col-span-6 flex flex-col items-center justify-center order-first lg:order-none">
             <div className="relative group">
               <div className="absolute inset-0 rounded-full scale-150 pointer-events-none"
                 style={{ background: "radial-gradient(circle, rgba(153,69,255,0.15) 0%, rgba(20,241,149,0.06) 60%, transparent 80%)", filter: "blur(30px)", animation: "pulse 4s ease-in-out infinite" }} />
@@ -527,7 +527,7 @@ export default function Home() {
           </div>
 
           {/* Stats Right */}
-          <div className="lg:col-span-3 grid grid-cols-2 lg:grid-cols-1 gap-3 lg:gap-6">
+          <div className="lg:col-span-3 xl:col-span-3 grid grid-cols-2 lg:grid-cols-1 gap-3 lg:gap-4 xl:gap-6">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="glass-card p-4 sm:p-6">
               <p className="text-[10px] sm:text-xs font-black text-zinc-500 tracking-widest mb-1 uppercase">Block Liquidity</p>
               <p className="text-3xl sm:text-4xl font-black neon-text-cyan">{potAmount.toFixed(3)} <span className="text-xs sm:text-sm font-bold opacity-50">SOL</span></p>
@@ -548,7 +548,7 @@ export default function Home() {
       </section>
 
       {/* Info Section */}
-      <section className="w-full max-w-6xl px-6 py-24 relative z-10">
+      <section className="w-full max-w-[1600px] px-4 sm:px-6 lg:px-8 xl:px-12 py-16 sm:py-20 lg:py-24 relative z-10">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#9945FF]/5 to-transparent pointer-events-none" />
 
         <div className="text-center mb-20 relative">
