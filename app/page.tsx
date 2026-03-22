@@ -219,6 +219,78 @@ export default function Home() {
     }
   }, [actualPlayerCount, gameResult, txPending]);
 
+  // ─── RPC Status ───────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (isScanningLogs) {
+      setIsWaitingForResult(true);
+    } else if (!gameResult) {
+      setIsWaitingForResult(false);
+    }
+  }, [isScanningLogs, gameResult]);
+
+  // ─── Watchdog ─────────────────────────────────────────────────────────────
+  const watchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (actualPlayerCount === 0 && !gameResult && (isSpinning || countdown !== null || frozenDisplay || isWaitingForResult)) {
+      watchdogRef.current = setTimeout(() => {
+        setIsSpinning(false);
+        setCountdown(null);
+        setTxPending(false);
+        setFrozenDisplay(null);
+        setIsWaitingForResult(false);
+        stableFetch();
+      }, 15000);
+    } else {
+      if (watchdogRef.current) { clearTimeout(watchdogRef.current); watchdogRef.current = null; }
+    }
+    return () => { if (watchdogRef.current) clearTimeout(watchdogRef.current); };
+  }, [actualPlayerCount, gameResult, isSpinning, countdown, frozenDisplay, isWaitingForResult, stableFetch]);
+
+  // ─── Block Expiration Timer (30s from first searcher) ────────────────────
+  const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+  useEffect(() => {
+    if (gameState && isWaiting && actualPlayerCount > 0) {
+      const iv = setInterval(() => {
+        const blockStart = gameState.blockStartTime
+          ? Number(gameState.blockStartTime.toString())
+          : gameState.lastActivityTime
+            ? Number(gameState.lastActivityTime.toString())
+            : Date.now() / 1000;
+        const elapsed = Math.floor(Date.now() / 1000) - blockStart;
+        const r = BLOCK_EXPIRATION_SECONDS - elapsed;
+        const remaining = r > 0 ? r : 0;
+        setTimeRemaining(remaining);
+
+        // Auto-trigger crank when timer hits 0
+        if (remaining === 0) {
+          triggerCrank();
+        }
+      }, 1000);
+      return () => clearInterval(iv);
+    }
+    setTimeRemaining(null);
+  }, [gameState, isWaiting, actualPlayerCount, triggerCrank]);
+
+  // ─── Join Handler ─────────────────────────────────────────────────────────
+  const handleJoin = async () => {
+    if (!publicKey) return;
+    const myKey = publicKey.toString();
+    if (!lastPlayersRef.current.includes(myKey)) lastPlayersRef.current.push(myKey);
+
+    try {
+      setTxPending(true);
+      const txPromise = joinGame(activeRoom.lamports);
+      toast.promise(txPromise, {
+        loading: 'Submitting bundle to Mempool...',
+        success: 'Searcher registered in block.',
+        error: (e: any) => `Failed: ${e.message}`,
+      });
+      const txResult = await txPromise;
+      if (txResult === true) setIsWaitingForResult(true);
+    } catch (e) { console.error(e); }
+    finally { setTxPending(false); }
+  };
+
   return (
     <main className="min-h-screen relative flex flex-col items-center overflow-x-hidden">
       <div className="fixed inset-0 pointer-events-none z-[-1] overflow-hidden">
