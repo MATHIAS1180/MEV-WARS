@@ -1,5 +1,5 @@
 "use client";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 // 30 couleurs variées dans le thème Solana (violet, cyan, vert, rose, orange)
 const PLAYER_COLORS = [
@@ -72,54 +72,167 @@ export default function MiningBlock({ playerCount, isSpinning, rotation, countdo
   return (
     <div className="mining-block-wrapper relative flex items-center justify-center">
       {/* Outer atmospheric glow */}
-      <div className="absolute w-[420px] h-[420px] rounded-3xl pointer-events-none"
+      <div className="absolute w-[480px] h-[480px] rounded-3xl pointer-events-none"
            style={{ 
-             background: "radial-gradient(circle, rgba(153,69,255,0.18) 0%, rgba(20,241,149,0.12) 50%, transparent 80%)", 
-             filter: "blur(30px)", 
-             animation: "pulse 3s ease-in-out infinite" 
+             background: isActive 
+               ? "radial-gradient(circle, rgba(153,69,255,0.25) 0%, rgba(20,241,149,0.18) 50%, transparent 80%)" 
+               : "radial-gradient(circle, rgba(153,69,255,0.12) 0%, rgba(20,241,149,0.08) 50%, transparent 80%)", 
+             filter: "blur(40px)", 
+             animation: isActive ? "pulse 2s ease-in-out infinite" : "pulse 4s ease-in-out infinite" 
            }} />
+
+      {/* Countdown explosion rings */}
+      <AnimatePresence>
+        {countdown !== null && countdown > 0 && (
+          <>
+            {[...Array(3)].map((_, i) => (
+              <motion.div
+                key={`ring-${countdown}-${i}`}
+                className="absolute w-[420px] h-[420px] rounded-full border-4 pointer-events-none"
+                style={{
+                  borderColor: countdown === 1 ? "#FF6B9D" : countdown === 2 ? "#FFB84D" : "#14F195",
+                  opacity: 0.8
+                }}
+                initial={{ scale: 0.8, opacity: 0.8 }}
+                animate={{ 
+                  scale: [0.8, 2.5],
+                  opacity: [0.8, 0]
+                }}
+                transition={{ 
+                  duration: 1,
+                  delay: i * 0.15,
+                  ease: [0.22, 1, 0.36, 1]
+                }}
+              />
+            ))}
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Massive countdown number */}
+      <AnimatePresence mode="wait">
+        {countdown !== null && countdown > 0 && (
+          <motion.div
+            key={`countdown-${countdown}`}
+            className="absolute z-20 pointer-events-none"
+            initial={{ scale: 0.5, opacity: 0, rotateZ: -20 }}
+            animate={{ 
+              scale: [0.5, 1.3, 1],
+              opacity: [0, 1, 1],
+              rotateZ: [20, 0, 0]
+            }}
+            exit={{ 
+              scale: [1, 1.5],
+              opacity: [1, 0],
+              y: [-20, -60]
+            }}
+            transition={{ 
+              duration: 0.6,
+              ease: [0.34, 1.56, 0.64, 1]
+            }}
+          >
+            <div 
+              className="text-[180px] font-black leading-none"
+              style={{
+                background: countdown === 1 
+                  ? "linear-gradient(135deg, #FF6B9D 0%, #EC4899 100%)"
+                  : countdown === 2
+                  ? "linear-gradient(135deg, #FFB84D 0%, #F59E0B 100%)"
+                  : "linear-gradient(135deg, #14F195 0%, #10B981 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                filter: "drop-shadow(0 0 30px currentColor)",
+                textShadow: "0 0 60px rgba(255,255,255,0.5)"
+              }}
+            >
+              {countdown}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <motion.div
         animate={{ 
-          scale: isSpinning ? [1, 1.05, 1] : 1,
-          rotateY: isSpinning ? [0, 360] : 0
+          scale: isSpinning ? [1, 1.08, 1] : 1,
+          rotateY: isSpinning ? [0, 360] : 0,
+          rotateX: isSpinning ? [0, 15, 0] : 0
         }}
         transition={{ 
-          scale: { duration: 2, repeat: isSpinning ? Infinity : 0 },
-          rotateY: { duration: 5, ease: [0.22, 1, 0.36, 1] }
+          scale: { duration: 2.5, repeat: isSpinning ? Infinity : 0, ease: "easeInOut" },
+          rotateY: { duration: 6, ease: [0.22, 1, 0.36, 1], repeat: isSpinning ? Infinity : 0 },
+          rotateX: { duration: 2.5, repeat: isSpinning ? Infinity : 0, ease: "easeInOut" }
         }}
-        style={{ transformOrigin: "center", perspective: "1000px" }}
+        style={{ 
+          transformOrigin: "center", 
+          perspective: "1200px",
+          transformStyle: "preserve-3d"
+        }}
       >
         <svg width="420" height="420" viewBox={`0 0 ${S} ${S}`} fill="none" xmlns="http://www.w3.org/2000/svg">
           <defs>
-            {/* Block gradient */}
+            {/* Enhanced block gradient with depth */}
             <linearGradient id="blockGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#1a1a2e" />
-              <stop offset="50%" stopColor="#0d0d1a" />
+              <stop offset="0%" stopColor="#2a2a3e" />
+              <stop offset="30%" stopColor="#1a1a2e" />
+              <stop offset="70%" stopColor="#0d0d1a" />
               <stop offset="100%" stopColor="#050508" />
             </linearGradient>
 
-            {/* Border gradient */}
+            {/* Animated border gradient */}
             <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#9945FF" stopOpacity="0.8" />
-              <stop offset="50%" stopColor="#14F195" stopOpacity="0.8" />
-              <stop offset="100%" stopColor="#00C2FF" stopOpacity="0.8" />
+              <stop offset="0%" stopColor="#9945FF" stopOpacity={isActive ? "1" : "0.5"}>
+                {isActive && (
+                  <animate attributeName="stop-color" 
+                    values="#9945FF;#14F195;#00C2FF;#9945FF" 
+                    dur="4s" 
+                    repeatCount="indefinite" />
+                )}
+              </stop>
+              <stop offset="50%" stopColor="#14F195" stopOpacity={isActive ? "1" : "0.5"}>
+                {isActive && (
+                  <animate attributeName="stop-color" 
+                    values="#14F195;#00C2FF;#9945FF;#14F195" 
+                    dur="4s" 
+                    repeatCount="indefinite" />
+                )}
+              </stop>
+              <stop offset="100%" stopColor="#00C2FF" stopOpacity={isActive ? "1" : "0.5"}>
+                {isActive && (
+                  <animate attributeName="stop-color" 
+                    values="#00C2FF;#9945FF;#14F195;#00C2FF" 
+                    dur="4s" 
+                    repeatCount="indefinite" />
+                )}
+              </stop>
             </linearGradient>
+
+            {/* 3D depth shadow */}
+            <filter id="depth3D" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur in="SourceAlpha" stdDeviation="3" result="blur" />
+              <feOffset in="blur" dx="4" dy="6" result="offsetBlur" />
+              <feFlood floodColor="#000000" floodOpacity="0.5" />
+              <feComposite in2="offsetBlur" operator="in" result="shadow" />
+              <feMerge>
+                <feMergeNode in="shadow" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
 
             {/* Point gradients for each player */}
             {PLAYER_COLORS.map((color, i) => (
-              <radialGradient key={`pg-${i}`} id={`pointGrad${i}`} cx="35%" cy="30%" r="70%">
-                <stop offset="0%" stopColor={color} stopOpacity="1" />
-                <stop offset="70%" stopColor={color} stopOpacity="0.8" />
-                <stop offset="100%" stopColor={color} stopOpacity="0.6" />
+              <radialGradient key={`pg-${i}`} id={`pointGrad${i}`} cx="30%" cy="25%" r="75%">
+                <stop offset="0%" stopColor="white" stopOpacity="0.9" />
+                <stop offset="30%" stopColor={color} stopOpacity="1" />
+                <stop offset="80%" stopColor={color} stopOpacity="0.8" />
+                <stop offset="100%" stopColor={color} stopOpacity="0.5" />
               </radialGradient>
             ))}
 
-            {/* Glow filter */}
-            <filter id="pointGlow" x="-100%" y="-100%" width="300%" height="300%">
-              <feGaussianBlur stdDeviation="4" result="blur" />
+            {/* Enhanced point glow */}
+            <filter id="pointGlow" x="-150%" y="-150%" width="400%" height="400%">
+              <feGaussianBlur stdDeviation="5" result="blur" />
               <feColorMatrix type="matrix"
-                values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1.5 0"
+                values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 2 0"
                 in="blur" result="color" />
               <feMerge>
                 <feMergeNode in="color" />
@@ -127,11 +240,11 @@ export default function MiningBlock({ playerCount, isSpinning, rotation, countdo
               </feMerge>
             </filter>
 
-            {/* Block glow */}
+            {/* Enhanced block glow */}
             <filter id="blockGlow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="8" result="blur" />
+              <feGaussianBlur stdDeviation="12" result="blur" />
               <feColorMatrix type="matrix"
-                values="0.6 0 0.6 0 0  0 0.3 0.3 0 0  0.6 0 0.6 0 0  0 0 0 1 0"
+                values="0.8 0 0.8 0 0  0 0.4 0.4 0 0  0.8 0 0.8 0 0  0 0 0 1.2 0"
                 in="blur" result="color" />
               <feMerge>
                 <feMergeNode in="color" />
@@ -140,7 +253,19 @@ export default function MiningBlock({ playerCount, isSpinning, rotation, countdo
             </filter>
           </defs>
 
-          {/* Outer glow ring */}
+          {/* Multiple outer glow rings for depth */}
+          <rect 
+            x={BLOCK_X - 12} 
+            y={BLOCK_Y - 12} 
+            width={BLOCK_SIZE + 24} 
+            height={BLOCK_SIZE + 24} 
+            rx="28" 
+            fill="none" 
+            stroke="url(#borderGrad)" 
+            strokeWidth="2" 
+            opacity={isActive ? "0.4" : "0.2"}
+            style={{ filter: "blur(8px)" }}
+          />
           <rect 
             x={BLOCK_X - 8} 
             y={BLOCK_Y - 8} 
@@ -150,11 +275,22 @@ export default function MiningBlock({ playerCount, isSpinning, rotation, countdo
             fill="none" 
             stroke="url(#borderGrad)" 
             strokeWidth="3" 
-            opacity={isActive ? "0.9" : "0.4"}
+            opacity={isActive ? "0.7" : "0.3"}
             style={{ filter: "blur(4px)" }}
           />
 
-          {/* Main block body */}
+          {/* 3D shadow layer */}
+          <rect 
+            x={BLOCK_X + 4} 
+            y={BLOCK_Y + 6} 
+            width={BLOCK_SIZE} 
+            height={BLOCK_SIZE} 
+            rx="20" 
+            fill="rgba(0,0,0,0.4)"
+            style={{ filter: "blur(8px)" }}
+          />
+
+          {/* Main block body with depth */}
           <rect 
             x={BLOCK_X} 
             y={BLOCK_Y} 
@@ -162,10 +298,10 @@ export default function MiningBlock({ playerCount, isSpinning, rotation, countdo
             height={BLOCK_SIZE} 
             rx="20" 
             fill="url(#blockGrad)"
-            filter={isActive ? "url(#blockGlow)" : undefined}
+            filter={isActive ? "url(#blockGlow)" : "url(#depth3D)"}
           />
 
-          {/* Block border */}
+          {/* Block border with animation */}
           <rect 
             x={BLOCK_X} 
             y={BLOCK_Y} 
@@ -174,23 +310,52 @@ export default function MiningBlock({ playerCount, isSpinning, rotation, countdo
             rx="20" 
             fill="none" 
             stroke="url(#borderGrad)" 
-            strokeWidth="2" 
-            opacity={isActive ? "0.8" : "0.3"}
+            strokeWidth={isActive ? "3" : "2"} 
+            opacity={isActive ? "1" : "0.4"}
           />
 
-          {/* Inner border */}
+          {/* Inner border for depth */}
           <rect 
-            x={BLOCK_X + 8} 
-            y={BLOCK_Y + 8} 
-            width={BLOCK_SIZE - 16} 
-            height={BLOCK_SIZE - 16} 
+            x={BLOCK_X + 6} 
+            y={BLOCK_Y + 6} 
+            width={BLOCK_SIZE - 12} 
+            height={BLOCK_SIZE - 12} 
             rx="16" 
             fill="none" 
-            stroke="rgba(255,255,255,0.05)" 
-            strokeWidth="1"
+            stroke="rgba(255,255,255,0.08)" 
+            strokeWidth="1.5"
           />
 
-          {/* Grid lines */}
+          {/* Corner accents */}
+          {[
+            { x: BLOCK_X + 15, y: BLOCK_Y + 15 },
+            { x: BLOCK_X + BLOCK_SIZE - 15, y: BLOCK_Y + 15 },
+            { x: BLOCK_X + 15, y: BLOCK_Y + BLOCK_SIZE - 15 },
+            { x: BLOCK_X + BLOCK_SIZE - 15, y: BLOCK_Y + BLOCK_SIZE - 15 }
+          ].map((corner, i) => (
+            <g key={`corner-${i}`} opacity={isActive ? "0.6" : "0.3"}>
+              <line 
+                x1={corner.x - 8} 
+                y1={corner.y} 
+                x2={corner.x + 8} 
+                y2={corner.y}
+                stroke="#14F195"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+              <line 
+                x1={corner.x} 
+                y1={corner.y - 8} 
+                x2={corner.x} 
+                y2={corner.y + 8}
+                stroke="#14F195"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </g>
+          ))}
+
+          {/* Enhanced grid lines */}
           {Array.from({ length: COLS - 1 }).map((_, i) => {
             const x = BLOCK_X + SPACING_X * (i + 1);
             return (
@@ -200,7 +365,7 @@ export default function MiningBlock({ playerCount, isSpinning, rotation, countdo
                 y1={BLOCK_Y + 20} 
                 x2={x} 
                 y2={BLOCK_Y + BLOCK_SIZE - 20}
-                stroke="rgba(255,255,255,0.03)"
+                stroke={isActive ? "rgba(20,241,149,0.08)" : "rgba(255,255,255,0.03)"}
                 strokeWidth="1"
               />
             );
@@ -214,99 +379,187 @@ export default function MiningBlock({ playerCount, isSpinning, rotation, countdo
                 y1={y} 
                 x2={BLOCK_X + BLOCK_SIZE - 20} 
                 y2={y}
-                stroke="rgba(255,255,255,0.03)"
+                stroke={isActive ? "rgba(20,241,149,0.08)" : "rgba(255,255,255,0.03)"}
                 strokeWidth="1"
               />
             );
           })}
 
-          {/* 30 points */}
+          {/* 30 points with enhanced effects */}
           {points.map((point) => {
-            const isActive = point.index < playerCount;
+            const isPointActive = point.index < playerCount;
             return (
               <g key={point.index}>
-                {/* Point glow when active */}
-                {isActive && (
-                  <circle 
-                    cx={point.x} 
-                    cy={point.y} 
-                    r={POINT_RADIUS + 6}
-                    fill={point.color}
-                    opacity="0.2"
-                    style={{ filter: "blur(6px)" }}
-                  />
+                {/* Outer glow ring when active */}
+                {isPointActive && (
+                  <>
+                    <circle 
+                      cx={point.x} 
+                      cy={point.y} 
+                      r={POINT_RADIUS + 12}
+                      fill={point.color}
+                      opacity="0.15"
+                      style={{ filter: "blur(10px)" }}
+                    />
+                    <circle 
+                      cx={point.x} 
+                      cy={point.y} 
+                      r={POINT_RADIUS + 6}
+                      fill={point.color}
+                      opacity="0.25"
+                      style={{ filter: "blur(6px)" }}
+                    >
+                      <animate 
+                        attributeName="r" 
+                        values={`${POINT_RADIUS + 6};${POINT_RADIUS + 10};${POINT_RADIUS + 6}`}
+                        dur="2s" 
+                        repeatCount="indefinite" 
+                      />
+                      <animate 
+                        attributeName="opacity" 
+                        values="0.25;0.4;0.25"
+                        dur="2s" 
+                        repeatCount="indefinite" 
+                      />
+                    </circle>
+                  </>
                 )}
                 
-                {/* Point */}
+                {/* Main point with gradient */}
                 <circle 
                   cx={point.x} 
                   cy={point.y} 
                   r={POINT_RADIUS}
-                  fill={isActive ? `url(#pointGrad${point.index})` : "rgba(255,255,255,0.05)"}
-                  filter={isActive ? "url(#pointGlow)" : undefined}
-                  style={isActive ? { 
-                    filter: `drop-shadow(0 0 8px ${point.color})` 
+                  fill={isPointActive ? `url(#pointGrad${point.index})` : "rgba(255,255,255,0.04)"}
+                  filter={isPointActive ? "url(#pointGlow)" : undefined}
+                  stroke={isPointActive ? point.color : "rgba(255,255,255,0.1)"}
+                  strokeWidth={isPointActive ? "1.5" : "0.5"}
+                  style={isPointActive ? { 
+                    filter: `drop-shadow(0 0 12px ${point.color})` 
                   } : undefined}
                 />
 
-                {/* Point highlight */}
-                {isActive && (
+                {/* Highlight shine */}
+                {isPointActive && (
                   <circle 
-                    cx={point.x - POINT_RADIUS * 0.3} 
-                    cy={point.y - POINT_RADIUS * 0.3} 
-                    r={POINT_RADIUS * 0.3}
-                    fill="rgba(255,255,255,0.6)"
-                    style={{ filter: "blur(1px)" }}
+                    cx={point.x - POINT_RADIUS * 0.35} 
+                    cy={point.y - POINT_RADIUS * 0.35} 
+                    r={POINT_RADIUS * 0.35}
+                    fill="rgba(255,255,255,0.8)"
+                    style={{ filter: "blur(1.5px)" }}
                   />
                 )}
 
-                {/* Point number (optional, for debugging) */}
-                {/* <text 
-                  x={point.x} 
-                  y={point.y + 4} 
-                  textAnchor="middle" 
-                  fill="white" 
-                  fontSize="10" 
-                  opacity="0.3"
-                >
-                  {point.index + 1}
-                </text> */}
+                {/* Inner ring for depth */}
+                {isPointActive && (
+                  <circle 
+                    cx={point.x} 
+                    cy={point.y} 
+                    r={POINT_RADIUS - 3}
+                    fill="none"
+                    stroke="rgba(255,255,255,0.3)"
+                    strokeWidth="0.5"
+                  />
+                )}
               </g>
             );
           })}
 
-          {/* Center indicator when active */}
+          {/* Enhanced center indicator when active */}
           {isActive && (
-            <g opacity="0.8">
+            <g opacity="0.9">
+              {/* Outer rotating ring */}
               <circle 
                 cx={C} 
                 cy={C} 
-                r="30" 
+                r="45" 
                 fill="none" 
-                stroke="#14F195" 
+                stroke="#9945FF" 
                 strokeWidth="2"
-                strokeDasharray="4 4"
+                strokeDasharray="8 8"
+                opacity="0.4"
               >
                 <animateTransform
                   attributeName="transform"
                   type="rotate"
                   from="0 240 240"
                   to="360 240 240"
+                  dur="6s"
+                  repeatCount="indefinite"
+                />
+              </circle>
+              
+              {/* Middle rotating ring */}
+              <circle 
+                cx={C} 
+                cy={C} 
+                r="35" 
+                fill="none" 
+                stroke="#14F195" 
+                strokeWidth="2.5"
+                strokeDasharray="6 6"
+                opacity="0.6"
+              >
+                <animateTransform
+                  attributeName="transform"
+                  type="rotate"
+                  from="360 240 240"
+                  to="0 240 240"
                   dur="4s"
                   repeatCount="indefinite"
                 />
               </circle>
+
+              {/* Inner pulsing ring */}
               <circle 
                 cx={C} 
                 cy={C} 
-                r="8" 
-                fill="#14F195"
+                r="25" 
+                fill="none" 
+                stroke="#00C2FF" 
+                strokeWidth="2"
                 opacity="0.8"
-              />
+              >
+                <animate 
+                  attributeName="r" 
+                  values="25;30;25"
+                  dur="2s" 
+                  repeatCount="indefinite" 
+                />
+                <animate 
+                  attributeName="opacity" 
+                  values="0.8;0.4;0.8"
+                  dur="2s" 
+                  repeatCount="indefinite" 
+                />
+              </circle>
+
+              {/* Center core */}
+              <circle 
+                cx={C} 
+                cy={C} 
+                r="12" 
+                fill="url(#coreGrad)"
+                filter="url(#pointGlow)"
+              >
+                <animate 
+                  attributeName="r" 
+                  values="12;14;12"
+                  dur="1.5s" 
+                  repeatCount="indefinite" 
+                />
+              </circle>
+
+              {/* Core gradient */}
+              <radialGradient id="coreGrad" cx="40%" cy="40%" r="60%">
+                <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
+                <stop offset="50%" stopColor="#14F195" stopOpacity="1" />
+                <stop offset="100%" stopColor="#9945FF" stopOpacity="0.8" />
+              </radialGradient>
             </g>
           )}
 
-          {/* Block highlight overlay */}
+          {/* Enhanced block highlight overlay with shine effect */}
           <rect 
             x={BLOCK_X} 
             y={BLOCK_Y} 
@@ -316,10 +569,40 @@ export default function MiningBlock({ playerCount, isSpinning, rotation, countdo
             fill="url(#highlight)"
             style={{ mixBlendMode: "overlay" }}
           />
-          <radialGradient id="highlight" cx="30%" cy="25%" r="60%">
-            <stop offset="0%" stopColor="white" stopOpacity="0.08" />
+          <radialGradient id="highlight" cx="25%" cy="20%" r="70%">
+            <stop offset="0%" stopColor="white" stopOpacity="0.15" />
+            <stop offset="50%" stopColor="white" stopOpacity="0.05" />
             <stop offset="100%" stopColor="white" stopOpacity="0" />
           </radialGradient>
+
+          {/* Animated shine sweep when active */}
+          {isActive && (
+            <rect 
+              x={BLOCK_X} 
+              y={BLOCK_Y} 
+              width={BLOCK_SIZE} 
+              height={BLOCK_SIZE} 
+              rx="20" 
+              fill="url(#shine)"
+              style={{ mixBlendMode: "overlay" }}
+            >
+              <animateTransform
+                attributeName="transform"
+                type="translate"
+                from="-360 0"
+                to="360 0"
+                dur="3s"
+                repeatCount="indefinite"
+              />
+            </rect>
+          )}
+          <linearGradient id="shine" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="white" stopOpacity="0" />
+            <stop offset="40%" stopColor="white" stopOpacity="0" />
+            <stop offset="50%" stopColor="white" stopOpacity="0.2" />
+            <stop offset="60%" stopColor="white" stopOpacity="0" />
+            <stop offset="100%" stopColor="white" stopOpacity="0" />
+          </linearGradient>
         </svg>
       </motion.div>
     </div>
