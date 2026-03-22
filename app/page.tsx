@@ -209,6 +209,16 @@ export default function Home() {
     prevPlayerCountForRefundRef.current = current;
   }, [actualPlayerCount, myPlayerIndex]);
 
+  // ─── Force reset UI when actualPlayerCount is 0 and no game result ───────
+  useEffect(() => {
+    if (actualPlayerCount === 0 && !gameResult && !txPending) {
+      setIsSpinning(false);
+      setCountdown(null);
+      setIsWaitingForResult(false);
+      setFrozenDisplay(null);
+    }
+  }, [actualPlayerCount, gameResult, txPending]);
+
   return (
     <main className="min-h-screen relative flex flex-col items-center overflow-x-hidden">
       <div className="fixed inset-0 pointer-events-none z-[-1] overflow-hidden">
