@@ -55,7 +55,7 @@ export const IDL: Idl = {
         fields: [
           { name: "roomId", type: "u8" },
           { name: "entryFee", type: "u64" },
-          { name: "players", type: { array: ["publicKey", 100] } },
+          { name: "players", type: { array: ["publicKey", 30] } },
           { name: "playerCount", type: "u8" },
           { name: "state", type: { defined: "GameState" } },
           { name: "potAmount", type: "u64" },

@@ -33,3 +33,4 @@ yarn-error.log*
 kp.json
 secret.txt
 vars.txt
+.vercel
