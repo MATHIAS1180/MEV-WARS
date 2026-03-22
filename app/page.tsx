@@ -39,7 +39,6 @@ export default function Home() {
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [txPending, setTxPending] = useState(false);
-  const [isWaitingForResult, setIsWaitingForResult] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [showResult, setShowResult] = useState<{ type: 'win' | 'lose', msg: string, amount?: number } | null>(null);
   const [frozenDisplay, setFrozenDisplay] = useState<{ pot: number; winner: number } | null>(null);
@@ -99,7 +98,6 @@ export default function Home() {
 
     setFrozenDisplay({ pot: frozenResult.totalPot / 1e9, winner: frozenResult.winnerAmount / 1e9 });
     setIsSpinning(false);
-    setIsWaitingForResult(false);
     setCountdown(5);
 
     console.log('[page] Starting countdown from 5...');
@@ -168,7 +166,6 @@ export default function Home() {
   useEffect(() => {
     setShowResult(null);
     setIsSpinning(false);
-    setIsWaitingForResult(false);
     setCountdown(null);
     setFrozenDisplay(null);
     setTxPending(false);
@@ -263,7 +260,6 @@ export default function Home() {
       setCountdown(null);
       setTxPending(false);
       setFrozenDisplay(null);
-      setIsWaitingForResult(false);
       wasInGameRef.current = false;
       
       // Force refresh game state
@@ -280,39 +276,26 @@ export default function Home() {
     if (actualPlayerCount === 0 && !gameResult && !txPending) {
       setIsSpinning(false);
       setCountdown(null);
-      setIsWaitingForResult(false);
       setFrozenDisplay(null);
     }
   }, [actualPlayerCount, gameResult, txPending]);
 
-  // ─── RPC Status ───────────────────────────────────────────────────────────
-  useEffect(() => {
-    // Only show "RESOLVING BLOCK" when we're actually scanning for results
-    // AND the player count has dropped to 0 (game has been resolved on-chain)
-    if (isScanningLogs && actualPlayerCount === 0) {
-      setIsWaitingForResult(true);
-    } else if (!gameResult) {
-      setIsWaitingForResult(false);
-    }
-  }, [isScanningLogs, gameResult, actualPlayerCount]);
-
   // ─── Watchdog ─────────────────────────────────────────────────────────────
   const watchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    if (actualPlayerCount === 0 && !gameResult && (isSpinning || countdown !== null || frozenDisplay || isWaitingForResult)) {
+    if (actualPlayerCount === 0 && !gameResult && (isSpinning || countdown !== null || frozenDisplay)) {
       watchdogRef.current = setTimeout(() => {
         setIsSpinning(false);
         setCountdown(null);
         setTxPending(false);
         setFrozenDisplay(null);
-        setIsWaitingForResult(false);
         stableFetch();
       }, 15000);
     } else {
       if (watchdogRef.current) { clearTimeout(watchdogRef.current); watchdogRef.current = null; }
     }
     return () => { if (watchdogRef.current) clearTimeout(watchdogRef.current); };
-  }, [actualPlayerCount, gameResult, isSpinning, countdown, frozenDisplay, isWaitingForResult, stableFetch]);
+  }, [actualPlayerCount, gameResult, isSpinning, countdown, frozenDisplay, stableFetch]);
 
   // ─── Block Expiration Timer (30s from first searcher) ────────────────────
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
@@ -445,15 +428,14 @@ export default function Home() {
                   <motion.div key="unconnected" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full text-center p-3 sm:p-4 border border-dashed border-zinc-800 rounded-xl text-zinc-600 font-bold uppercase tracking-widest text-xs sm:text-sm">
                     Connect Wallet to Start
                   </motion.div>
-                ) : (isSpinning || countdown !== null) ? (
-                  <motion.div key="spinning" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-2 text-[#14F195] font-black tracking-widest">
-                    {isSpinning ? <Loader2 className="animate-spin w-7 h-7 sm:w-8 sm:h-8" /> : null}
-                    <span className="text-sm sm:text-base">{isSpinning ? "EXTRACTING MEV..." : countdown !== null ? `BLOCK RESOLVING IN ${countdown}...` : "PREPARING..."}</span>
+                ) : countdown !== null ? (
+                  <motion.div key="countdown" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-2 text-[#14F195] font-black tracking-widest">
+                    <span className="text-sm sm:text-base">BLOCK RESOLVING IN {countdown}...</span>
                   </motion.div>
-                ) : isWaitingForResult ? (
-                  <motion.div key="waiting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-2 text-[#FFB84D] font-black tracking-widest">
+                ) : isSpinning ? (
+                  <motion.div key="spinning" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-2 text-[#FFB84D] font-black tracking-widest">
                     <Loader2 className="animate-spin w-7 h-7 sm:w-8 sm:h-8" />
-                    <span className="text-sm sm:text-base">RESOLVING BLOCK...</span>
+                    <span className="text-sm sm:text-base">EXTRACTING MEV...</span>
                   </motion.div>
                 ) : myPlayerIndex !== null ? (
                   <motion.div key="ingame" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="flex flex-col items-center gap-3 w-full">
