@@ -144,32 +144,52 @@ export function useGame(roomId: number) {
 
         // Game just settled (player count dropped to 0)
         if (prev >= 3 && decoded.playerCount === 0 && !gameResultRef.current) {
+          console.log('[useGame] Game settled detected! prev:', prev, 'current:', decoded.playerCount);
           setIsScanningLogs(true);
-          let retries = 5;
+          let retries = 8;
           const fetchResult = async () => {
-            if (gameResultRef.current) { setIsScanningLogs(false); return; }
+            if (gameResultRef.current) { 
+              console.log('[useGame] Result already found, stopping scan');
+              setIsScanningLogs(false); 
+              return; 
+            }
             try {
-              const sigs = await connection.getSignaturesForAddress(gamePda, { limit: 5 });
+              console.log('[useGame] Fetching signatures, retry:', 8 - retries);
+              const sigs = await connection.getSignaturesForAddress(gamePda, { limit: 10 });
+              console.log('[useGame] Found', sigs.length, 'signatures');
               let foundResult = null;
               for (const sig of sigs) {
                 const tx = await connection.getTransaction(sig.signature, {
                   maxSupportedTransactionVersion: 0,
                   commitment: 'confirmed',
                 });
-                const result = parseLogsForResult(tx?.meta?.logMessages ?? []);
-                if (result) { foundResult = result; break; }
+                if (tx?.meta?.logMessages) {
+                  console.log('[useGame] Parsing logs for sig:', sig.signature.slice(0, 8));
+                  const result = parseLogsForResult(tx.meta.logMessages);
+                  if (result) { 
+                    console.log('[useGame] Found result!', result);
+                    foundResult = result; 
+                    break; 
+                  }
+                }
               }
               if (foundResult) {
                 setGameResult(foundResult);
                 setIsScanningLogs(false);
-              } else if (retries-- > 0) setTimeout(fetchResult, 1500);
-              else setIsScanningLogs(false);
+              } else if (retries-- > 0) {
+                console.log('[useGame] No result yet, retrying in 2s...');
+                setTimeout(fetchResult, 2000);
+              } else {
+                console.log('[useGame] Max retries reached, stopping scan');
+                setIsScanningLogs(false);
+              }
             } catch (e) {
-              if (retries-- > 0) setTimeout(fetchResult, 1500);
+              console.error('[useGame] Error fetching result:', e);
+              if (retries-- > 0) setTimeout(fetchResult, 2000);
               else setIsScanningLogs(false);
             }
           };
-          setTimeout(fetchResult, 1000);
+          setTimeout(fetchResult, 1500);
         }
       } catch (e) { console.error('Failed to decode', e); }
     }, 'confirmed');

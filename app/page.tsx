@@ -92,22 +92,29 @@ export default function Home() {
   useEffect(() => {
     if (!gameResult) return;
 
+    console.log('[page] Game result received:', gameResult);
+
     const frozenPlayers = [...lastPlayersRef.current];
     const frozenResult = { ...gameResult };
 
     setFrozenDisplay({ pot: frozenResult.totalPot / 1e9, winner: frozenResult.winnerAmount / 1e9 });
     setIsSpinning(false);
+    setIsWaitingForResult(false);
     setCountdown(5);
+
+    console.log('[page] Starting countdown from 5...');
 
     let count = 5;
     let timeoutId: NodeJS.Timeout;
     const intId = setInterval(() => {
       count -= 1;
+      console.log('[page] Countdown:', count);
       setCountdown(count);
 
       if (count <= 0) {
         clearInterval(intId);
         setCountdown(null);
+        console.log('[page] Countdown finished, starting spin animation');
 
         const wndx = frozenResult.winnerIndex ?? 0;
         const finalAngle = 360 - CHAMBER_ANGLES[wndx % CHAMBER_ANGLES.length];
@@ -115,12 +122,15 @@ export default function Home() {
         setIsSpinning(true);
 
         timeoutId = setTimeout(() => {
+          console.log('[page] Spin animation finished');
           setIsSpinning(false);
 
           const myKey = publicKey?.toString() ?? '';
           const wasInGame = frozenPlayers.includes(myKey);
           const isWinner = frozenResult.winners?.includes(myKey) ?? frozenResult.winner === myKey;
           const winAmt = (frozenResult.winnerAmount / 1e9).toFixed(4);
+
+          console.log('[page] Showing result - wasInGame:', wasInGame, 'isWinner:', isWinner);
 
           if (wasInGame && isWinner) {
             setShowResult({
@@ -420,6 +430,11 @@ export default function Home() {
                   <motion.div key="spinning" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-2 text-[#14F195] font-black tracking-widest">
                     {isSpinning ? <Loader2 className="animate-spin w-7 h-7 sm:w-8 sm:h-8" /> : null}
                     <span className="text-sm sm:text-base">{isSpinning ? "EXTRACTING MEV..." : countdown !== null ? `BLOCK RESOLVING IN ${countdown}...` : "PREPARING..."}</span>
+                  </motion.div>
+                ) : isWaitingForResult ? (
+                  <motion.div key="waiting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-2 text-[#FFB84D] font-black tracking-widest">
+                    <Loader2 className="animate-spin w-7 h-7 sm:w-8 sm:h-8" />
+                    <span className="text-sm sm:text-base">RESOLVING BLOCK...</span>
                   </motion.div>
                 ) : myPlayerIndex !== null ? (
                   <motion.div key="ingame" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="flex flex-col items-center gap-3 w-full">
