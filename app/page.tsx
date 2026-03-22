@@ -440,9 +440,9 @@ export default function Home() {
         {/* Recent History - Horizontal Scroll */}
         <div className="w-full mb-4 sm:mb-6">
           <RecentHistory 
-            roomId={roomId} 
             programId={PROGRAM_ID} 
-            rpcUrl={process.env.NEXT_PUBLIC_RPC_URL || 'https://api.devnet.solana.com'} 
+            rpcUrl={process.env.NEXT_PUBLIC_RPC_URL || 'https://api.devnet.solana.com'}
+            rooms={[101, 102, 103]}
           />
         </div>
 
