@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useRef, useCallback } from "react";
-import { Connection, PublicKey } from "@solana/web3.js";
+import { useConnection } from "@solana/wallet-adapter-react";
+import { PublicKey } from "@solana/web3.js";
 import { BorshCoder, EventParser } from "@coral-xyz/anchor";
 import { motion, AnimatePresence } from "framer-motion";
 import { ExternalLink, Trophy, ChevronLeft, ChevronRight } from "lucide-react";
@@ -18,17 +19,17 @@ interface GameHistory {
 
 interface Props {
   programId: PublicKey;
-  rpcUrl: string;
   rooms: number[];
   currentRoomId?: number;
 }
 
-export default function RecentHistory({ programId, rpcUrl, rooms, currentRoomId }: Props) {
+export default function RecentHistory({ programId, rooms, currentRoomId }: Props) {
+  const { connection } = useConnection();
   const [historyByRoom, setHistoryByRoom] = useState<Record<number, GameHistory[]>>({});
-  const [loading, setLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const subscriptionsRef = useRef<number[]>([]);
-  const connectionRef = useRef<Connection | null>(null);
+  const initializingRef = useRef(false);
 
   const parseGameFromLogs = useCallback((logs: string[], roomId: number, signature: string): GameHistory | null => {
     try {
@@ -65,33 +66,32 @@ export default function RecentHistory({ programId, rpcUrl, rooms, currentRoomId 
         };
       }
     } catch (e) {
-      console.error('Error parsing logs:', e);
+      // Silent fail for parsing errors
     }
     return null;
   }, [programId]);
 
-  const fetchInitialHistory = useCallback(async (connection: Connection) => {
+  // Fast initial load - only fetch 5 most recent per room
+  const fetchInitialHistory = useCallback(async () => {
+    if (initializingRef.current) return;
+    initializingRef.current = true;
+
     const historyMap: Record<number, GameHistory[]> = {};
 
-    // Fetch all rooms in parallel for faster loading
-    const fetchPromises = rooms.map(async (roomId) => {
-      try {
-        const [gamePda] = PublicKey.findProgramAddressSync(
-          [Buffer.from('room'), Buffer.from([roomId])],
-          programId
-        );
+    try {
+      await Promise.all(rooms.map(async (roomId) => {
+        try {
+          const [gamePda] = PublicKey.findProgramAddressSync(
+            [Buffer.from('room'), Buffer.from([roomId])],
+            programId
+          );
 
-        console.log(`[RecentHistory] Fetching signatures for room ${roomId}...`);
-        const signatures = await connection.getSignaturesForAddress(gamePda, { limit: 15 });
-        console.log(`[RecentHistory] Found ${signatures.length} signatures for room ${roomId}`);
-        
-        const roomHistory: GameHistory[] = [];
-        
-        // Fetch transactions in parallel batches of 5 for speed
-        const batchSize = 5;
-        for (let i = 0; i < signatures.length; i += batchSize) {
-          const batch = signatures.slice(i, i + batchSize);
-          const txPromises = batch.map(async (sig) => {
+          // Only fetch 5 most recent signatures for speed
+          const signatures = await connection.getSignaturesForAddress(gamePda, { limit: 5 });
+          const roomHistory: GameHistory[] = [];
+          
+          // Fetch in parallel for speed
+          const txPromises = signatures.map(async (sig) => {
             try {
               const tx = await connection.getTransaction(sig.signature, {
                 maxSupportedTransactionVersion: 0,
@@ -99,8 +99,7 @@ export default function RecentHistory({ programId, rpcUrl, rooms, currentRoomId 
               });
 
               if (tx?.meta?.logMessages) {
-                const game = parseGameFromLogs(tx.meta.logMessages, roomId, sig.signature);
-                if (game) return game;
+                return parseGameFromLogs(tx.meta.logMessages, roomId, sig.signature);
               }
             } catch (e) {
               // Skip failed transactions
@@ -110,65 +109,46 @@ export default function RecentHistory({ programId, rpcUrl, rooms, currentRoomId 
           
           const results = await Promise.all(txPromises);
           roomHistory.push(...results.filter((g): g is GameHistory => g !== null));
-          
-          // Stop if we have enough games
-          if (roomHistory.length >= 10) break;
+          historyMap[roomId] = roomHistory;
+        } catch (e) {
+          historyMap[roomId] = [];
         }
-        
-        historyMap[roomId] = roomHistory.slice(0, 10);
-        console.log(`[RecentHistory] Loaded ${roomHistory.length} games for room ${roomId}`);
-      } catch (e) {
-        console.error(`[RecentHistory] Error fetching room ${roomId}:`, e);
-        historyMap[roomId] = [];
-      }
-    });
+      }));
 
-    await Promise.all(fetchPromises);
-    console.log('[RecentHistory] All rooms loaded:', historyMap);
-    return historyMap;
-  }, [rooms, programId, parseGameFromLogs]);
+      setHistoryByRoom(historyMap);
+      setIsInitialized(true);
+    } finally {
+      initializingRef.current = false;
+    }
+  }, [rooms, programId, connection, parseGameFromLogs]);
 
+  // Setup real-time subscriptions
   useEffect(() => {
-    const connection = new Connection(rpcUrl, 'confirmed');
-    connectionRef.current = connection;
+    // Initialize data immediately
+    if (!isInitialized) {
+      fetchInitialHistory();
+    }
 
-    // Set loading to false immediately to show the component
-    setLoading(false);
-
-    // Fetch initial history in background
-    console.log('[RecentHistory] Starting to fetch initial history...');
-    fetchInitialHistory(connection).then((initialHistory) => {
-      console.log('[RecentHistory] Initial history loaded:', initialHistory);
-      setHistoryByRoom(initialHistory);
-    }).catch((error) => {
-      console.error('[RecentHistory] Error fetching initial history:', error);
-      setHistoryByRoom({});
-    });
-
-    // Subscribe to all room PDAs for real-time updates using logs subscription
+    // Subscribe to all rooms for real-time updates
     rooms.forEach((roomId) => {
       const [gamePda] = PublicKey.findProgramAddressSync(
         [Buffer.from('room'), Buffer.from([roomId])],
         programId
       );
 
-      // Use logs subscription for instant updates
+      // Use onLogs for instant updates (same as useGame)
       const subId = connection.onLogs(
         gamePda,
         async (logs) => {
-          console.log(`[RecentHistory] Logs detected for room ${roomId}`);
-          
-          // Parse logs immediately
           const game = parseGameFromLogs(logs.logs, roomId, logs.signature);
           if (game) {
-            console.log('[RecentHistory] New game detected instantly:', game);
             setHistoryByRoom((prev) => {
               const roomHistory = prev[roomId] || [];
-              // Check if this game already exists
+              // Check if already exists
               if (roomHistory.some(g => g.signature === game.signature)) {
                 return prev;
               }
-              // Add new game at the beginning and keep only 10 per room
+              // Add at beginning, keep max 10
               return {
                 ...prev,
                 [roomId]: [game, ...roomHistory].slice(0, 10)
@@ -182,21 +162,19 @@ export default function RecentHistory({ programId, rpcUrl, rooms, currentRoomId 
       subscriptionsRef.current.push(subId);
     });
 
-    // Cleanup subscriptions on unmount
+    // Cleanup
     return () => {
       subscriptionsRef.current.forEach((subId) => {
-        connection.removeOnLogsListener(subId).catch(console.error);
+        connection.removeOnLogsListener(subId).catch(() => {});
       });
       subscriptionsRef.current = [];
-      connectionRef.current = null;
     };
-  }, [programId, rpcUrl, rooms, fetchInitialHistory, parseGameFromLogs]);
+  }, [connection, programId, rooms, parseGameFromLogs, fetchInitialHistory, isInitialized]);
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
-      const scrollAmount = 200;
       scrollContainerRef.current.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        left: direction === 'left' ? -200 : 200,
         behavior: 'smooth'
       });
     }
@@ -211,25 +189,22 @@ export default function RecentHistory({ programId, rpcUrl, rooms, currentRoomId 
     }
   };
 
-  // Get history for current room or all rooms
+  // Get history for current room - instant switch, no loading
   const displayHistory = currentRoomId 
     ? (historyByRoom[currentRoomId] || [])
     : Object.values(historyByRoom).flat().sort((a, b) => b.timestamp - a.timestamp).slice(0, 20);
 
   const roomLabel = currentRoomId ? getRoomLabel(currentRoomId) : 'All Rooms';
 
-  // Show loading state only if we have no data at all
-  const hasAnyData = Object.keys(historyByRoom).length > 0;
-  const isLoadingData = loading || !hasAnyData;
-
-  if (displayHistory.length === 0 && isLoadingData) {
+  // Show skeleton only on very first load
+  if (!isInitialized) {
     return (
       <div className="w-full glass-card p-3">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Recent Games - {roomLabel}</h3>
+          <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Recent Games</h3>
           <div className="flex items-center gap-1">
             <div className="w-1.5 h-1.5 rounded-full bg-zinc-600 animate-pulse" />
-            <span className="text-[9px] text-zinc-600 uppercase tracking-wider font-bold">Loading...</span>
+            <span className="text-[9px] text-zinc-600 uppercase tracking-wider font-bold">Loading</span>
           </div>
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1">
@@ -245,18 +220,19 @@ export default function RecentHistory({ programId, rpcUrl, rooms, currentRoomId 
     );
   }
 
+  // Empty state
   if (displayHistory.length === 0) {
     return (
       <div className="w-full glass-card p-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-2">
           <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Recent Games - {roomLabel}</h3>
           <div className="flex items-center gap-1">
             <div className="w-1.5 h-1.5 rounded-full bg-[#14F195] animate-pulse" />
             <span className="text-[9px] text-[#14F195] uppercase tracking-wider font-bold">Live</span>
           </div>
         </div>
-        <div className="mt-2 text-center py-4">
-          <span className="text-[10px] text-zinc-600">No games yet in this room</span>
+        <div className="py-6 text-center">
+          <span className="text-[10px] text-zinc-600 font-medium">No games yet in this room</span>
         </div>
       </div>
     );
@@ -274,12 +250,14 @@ export default function RecentHistory({ programId, rpcUrl, rooms, currentRoomId 
           <button
             onClick={() => scroll('left')}
             className="p-1 rounded bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
+            aria-label="Scroll left"
           >
             <ChevronLeft className="w-3 h-3 text-zinc-400" />
           </button>
           <button
             onClick={() => scroll('right')}
             className="p-1 rounded bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
+            aria-label="Scroll right"
           >
             <ChevronRight className="w-3 h-3 text-zinc-400" />
           </button>
@@ -291,14 +269,15 @@ export default function RecentHistory({ programId, rpcUrl, rooms, currentRoomId 
         className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar-horizontal"
         style={{ scrollbarWidth: 'thin' }}
       >
-        <AnimatePresence initial={false}>
+        <AnimatePresence mode="popLayout">
           {displayHistory.map((game) => (
             <motion.div
               key={game.signature}
-              initial={{ opacity: 0, scale: 0.8, x: -20 }}
-              animate={{ opacity: 1, scale: 1, x: 0 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              layout
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.2 }}
               className="flex-shrink-0 w-[180px] bg-white/[0.02] border border-white/5 rounded-lg p-2.5 hover:bg-white/[0.04] hover:border-white/10 transition-all"
             >
               <div className="flex items-center justify-between mb-2">
@@ -311,6 +290,7 @@ export default function RecentHistory({ programId, rpcUrl, rooms, currentRoomId 
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-zinc-500 hover:text-[#9945FF] transition-colors"
+                  aria-label="View on Solana Explorer"
                 >
                   <ExternalLink className="w-3 h-3" />
                 </a>

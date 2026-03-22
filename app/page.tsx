@@ -441,7 +441,6 @@ export default function Home() {
         <div className="w-full mb-4 sm:mb-6">
           <RecentHistory 
             programId={PROGRAM_ID} 
-            rpcUrl={process.env.NEXT_PUBLIC_RPC_URL || 'https://api.devnet.solana.com'}
             rooms={[101, 102, 103]}
             currentRoomId={roomId}
           />
