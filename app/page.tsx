@@ -42,6 +42,7 @@ export default function Home() {
   const [countdown, setCountdown] = useState<number | null>(null);
   const [showResult, setShowResult] = useState<{ type: 'win' | 'lose', msg: string, amount?: number } | null>(null);
   const [frozenDisplay, setFrozenDisplay] = useState<{ pot: number; winner: number } | null>(null);
+  const [isProcessingResult, setIsProcessingResult] = useState(false);
 
   const actualPlayerCount = gameState?.playerCount ?? 0;
 
@@ -59,11 +60,14 @@ export default function Home() {
     if (myPlayerIndex !== null) {
       myPlayerIndexRef.current = myPlayerIndex;
     }
-    // Only reset when we're back to initial state (no countdown, no spinning, no result)
-    if (actualPlayerCount === 0 && !countdown && !isSpinning && !gameResult) {
-      myPlayerIndexRef.current = null;
+    // Only reset when we're truly done with everything
+    if (!isProcessingResult && actualPlayerCount === 0 && !countdown && !isSpinning && !gameResult && !showResult) {
+      const timer = setTimeout(() => {
+        myPlayerIndexRef.current = null;
+      }, 2000);
+      return () => clearTimeout(timer);
     }
-  }, [myPlayerIndex, actualPlayerCount, countdown, isSpinning, gameResult]);
+  }, [myPlayerIndex, actualPlayerCount, countdown, isSpinning, gameResult, showResult, isProcessingResult]);
 
   const displayPlayerIndex = myPlayerIndex !== null ? myPlayerIndex : myPlayerIndexRef.current;
 
@@ -162,6 +166,7 @@ export default function Home() {
           setTimeout(() => {
             setFrozenDisplay(null);
             setRotation(0);
+            setIsProcessingResult(false);
             stableFetch();
           }, 1000);
         }, 5000);
@@ -183,6 +188,7 @@ export default function Home() {
     setCountdown(null);
     setFrozenDisplay(null);
     setTxPending(false);
+    setIsProcessingResult(false);
     lastPlayersRef.current = [];
   }, [roomId]);
 
@@ -241,12 +247,22 @@ export default function Home() {
     const pc = gameState?.playerCount ?? 0;
     console.log('[page] Player count changed:', pc, 'txPending:', txPending);
     
+    // Detect when game is being resolved (player count drops from 3+ to 0)
+    if (prevPlayerCountRef.current >= 3 && pc === 0) {
+      console.log('[page] Game resolved! Setting isProcessingResult to true');
+      setIsProcessingResult(true);
+    }
+    
+    prevPlayerCountRef.current = pc;
+    
     // Trigger crank when a multiple of 3 searchers is reached
     if (pc > 0 && pc % 3 === 0 && !txPending) {
       console.log('[page] Multiple of 3 reached, triggering crank...');
       triggerCrank();
     }
   }, [gameState?.playerCount, txPending, triggerCrank]);
+  
+  const prevPlayerCountRef = useRef<number>(0);
 
   // ─── Detect Refund (player count drops to 0 with <3 players) ─────────────
   const prevPlayerCountForRefundRef = useRef<number>(0);
@@ -287,12 +303,17 @@ export default function Home() {
 
   // ─── Force reset UI when actualPlayerCount is 0 and no game result ───────
   useEffect(() => {
-    if (actualPlayerCount === 0 && !gameResult && !txPending) {
-      setIsSpinning(false);
-      setCountdown(null);
-      setFrozenDisplay(null);
+    // Don't reset if we're processing a result or showing animations
+    if (actualPlayerCount === 0 && !gameResult && !txPending && !countdown && !isSpinning && !showResult) {
+      // Add delay to avoid premature reset
+      const timer = setTimeout(() => {
+        setIsSpinning(false);
+        setCountdown(null);
+        setFrozenDisplay(null);
+      }, 1000);
+      return () => clearTimeout(timer);
     }
-  }, [actualPlayerCount, gameResult, txPending]);
+  }, [actualPlayerCount, gameResult, txPending, countdown, isSpinning, showResult]);
 
   // ─── Watchdog ─────────────────────────────────────────────────────────────
   const watchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
