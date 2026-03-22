@@ -481,7 +481,7 @@ export default function Home() {
                         <span className="text-white font-black tracking-wider uppercase text-base sm:text-lg">{BULLET_COLORS[displayPlayerIndex % BULLET_COLORS.length].name}</span>
                       </div>
                     </div>
-                    {actualPlayerCount < 3 && <p className="text-zinc-500 text-[10px] sm:text-xs font-bold uppercase tracking-widest animate-pulse">Waiting for searchers ({actualPlayerCount}/3 min)...</p>}
+                    {actualPlayerCount > 0 && actualPlayerCount < 3 && !isProcessingResult && <p className="text-zinc-500 text-[10px] sm:text-xs font-bold uppercase tracking-widest animate-pulse">Waiting for searchers ({actualPlayerCount}/3 min)...</p>}
                   </motion.div>
                 ) : (
                   <motion.button
