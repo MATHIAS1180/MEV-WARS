@@ -1,50 +1,198 @@
 "use client";
-
+import { useEffect, useState } from "react";
+import { Connection, PublicKey } from "@solana/web3.js";
 import { motion } from "framer-motion";
-import { Trophy, Skull, ExternalLink } from "lucide-react";
+import { ExternalLink, Trophy, Users } from "lucide-react";
 
-export default function RecentHistory() {
-  const history = [
-    { id: "1", user: "7x9...k2j", result: "survived", amount: "0.027", time: "2m ago" },
-    { id: "2", user: "4h1...m9n", result: "redacted", amount: "0.000", time: "5m ago" },
-    { id: "3", user: "bq5...r3t", result: "survived", amount: "0.270", time: "8m ago" },
-    { id: "4", user: "p2k...v7x", result: "survived", amount: "0.027", time: "12m ago" }
-  ];
+interface GameHistory {
+  signature: string;
+  timestamp: number;
+  totalPot: number;
+  playerCount: number;
+  winnersCount: number;
+  winners: string[];
+  multiplier: number;
+}
+
+interface Props {
+  roomId: number;
+  programId: PublicKey;
+  rpcUrl: string;
+}
+
+export default function RecentHistory({ roomId, programId, rpcUrl }: Props) {
+  const [history, setHistory] = useState<GameHistory[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const connection = new Connection(rpcUrl, 'confirmed');
+        const [gamePda] = PublicKey.findProgramAddressSync(
+          [Buffer.from('room'), Buffer.from([roomId])],
+          programId
+        );
+
+        // Get recent transactions for this game account
+        const signatures = await connection.getSignaturesForAddress(gamePda, { limit: 10 });
+        
+        const historyData: GameHistory[] = [];
+
+        for (const sig of signatures) {
+          try {
+            const tx = await connection.getTransaction(sig.signature, {
+              maxSupportedTransactionVersion: 0,
+              commitment: 'confirmed',
+            });
+
+            if (!tx?.meta?.logMessages) continue;
+
+            // Parse logs for GameSettledEvent
+            const logs = tx.meta.logMessages;
+            let totalPot = 0;
+            let winnersCount = 0;
+            const winners: string[] = [];
+
+            for (const log of logs) {
+              // Look for event data in logs
+              if (log.includes('GameSettledEvent')) {
+                // Extract data from subsequent logs
+                const potMatch = logs.find(l => l.includes('total_pot'));
+                const winnersMatch = logs.find(l => l.includes('winners_count'));
+                
+                if (potMatch) {
+                  const match = potMatch.match(/total_pot:\s*(\d+)/);
+                  if (match) totalPot = parseInt(match[1]);
+                }
+                if (winnersMatch) {
+                  const match = winnersMatch.match(/winners_count:\s*(\d+)/);
+                  if (match) winnersCount = parseInt(match[1]);
+                }
+              }
+              
+              if (log.includes('WinnerExtractedEvent')) {
+                const winnerMatch = log.match(/winner:\s*([A-Za-z0-9]{32,44})/);
+                if (winnerMatch && !winners.includes(winnerMatch[1])) {
+                  winners.push(winnerMatch[1]);
+                }
+              }
+            }
+
+            if (totalPot > 0 && winnersCount > 0) {
+              const playerCount = winnersCount * 3; // 1 winner per 3 players
+              const entryFee = totalPot / playerCount;
+              const prizePerWinner = (totalPot * 0.95) / winnersCount;
+              const multiplier = prizePerWinner / entryFee;
+
+              historyData.push({
+                signature: sig.signature,
+                timestamp: sig.blockTime || 0,
+                totalPot: totalPot / 1e9, // Convert lamports to SOL
+                playerCount,
+                winnersCount,
+                winners,
+                multiplier,
+              });
+            }
+          } catch (e) {
+            console.error('Error parsing transaction:', e);
+          }
+        }
+
+        setHistory(historyData);
+      } catch (error) {
+        console.error('Error fetching history:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHistory();
+    
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchHistory, 30000);
+    return () => clearInterval(interval);
+  }, [roomId, programId, rpcUrl]);
+
+  if (loading) {
+    return (
+      <div className="glass-card p-6">
+        <h3 className="text-sm font-black text-zinc-500 uppercase tracking-widest mb-4">Recent Games</h3>
+        <p className="text-zinc-600 text-xs">Loading...</p>
+      </div>
+    );
+  }
+
+  if (history.length === 0) {
+    return (
+      <div className="glass-card p-6">
+        <h3 className="text-sm font-black text-zinc-500 uppercase tracking-widest mb-4">Recent Games</h3>
+        <p className="text-zinc-600 text-xs">No games played yet</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="glass-card bg-black/40 border-white/5 flex flex-col mt-8">
-      <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
-        <div className="flex flex-col gap-1">
-          <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest leading-none">Session Intelligence</h3>
-          <span className="text-[8px] font-bold text-zinc-700 uppercase tracking-widest mt-1">Previous Outcomes</span>
-        </div>
-      </div>
-      
-      <div className="flex flex-col">
-        {history.map((h) => (
-          <div 
-            key={h.id} 
-            className="flex items-center justify-between p-5 border-b border-white/5 last:border-0 hover:bg-white/[0.01] transition-colors"
+    <div className="glass-card p-6">
+      <h3 className="text-sm font-black text-zinc-500 uppercase tracking-widest mb-4">Recent Games</h3>
+      <div className="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar">
+        {history.map((game, index) => (
+          <motion.div
+            key={game.signature}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.05 }}
+            className="bg-white/[0.02] border border-white/5 rounded-lg p-3 hover:bg-white/[0.04] transition-colors"
           >
-            <div className="flex items-center gap-4">
-              <div className="w-8 h-8 rounded-lg border border-white/5 flex items-center justify-center bg-white/[0.02]">
-                {h.result === 'survived' ? <Trophy size={14} className="text-zinc-500" /> : <Skull size={14} className="text-zinc-700" />}
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <div className="flex items-center gap-2">
+                <Trophy className="w-3.5 h-3.5 text-[#14F195]" />
+                <span className="text-[#14F195] font-bold text-sm">{game.multiplier.toFixed(2)}x</span>
               </div>
-              <div className="flex flex-col">
-                <span className="text-[11px] font-bold text-zinc-400 font-mono tracking-wider">{h.user}</span>
-                <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-tighter">{h.time}</span>
+              <a
+                href={`https://explorer.solana.com/tx/${game.signature}?cluster=devnet`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-zinc-500 hover:text-[#9945FF] transition-colors"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+
+            <div className="flex items-center gap-4 text-xs text-zinc-400 mb-2">
+              <div className="flex items-center gap-1">
+                <Users className="w-3 h-3" />
+                <span>{game.playerCount} players</span>
+              </div>
+              <div>
+                <span className="text-[#14F195]">{game.winnersCount}</span> winner{game.winnersCount > 1 ? 's' : ''}
+              </div>
+              <div className="text-zinc-500">
+                {game.totalPot.toFixed(3)} SOL
               </div>
             </div>
-            
-            <div className="text-right flex flex-col items-end">
-              <span className={`text-[12px] font-bold tracking-widest ${h.result === 'survived' ? 'text-white' : 'text-zinc-700'}`}>
-                {h.result === 'survived' ? `+${h.amount} SOL` : '0.000 SOL'}
-              </span>
-              <span className="text-[8px] font-bold text-zinc-700 uppercase tracking-widest">
-                {h.result === 'survived' ? 'Neutralized' : 'Eliminated'}
-              </span>
-            </div>
-          </div>
+
+            {game.winners.length > 0 && (
+              <div className="space-y-1">
+                {game.winners.slice(0, 3).map((winner, i) => (
+                  <div key={i} className="text-[10px] font-mono text-zinc-600 truncate">
+                    🏆 {winner.slice(0, 4)}...{winner.slice(-4)}
+                  </div>
+                ))}
+                {game.winners.length > 3 && (
+                  <div className="text-[10px] text-zinc-700">
+                    +{game.winners.length - 3} more
+                  </div>
+                )}
+              </div>
+            )}
+
+            {game.timestamp > 0 && (
+              <div className="text-[10px] text-zinc-700 mt-2">
+                {new Date(game.timestamp * 1000).toLocaleString()}
+              </div>
+            )}
+          </motion.div>
         ))}
       </div>
     </div>

@@ -1,14 +1,38 @@
 "use client";
 import { motion } from "framer-motion";
 
-// 30 couleurs basées sur le gradient Solana (violet → cyan → vert)
+// 30 couleurs variées dans le thème Solana (violet, cyan, vert, rose, orange)
 const PLAYER_COLORS = [
-  "#9945FF", "#A055FF", "#A765FF", "#AE75FF", "#B585FF", // Violet
-  "#BC95FF", "#C3A5FF", "#CAB5FF", "#D1C5FF", "#D8D5FF", // Violet clair
-  "#DFE5FF", "#C5E5FF", "#ABE5FF", "#91E5FF", "#77E5FF", // Cyan clair
-  "#5DE5FF", "#43D5FF", "#29C5FF", "#0FB5FF", "#00A5F5", // Cyan
-  "#00B5E5", "#00C5D5", "#00D5C5", "#00E5B5", "#00F5A5", // Cyan-vert
-  "#14F195", "#24F1A5", "#34F1B5", "#44F1C5", "#54F1D5", // Vert Solana
+  "#9945FF", // 1. Violet
+  "#14F195", // 2. Vert Solana
+  "#00C2FF", // 3. Cyan
+  "#FF6B9D", // 4. Rose
+  "#FFB84D", // 5. Orange
+  "#A855F7", // 6. Violet clair
+  "#10B981", // 7. Vert émeraude
+  "#06B6D4", // 8. Cyan clair
+  "#EC4899", // 9. Rose vif
+  "#F59E0B", // 10. Ambre
+  "#8B5CF6", // 11. Violet indigo
+  "#34D399", // 12. Vert menthe
+  "#22D3EE", // 13. Cyan électrique
+  "#F472B6", // 14. Rose bonbon
+  "#FBBF24", // 15. Jaune doré
+  "#7C3AED", // 16. Violet profond
+  "#6EE7B7", // 17. Vert pastel
+  "#67E8F9", // 18. Cyan pastel
+  "#FDA4AF", // 19. Rose pâle
+  "#FCD34D", // 20. Jaune pâle
+  "#6D28D9", // 21. Violet foncé
+  "#059669", // 22. Vert foncé
+  "#0891B2", // 23. Cyan foncé
+  "#BE185D", // 24. Rose foncé
+  "#D97706", // 25. Orange foncé
+  "#5B21B6", // 26. Violet ultra
+  "#047857", // 27. Vert ultra
+  "#0E7490", // 28. Cyan ultra
+  "#9F1239", // 29. Rose ultra
+  "#B45309", // 30. Orange ultra
 ];
 
 interface Props {

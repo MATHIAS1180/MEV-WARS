@@ -9,6 +9,8 @@ import { useGame, BULLET_COLORS, GameResult } from "@/hooks/useGame";
 import { Toaster, toast } from "sonner";
 import { PublicKey } from "@solana/web3.js";
 import MiningBlock from "@/components/MiningBlock";
+import RecentHistory from "@/components/RecentHistory";
+import { PROGRAM_ID } from "@/utils/anchor";
 
 const WalletMultiButton = dynamic(
   async () => (await import("@solana/wallet-adapter-react-ui")).WalletMultiButton,
@@ -463,6 +465,15 @@ export default function Home() {
             </motion.div>
           </div>
         </div>
+      </section>
+
+      {/* Recent History Section */}
+      <section className="w-full max-w-6xl px-6 pb-12 relative z-10">
+        <RecentHistory 
+          roomId={roomId} 
+          programId={PROGRAM_ID} 
+          rpcUrl={process.env.NEXT_PUBLIC_RPC_URL || 'https://api.devnet.solana.com'} 
+        />
       </section>
 
       {/* Info Section */}
