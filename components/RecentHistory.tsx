@@ -278,7 +278,7 @@ export default function RecentHistory({ programId, rooms, currentRoomId }: Props
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
               transition={{ duration: 0.2 }}
-              className="flex-1 min-w-[140px] max-w-[200px] bg-white/[0.02] border border-white/5 rounded p-2 hover:bg-white/[0.04] hover:border-white/10 transition-all"
+              className="flex-1 min-w-[140px] max-w-[200px] bg-white/[0.02] border border-white/5 rounded p-2 transition-colors"
             >
               {/* Header: Multiplier + Explorer Link */}
               <div className="flex items-center justify-between mb-1.5">
