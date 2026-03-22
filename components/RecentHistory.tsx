@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { Connection, PublicKey } from "@solana/web3.js";
 import { Program, AnchorProvider, BorshCoder, EventParser } from "@coral-xyz/anchor";
 import { motion } from "framer-motion";
-import { ExternalLink, Trophy, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import { ExternalLink, Trophy, ChevronLeft, ChevronRight } from "lucide-react";
 import { IDL } from "@/utils/anchor";
 
 interface GameHistory {
@@ -36,7 +36,6 @@ export default function RecentHistory({ roomId, programId, rpcUrl }: Props) {
           programId
         );
 
-        // Get recent transactions for this game account
         const signatures = await connection.getSignaturesForAddress(gamePda, { limit: 20 });
         
         const historyData: GameHistory[] = [];
@@ -51,7 +50,6 @@ export default function RecentHistory({ roomId, programId, rpcUrl }: Props) {
 
             if (!tx?.meta?.logMessages) continue;
 
-            // Parse events from logs
             const events = parser.parseLogs(tx.meta.logMessages);
             
             let totalPot = 0;
@@ -77,7 +75,7 @@ export default function RecentHistory({ roomId, programId, rpcUrl }: Props) {
             }
 
             if (hasSettledEvent && totalPot > 0 && winnersCount > 0) {
-              const playerCount = winnersCount * 3; // 1 winner per 3 players
+              const playerCount = winnersCount * 3;
               const entryFee = totalPot / playerCount;
               const prizePerWinner = (totalPot * 0.95) / winnersCount;
               const multiplier = prizePerWinner / entryFee;
@@ -85,7 +83,7 @@ export default function RecentHistory({ roomId, programId, rpcUrl }: Props) {
               historyData.push({
                 signature: sig.signature,
                 timestamp: sig.blockTime || 0,
-                totalPot: totalPot / 1e9, // Convert lamports to SOL
+                totalPot: totalPot / 1e9,
                 playerCount,
                 winnersCount,
                 winners,
@@ -107,14 +105,14 @@ export default function RecentHistory({ roomId, programId, rpcUrl }: Props) {
 
     fetchHistory();
     
-    // Refresh every 15 seconds
-    const interval = setInterval(fetchHistory, 15000);
+    // Refresh every 5 seconds for faster updates
+    const interval = setInterval(fetchHistory, 5000);
     return () => clearInterval(interval);
   }, [roomId, programId, rpcUrl]);
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
-      const scrollAmount = 320; // Width of one card + gap
+      const scrollAmount = 200;
       scrollContainerRef.current.scrollBy({
         left: direction === 'left' ? -scrollAmount : scrollAmount,
         behavior: 'smooth'
@@ -124,50 +122,50 @@ export default function RecentHistory({ roomId, programId, rpcUrl }: Props) {
 
   if (loading) {
     return (
-      <div className="w-full glass-card p-4 sm:p-6">
-        <h3 className="text-xs sm:text-sm font-black text-zinc-500 uppercase tracking-widest mb-3">Recent Games</h3>
-        <p className="text-zinc-600 text-xs">Loading history...</p>
+      <div className="w-full glass-card p-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Recent Games</h3>
+          <span className="text-[9px] text-zinc-700">Loading...</span>
+        </div>
       </div>
     );
   }
 
   if (history.length === 0) {
     return (
-      <div className="w-full glass-card p-4 sm:p-6">
-        <h3 className="text-xs sm:text-sm font-black text-zinc-500 uppercase tracking-widest mb-3">Recent Games</h3>
-        <p className="text-zinc-600 text-xs">No games played yet in this room</p>
+      <div className="w-full glass-card p-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Recent Games</h3>
+          <span className="text-[9px] text-zinc-700">No games yet</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full glass-card p-4 sm:p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xs sm:text-sm font-black text-zinc-500 uppercase tracking-widest">Recent Games</h3>
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] text-zinc-700 uppercase tracking-wider">Room {roomId}</span>
-          <div className="flex gap-1">
-            <button
-              onClick={() => scroll('left')}
-              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
-              aria-label="Scroll left"
-            >
-              <ChevronLeft className="w-4 h-4 text-zinc-400" />
-            </button>
-            <button
-              onClick={() => scroll('right')}
-              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
-              aria-label="Scroll right"
-            >
-              <ChevronRight className="w-4 h-4 text-zinc-400" />
-            </button>
-          </div>
+    <div className="w-full glass-card p-3">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Recent Games</h3>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[9px] text-zinc-700 uppercase tracking-wider">Room {roomId}</span>
+          <button
+            onClick={() => scroll('left')}
+            className="p-1 rounded bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
+          >
+            <ChevronLeft className="w-3 h-3 text-zinc-400" />
+          </button>
+          <button
+            onClick={() => scroll('right')}
+            className="p-1 rounded bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
+          >
+            <ChevronRight className="w-3 h-3 text-zinc-400" />
+          </button>
         </div>
       </div>
       
       <div 
         ref={scrollContainerRef}
-        className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar-horizontal"
+        className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar-horizontal"
         style={{ scrollbarWidth: 'thin' }}
       >
         {history.map((game, index) => (
@@ -175,13 +173,13 @@ export default function RecentHistory({ roomId, programId, rpcUrl }: Props) {
             key={game.signature}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: index * 0.05 }}
-            className="flex-shrink-0 w-[300px] bg-white/[0.02] border border-white/5 rounded-lg p-4 hover:bg-white/[0.04] hover:border-white/10 transition-all"
+            transition={{ delay: index * 0.03 }}
+            className="flex-shrink-0 w-[180px] bg-white/[0.02] border border-white/5 rounded-lg p-2.5 hover:bg-white/[0.04] hover:border-white/10 transition-all"
           >
-            <div className="flex items-start justify-between gap-2 mb-3">
-              <div className="flex items-center gap-2">
-                <Trophy className="w-4 h-4 text-[#14F195]" />
-                <span className="text-[#14F195] font-bold text-lg">{game.multiplier.toFixed(2)}x</span>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5">
+                <Trophy className="w-3 h-3 text-[#14F195]" />
+                <span className="text-[#14F195] font-bold text-sm">{game.multiplier.toFixed(2)}x</span>
               </div>
               <a
                 href={`https://explorer.solana.com/tx/${game.signature}?cluster=devnet`}
@@ -189,43 +187,19 @@ export default function RecentHistory({ roomId, programId, rpcUrl }: Props) {
                 rel="noopener noreferrer"
                 className="text-zinc-500 hover:text-[#9945FF] transition-colors"
               >
-                <ExternalLink className="w-4 h-4" />
+                <ExternalLink className="w-3 h-3" />
               </a>
             </div>
 
-            <div className="flex items-center gap-3 text-xs text-zinc-400 mb-3">
-              <div className="flex items-center gap-1">
-                <Users className="w-3.5 h-3.5" />
-                <span>{game.playerCount}</span>
-              </div>
-              <div>
-                <span className="text-[#14F195] font-bold">{game.winnersCount}</span> winner{game.winnersCount > 1 ? 's' : ''}
-              </div>
-              <div className="text-zinc-500 font-mono">
-                {game.totalPot.toFixed(3)} SOL
-              </div>
+            <div className="flex items-center gap-2 text-[10px] text-zinc-400 mb-1.5">
+              <span>{game.playerCount} players</span>
+              <span className="text-zinc-700">•</span>
+              <span className="text-[#14F195]">{game.winnersCount}W</span>
             </div>
 
-            {game.winners.length > 0 && (
-              <div className="space-y-1 mb-3">
-                {game.winners.slice(0, 2).map((winner, i) => (
-                  <div key={i} className="text-[10px] font-mono text-zinc-600 truncate">
-                    🏆 {winner.slice(0, 4)}...{winner.slice(-4)}
-                  </div>
-                ))}
-                {game.winners.length > 2 && (
-                  <div className="text-[10px] text-zinc-700">
-                    +{game.winners.length - 2} more
-                  </div>
-                )}
-              </div>
-            )}
-
-            {game.timestamp > 0 && (
-              <div className="text-[10px] text-zinc-700">
-                {new Date(game.timestamp * 1000).toLocaleString()}
-              </div>
-            )}
+            <div className="text-[10px] font-mono text-zinc-500">
+              {game.totalPot.toFixed(3)} SOL
+            </div>
           </motion.div>
         ))}
       </div>

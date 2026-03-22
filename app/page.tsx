@@ -438,7 +438,7 @@ export default function Home() {
         </div>
 
         {/* Recent History - Horizontal Scroll */}
-        <div className="w-full mb-6 sm:mb-10">
+        <div className="w-full mb-4 sm:mb-6">
           <RecentHistory 
             roomId={roomId} 
             programId={PROGRAM_ID} 
