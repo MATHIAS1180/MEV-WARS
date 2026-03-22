@@ -199,7 +199,7 @@ export default function RecentHistory({ programId, rooms, currentRoomId }: Props
   // Show skeleton only on very first load
   if (!isInitialized) {
     return (
-      <div className="w-full glass-card p-2">
+      <div className="w-full glass-card p-1.5">
         <div className="flex items-center justify-between mb-1">
           <h3 className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Recent Games</h3>
           <div className="flex items-center gap-0.5">
@@ -207,11 +207,11 @@ export default function RecentHistory({ programId, rooms, currentRoomId }: Props
             <span className="text-[7px] text-zinc-600 uppercase tracking-wider font-bold">Loading</span>
           </div>
         </div>
-        <div className="flex gap-1.5 overflow-x-auto pb-1">
+        <div className="flex gap-1.5 overflow-x-auto">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="flex-shrink-0 w-[110px] bg-white/[0.02] border border-white/5 rounded p-1.5 animate-pulse">
-              <div className="h-3 bg-white/5 rounded mb-1" />
-              <div className="h-2 bg-white/5 rounded mb-1" />
+            <div key={i} className="flex-shrink-0 w-[120px] bg-white/[0.02] border border-white/5 rounded p-2 animate-pulse">
+              <div className="h-3 bg-white/5 rounded mb-1.5" />
+              <div className="h-2.5 bg-white/5 rounded mb-1" />
               <div className="h-2 bg-white/5 rounded w-2/3" />
             </div>
           ))}
@@ -223,7 +223,7 @@ export default function RecentHistory({ programId, rooms, currentRoomId }: Props
   // Empty state
   if (displayHistory.length === 0) {
     return (
-      <div className="w-full glass-card p-2">
+      <div className="w-full glass-card p-1.5">
         <div className="flex items-center justify-between mb-1">
           <h3 className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Recent Games - {roomLabel}</h3>
           <div className="flex items-center gap-0.5">
@@ -231,7 +231,7 @@ export default function RecentHistory({ programId, rooms, currentRoomId }: Props
             <span className="text-[7px] text-[#14F195] uppercase tracking-wider font-bold">Live</span>
           </div>
         </div>
-        <div className="py-3 text-center">
+        <div className="py-2 text-center">
           <span className="text-[8px] text-zinc-600 font-medium">No games yet</span>
         </div>
       </div>
@@ -239,7 +239,7 @@ export default function RecentHistory({ programId, rooms, currentRoomId }: Props
   }
 
   return (
-    <div className="w-full glass-card p-2">
+    <div className="w-full glass-card p-1.5">
       <div className="flex items-center justify-between mb-1">
         <h3 className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Recent Games - {roomLabel}</h3>
         <div className="flex items-center gap-1">
@@ -266,7 +266,7 @@ export default function RecentHistory({ programId, rooms, currentRoomId }: Props
       
       <div 
         ref={scrollContainerRef}
-        className="flex gap-1.5 overflow-x-auto pb-1 custom-scrollbar-horizontal"
+        className="flex gap-1.5 overflow-x-auto custom-scrollbar-horizontal"
         style={{ scrollbarWidth: 'thin' }}
       >
         <AnimatePresence mode="popLayout">
@@ -278,13 +278,13 @@ export default function RecentHistory({ programId, rooms, currentRoomId }: Props
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
               transition={{ duration: 0.2 }}
-              className="flex-shrink-0 w-[110px] bg-white/[0.02] border border-white/5 rounded p-1.5 hover:bg-white/[0.04] hover:border-white/10 transition-all"
+              className="flex-shrink-0 w-[120px] bg-white/[0.02] border border-white/5 rounded p-2 hover:bg-white/[0.04] hover:border-white/10 transition-all"
             >
               {/* Header: Multiplier + Explorer Link */}
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-0.5">
-                  <Trophy className="w-2 h-2 text-[#14F195]" />
-                  <span className="text-[#14F195] font-bold text-[10px]">{game.multiplier.toFixed(2)}x</span>
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-1">
+                  <Trophy className="w-2.5 h-2.5 text-[#14F195]" />
+                  <span className="text-[#14F195] font-bold text-xs">{game.multiplier.toFixed(2)}x</span>
                 </div>
                 <a
                   href={`https://explorer.solana.com/tx/${game.signature}?cluster=devnet`}
@@ -293,12 +293,12 @@ export default function RecentHistory({ programId, rooms, currentRoomId }: Props
                   className="text-zinc-500 hover:text-[#9945FF] transition-colors"
                   aria-label="View on Solana Explorer"
                 >
-                  <ExternalLink className="w-2 h-2" />
+                  <ExternalLink className="w-2.5 h-2.5" />
                 </a>
               </div>
 
               {/* Room + Players + Winners */}
-              <div className="flex items-center gap-1 text-[7px] text-zinc-400 mb-1">
+              <div className="flex items-center gap-1.5 text-[8px] text-zinc-400 mb-1.5">
                 <span className="text-[#9945FF] font-bold">{getRoomLabel(game.roomId)}</span>
                 <span className="text-zinc-700">•</span>
                 <span>{game.playerCount}P</span>
@@ -307,7 +307,7 @@ export default function RecentHistory({ programId, rooms, currentRoomId }: Props
               </div>
 
               {/* Total Pot */}
-              <div className="text-[7px] font-mono text-zinc-500">
+              <div className="text-[8px] font-mono text-zinc-500">
                 {game.totalPot.toFixed(3)} SOL
               </div>
             </motion.div>
