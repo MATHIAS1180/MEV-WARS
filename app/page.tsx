@@ -9,6 +9,7 @@ import { useGame, BULLET_COLORS, GameResult } from "@/hooks/useGame";
 import { Toaster, toast } from "sonner";
 import { PublicKey } from "@solana/web3.js";
 import RouletteBarrel from "@/components/RouletteBarrel";
+import MiningBlock from "@/components/MiningBlock";
 
 const WalletMultiButton = dynamic(
   async () => (await import("@solana/wallet-adapter-react-ui")).WalletMultiButton,
@@ -404,7 +405,7 @@ export default function Home() {
                 )}
               </AnimatePresence>
 
-              <RouletteBarrel playerCount={playerCount} isSpinning={isSpinning} rotation={rotation} countdown={countdown} />
+              <MiningBlock playerCount={playerCount} isSpinning={isSpinning} rotation={rotation} countdown={countdown} />
             </div>
 
             {/* Main Action Button */}
