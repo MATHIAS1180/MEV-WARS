@@ -1,0 +1,9 @@
+﻿src/app/api/crank/route.ts(5,27): error TS2305: Module '"../../../utils/anchor"' has no exported member 'TREASURY_PUBKEY'.
+src/app/page.tsx(8,19): error TS2305: Module '"@/hooks/useGame"' has no exported member 'BULLET_COLORS'.
+src/app/page.tsx(30,44): error TS2339: Property 'withdraw' does not exist on type '{ gameState: any; isLoading: boolean; isScanningLogs: boolean; joinGame: (entryFeeLamports: number) => Promise<boolean>; fetchState: () => Promise<void>; gameResult: GameResult | null; setGameResult: Dispatch<...>; }'.
+src/app/page.tsx(30,54): error TS2339: Property 'refundIdle' does not exist on type '{ gameState: any; isLoading: boolean; isScanningLogs: boolean; joinGame: (entryFeeLamports: number) => Promise<boolean>; fetchState: () => Promise<void>; gameResult: GameResult | null; setGameResult: Dispatch<...>; }'.
+src/hooks/useGame.ts(72,13): error TS2345: Argument of type '() => (() => Promise<void>) | undefined' is not assignable to parameter of type 'EffectCallback'.
+  Type '(() => Promise<void>) | undefined' is not assignable to type 'void | Destructor'.
+    Type '() => Promise<void>' is not assignable to type 'void | Destructor'.
+      Type '() => Promise<void>' is not assignable to type 'Destructor'.
+        Type 'Promise<void>' is not assignable to type 'void | { [UNDEFINED_VOID_ONLY]: never; }'.
