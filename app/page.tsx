@@ -437,6 +437,15 @@ export default function Home() {
           ))}
         </div>
 
+        {/* Recent History - Horizontal Scroll */}
+        <div className="w-full mb-6 sm:mb-10">
+          <RecentHistory 
+            roomId={roomId} 
+            programId={PROGRAM_ID} 
+            rpcUrl={process.env.NEXT_PUBLIC_RPC_URL || 'https://api.devnet.solana.com'} 
+          />
+        </div>
+
         {/* Game Area */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-10 w-full items-center">
 
@@ -536,15 +545,6 @@ export default function Home() {
             </motion.div>
           </div>
         </div>
-      </section>
-
-      {/* Recent History Section */}
-      <section className="w-full max-w-6xl px-6 pb-12 relative z-10">
-        <RecentHistory 
-          roomId={roomId} 
-          programId={PROGRAM_ID} 
-          rpcUrl={process.env.NEXT_PUBLIC_RPC_URL || 'https://api.devnet.solana.com'} 
-        />
       </section>
 
       {/* Info Section */}
