@@ -53,6 +53,20 @@ export default function Home() {
     return idx >= 0 ? idx : null;
   }, [gameState?.players, publicKey]);
 
+  // Keep track of player index even after game resolves
+  const myPlayerIndexRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (myPlayerIndex !== null) {
+      myPlayerIndexRef.current = myPlayerIndex;
+    }
+    // Only reset when we're back to initial state (no countdown, no spinning, no result)
+    if (actualPlayerCount === 0 && !countdown && !isSpinning && !gameResult) {
+      myPlayerIndexRef.current = null;
+    }
+  }, [myPlayerIndex, actualPlayerCount, countdown, isSpinning, gameResult]);
+
+  const displayPlayerIndex = myPlayerIndex !== null ? myPlayerIndex : myPlayerIndexRef.current;
+
   const playerCount = actualPlayerCount;
 
   // Dynamic extraction estimate: (TotalPot * 0.95) / (PlayersCount / 3) / EntryFee
@@ -437,13 +451,13 @@ export default function Home() {
                     <Loader2 className="animate-spin w-7 h-7 sm:w-8 sm:h-8" />
                     <span className="text-sm sm:text-base">EXTRACTING MEV...</span>
                   </motion.div>
-                ) : myPlayerIndex !== null ? (
+                ) : displayPlayerIndex !== null ? (
                   <motion.div key="ingame" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="flex flex-col items-center gap-3 w-full">
                     <div className="w-full py-3 sm:py-4 px-4 sm:px-6 rounded-xl border-2 border-dashed border-white/20 bg-white/5 flex flex-col items-center text-center">
                       <p className="text-zinc-400 font-bold uppercase tracking-widest text-[10px] sm:text-xs mb-1.5">Bundle submitted to Mempool</p>
                       <div className="flex items-center gap-2 sm:gap-3">
-                        <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full shadow-lg" style={{ backgroundColor: BULLET_COLORS[myPlayerIndex % BULLET_COLORS.length].color, boxShadow: `0 0 15px ${BULLET_COLORS[myPlayerIndex % BULLET_COLORS.length].color}` }} />
-                        <span className="text-white font-black tracking-wider uppercase text-base sm:text-lg">{BULLET_COLORS[myPlayerIndex % BULLET_COLORS.length].name}</span>
+                        <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full shadow-lg" style={{ backgroundColor: BULLET_COLORS[displayPlayerIndex % BULLET_COLORS.length].color, boxShadow: `0 0 15px ${BULLET_COLORS[displayPlayerIndex % BULLET_COLORS.length].color}` }} />
+                        <span className="text-white font-black tracking-wider uppercase text-base sm:text-lg">{BULLET_COLORS[displayPlayerIndex % BULLET_COLORS.length].name}</span>
                       </div>
                     </div>
                     {actualPlayerCount < 3 && <p className="text-zinc-500 text-[10px] sm:text-xs font-bold uppercase tracking-widest animate-pulse">Waiting for searchers ({actualPlayerCount}/3 min)...</p>}
