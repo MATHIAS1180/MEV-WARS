@@ -39,6 +39,7 @@ export default function RecentHistory({ programId, rooms, currentRoomId }: Props
       let totalPot = 0;
       let winnersCount = 0;
       let hasSettledEvent = false;
+      let hasRefundEvent = false;
 
       for (const event of events) {
         if (event.name === 'GameSettledEvent') {
@@ -47,9 +48,13 @@ export default function RecentHistory({ programId, rooms, currentRoomId }: Props
           totalPot = data.totalPot?.toNumber() || 0;
           winnersCount = data.winnersCount || 0;
         }
+        if (event.name === 'GameRefundedEvent') {
+          hasRefundEvent = true;
+        }
       }
 
-      if (hasSettledEvent && totalPot > 0 && winnersCount > 0) {
+      // Only show games that were settled successfully (not refunded)
+      if (hasSettledEvent && !hasRefundEvent && totalPot > 0 && winnersCount > 0) {
         const playerCount = winnersCount * 3;
         const entryFee = totalPot / playerCount;
         const prizePerWinner = (totalPot * 0.95) / winnersCount;

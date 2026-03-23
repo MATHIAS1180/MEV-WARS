@@ -210,10 +210,12 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
         <g id="squares">
           {SQUARES.map(({ id, row, col, color }) => {
             const isPlayerActive = id < playerCount;
-            const squareSize = 58;
+            const squareSize = 56;
             const spacing = 76;
-            const startX = 300 - (6 * spacing) / 2 + spacing / 2;
-            const startY = 300 - (5 * spacing) / 2 + spacing / 2;
+            const gridWidth = 6 * spacing;
+            const gridHeight = 5 * spacing;
+            const startX = 300 - gridWidth / 2 + spacing / 2;
+            const startY = 300 - gridHeight / 2 + spacing / 2;
             const x = startX + col * spacing;
             const y = startY + row * spacing;
 
