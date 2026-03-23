@@ -173,6 +173,9 @@
   flex: 0 1 auto;
   align-items: center;
   min-height: 0;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 /* Mobile: Hide stats, show only center block - fit in viewport */
@@ -223,18 +226,27 @@
     padding: 0.5rem 1.5rem;
   }
   .game-area {
-    grid-template-columns: 200px 1fr 200px;
+    grid-template-columns: 240px 1fr 240px;
     padding: 0.5rem 1.5rem;
-    gap: 1rem;
+    gap: 1.5rem;
     height: calc(100dvh - 70px);
   }
 }
 
 @media (min-width: 1280px) {
   .game-area {
-    grid-template-columns: 220px 1fr 220px;
+    grid-template-columns: 260px 1fr 260px;
     padding: 0.5rem 2rem;
-    gap: 1.25rem;
+    gap: 2rem;
+    height: calc(100dvh - 70px);
+  }
+}
+
+@media (min-width: 1600px) {
+  .game-area {
+    grid-template-columns: 280px 1fr 280px;
+    padding: 0.5rem 3rem;
+    gap: 2.5rem;
     height: calc(100dvh - 70px);
   }
 }
