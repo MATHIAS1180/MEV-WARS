@@ -93,8 +93,16 @@ export default function Home() {
     prevMyIndexRef.current = myPlayerIndex;
   }, [myPlayerIndex]);
 
+  const gameResultProcessedRef = useRef<string | null>(null);
+  
   useEffect(() => {
     if (!gameResult) return;
+    
+    // Create unique key for this game result to prevent double processing
+    const resultKey = `${gameResult.winner || gameResult.winners?.[0]}-${gameResult.winnerAmount}-${Date.now()}`;
+    if (gameResultProcessedRef.current === resultKey) return;
+    gameResultProcessedRef.current = resultKey;
+    
     const frozenPlayers = [...lastPlayersRef.current];
     const frozenResult = { ...gameResult };
     setIsSpinning(false);
@@ -124,6 +132,7 @@ export default function Home() {
           }
           setGameResult(null);
           lastPlayersRef.current = [];
+          gameResultProcessedRef.current = null;
           const checkAndRefresh = setInterval(() => {
             if (!showResult) {
               clearInterval(checkAndRefresh);
@@ -147,15 +156,14 @@ export default function Home() {
     return () => {
       clearInterval(intId);
       if (timeoutId) clearTimeout(timeoutId);
-      setIsSpinning(false);
-      setCountdown(null);
     };
-  }, [gameResult, publicKey, setGameResult, stableFetch]);
+  }, [gameResult, publicKey, setGameResult, stableFetch, showResult]);
 
   useEffect(() => {
     setShowResult(null); setIsSpinning(false); setCountdown(null);
     setTxPending(false); setIsProcessingResult(false);
     lastPlayersRef.current = [];
+    gameResultProcessedRef.current = null;
   }, [roomId]);
 
   const lastCrankTimeRef = useRef(0);
@@ -182,7 +190,8 @@ export default function Home() {
     const pc = gameState?.playerCount ?? 0;
     if (prevPlayerCountRef.current >= 3 && pc === 0) setIsProcessingResult(true);
     prevPlayerCountRef.current = pc;
-    if (pc > 0 && pc % 3 === 0 && !txPending) triggerCrank();
+    // REMOVED: Auto-trigger crank on multiples of 3
+    // Only trigger when timer expires (handled in timeRemaining effect)
   }, [gameState?.playerCount, txPending, triggerCrank]);
 
   const prevPlayerCountForRefundRef = useRef<number>(0);
