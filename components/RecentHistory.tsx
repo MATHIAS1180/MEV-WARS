@@ -38,40 +38,68 @@ export default function RecentHistory({ programId, rooms, currentRoomId }: Props
       
       let totalPot = 0;
       let winnersCount = 0;
-      let hasSettledEvent = false;
+      let playerCount = 0;
+      let hasWinnerEvent = false;
       let hasRefundEvent = false;
 
+      // Look for WinnerExtractedEvent which only happens on successful games
       for (const event of events) {
-        if (event.name === 'GameSettledEvent') {
-          hasSettledEvent = true;
-          const data = event.data as any;
-          totalPot = data.totalPot?.toNumber() || 0;
-          winnersCount = data.winnersCount || 0;
+        if (event.name === 'WinnerExtractedEvent') {
+          hasWinnerEvent = true;
         }
         if (event.name === 'GameRefundedEvent') {
           hasRefundEvent = true;
         }
+        if (event.name === 'GameSettledEvent') {
+          const data = event.data as any;
+          totalPot = data.totalPot?.toNumber() || 0;
+          winnersCount = data.winnersCount || 0;
+          playerCount = data.playerCount || 0;
+        }
       }
 
-      // Only show games that were settled successfully (not refunded)
-      if (hasSettledEvent && !hasRefundEvent && totalPot > 0 && winnersCount > 0) {
-        const playerCount = winnersCount * 3;
-        const entryFee = totalPot / playerCount;
+      // Debug logging
+      console.log('[RecentHistory] Parsed events:', {
+        signature: signature.slice(0, 8),
+        roomId,
+        hasWinnerEvent,
+        hasRefundEvent,
+        totalPot,
+        winnersCount,
+        playerCount,
+        eventNames: events.map(e => e.name)
+      });
+
+      // Only show games that had winners extracted (successful games only)
+      // Explicitly exclude refunded games
+      if (hasWinnerEvent && !hasRefundEvent && totalPot > 0 && winnersCount > 0) {
+        const actualPlayerCount = playerCount || (winnersCount * 3);
+        const entryFee = totalPot / actualPlayerCount;
         const prizePerWinner = (totalPot * 0.95) / winnersCount;
         const multiplier = prizePerWinner / entryFee;
+
+        console.log('[RecentHistory] ✓ Valid game found:', {
+          signature: signature.slice(0, 8),
+          multiplier: multiplier.toFixed(2)
+        });
 
         return {
           signature,
           roomId,
           totalPot: totalPot / 1e9,
-          playerCount,
+          playerCount: actualPlayerCount,
           winnersCount,
           multiplier,
           timestamp: Date.now(),
         };
+      } else {
+        console.log('[RecentHistory] ✗ Game filtered out:', {
+          signature: signature.slice(0, 8),
+          reason: hasRefundEvent ? 'refunded' : !hasWinnerEvent ? 'no winner event' : 'invalid data'
+        });
       }
     } catch (e) {
-      // Silent fail for parsing errors
+      console.log('[RecentHistory] Parse error:', e);
     }
     return null;
   }, [programId]);

@@ -170,7 +170,7 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
         <g filter="url(#shadow)">
           {/* Outer glow ring */}
           <rect
-            x="70" y="70" width="460" height="460"
+            x="60" y="60" width="480" height="480"
             fill="none"
             stroke={isActive ? "url(#borderGrad)" : PURPLE_DINO}
             strokeWidth="2"
@@ -181,7 +181,7 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
 
           {/* Background with gradient */}
           <rect
-            x="70" y="70" width="460" height="460"
+            x="60" y="60" width="480" height="480"
             fill="url(#blockBg)"
             rx="24"
           />
@@ -193,7 +193,7 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
 
           {/* Inner border with gradient */}
           <rect
-            x="70" y="70" width="460" height="460"
+            x="60" y="60" width="480" height="480"
             fill="none"
             stroke={isActive ? "url(#borderGrad)" : "rgba(100,100,150,0.3)"}
             strokeWidth="2"
@@ -206,18 +206,21 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
           </rect>
         </g>
 
-        {/* 30 squares in a 5x6 grid */}
+        {/* 30 squares in a 5x6 grid - perfectly centered */}
         <g id="squares">
           {SQUARES.map(({ id, row, col, color }) => {
             const isPlayerActive = id < playerCount;
-            const squareSize = 56;
-            const spacing = 76;
-            const gridWidth = 6 * spacing;
-            const gridHeight = 5 * spacing;
-            const startX = 300 - gridWidth / 2 + spacing / 2;
-            const startY = 300 - gridHeight / 2 + spacing / 2;
-            const x = startX + col * spacing;
-            const y = startY + row * spacing;
+            const squareSize = 60;
+            const spacingX = 76;
+            const spacingY = 76;
+            // Center the grid perfectly in the 480x480 block
+            // Grid dimensions: 6 columns, 5 rows
+            const gridWidth = 6 * spacingX - (spacingX - squareSize);
+            const gridHeight = 5 * spacingY - (spacingY - squareSize);
+            const startX = 60 + (480 - gridWidth) / 2 + squareSize / 2;
+            const startY = 60 + (480 - gridHeight) / 2 + squareSize / 2;
+            const x = startX + col * spacingX;
+            const y = startY + row * spacingY;
 
             return (
               <g key={id}>
