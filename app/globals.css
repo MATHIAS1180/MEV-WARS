@@ -128,6 +128,42 @@
   gap: 0.75rem;
 }
 
+/* Mobile: Stack header vertically to avoid overlap */
+@media (max-width: 767px) {
+  .game-header {
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .game-header > div:first-child {
+    /* Logo */
+    order: 1;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+  
+  .game-header > div:nth-child(2) {
+    /* Room switcher - already centered */
+    order: 2;
+    position: static;
+    transform: none;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+  
+  .game-header > div:last-child {
+    /* Wallet button */
+    order: 3;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-left: 0;
+  }
+}
+
 .game-area {
   display: grid;
   grid-template-columns: 1fr;
@@ -145,8 +181,9 @@
     gap: 0;
   }
   
+  /* Hide side stats columns completely on mobile */
   .stats-col {
-    display: none;
+    display: none !important;
   }
   
   .center-col {
@@ -169,8 +206,9 @@
     padding: 0.5rem 1rem;
   }
   
+  /* Hide mobile stats section on desktop */
   .mobile-stats-section {
-    display: none;
+    display: none !important;
   }
 }
 

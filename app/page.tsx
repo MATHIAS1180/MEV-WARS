@@ -377,7 +377,7 @@ export default function Home() {
                 </motion.div>
               ) : displayPlayerIndex !== null ? (
                 <motion.div key="ingame" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-                  className="w-full py-2.5 px-3 rounded-xl border-2 border-dashed border-white/20 bg-white/5 flex flex-col items-center text-center">
+                  className="w-full py-3.5 px-3 rounded-xl border-2 border-dashed border-white/20 bg-white/5 flex flex-col items-center text-center justify-center">
                   <p className="text-zinc-400 font-bold uppercase tracking-widest text-[8px] mb-0.5">Bundle in Mempool</p>
                   <div className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-full shadow-lg" style={{ backgroundColor: BULLET_COLORS[displayPlayerIndex % BULLET_COLORS.length].color, boxShadow: `0 0 10px ${BULLET_COLORS[displayPlayerIndex % BULLET_COLORS.length].color}` }} />
