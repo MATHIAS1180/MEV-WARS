@@ -123,6 +123,10 @@ pub mod solana_russian_roulette {
 
         let clock = Clock::get()?;
         require!(clock.slot > game.resolve_slot, ErrorCode::DrawTooEarly);
+        
+        // ADDED: Check if 30 seconds have passed since first player joined
+        let elapsed = clock.unix_timestamp - game.block_start_time;
+        require!(elapsed >= BLOCK_EXPIRATION_SECONDS, ErrorCode::TimerNotExpired);
 
         let player_count = game.player_count as usize;
         require!(player_count >= 3, ErrorCode::NotEnoughPlayers);
