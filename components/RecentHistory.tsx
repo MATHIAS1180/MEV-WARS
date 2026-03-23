@@ -4,7 +4,7 @@ import { useConnection } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { BorshCoder, EventParser } from "@coral-xyz/anchor";
 import { motion, AnimatePresence } from "framer-motion";
-import { ExternalLink, Trophy, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { IDL } from "@/utils/anchor";
 
 interface GameHistory {
@@ -196,23 +196,34 @@ export default function RecentHistory({ programId, rooms, currentRoomId }: Props
 
   const roomLabel = currentRoomId ? getRoomLabel(currentRoomId) : 'All Rooms';
 
+  const headerBar = (
+    <div className="flex items-center justify-between mb-1">
+      <div className="flex items-center gap-2">
+        <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Recent Games</span>
+        <span className="text-[7px] text-zinc-700 font-bold">— {roomLabel}</span>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <div className="w-1 h-1 rounded-full bg-[#14F195] animate-pulse" />
+        <span className="text-[7px] text-[#14F195] uppercase tracking-wider font-bold">Live</span>
+        <button onClick={() => scroll('left')} className="p-0.5 rounded bg-white/5 hover:bg-white/10 border border-white/5 transition-colors" aria-label="Scroll left">
+          <ChevronLeft className="w-2 h-2 text-zinc-500" />
+        </button>
+        <button onClick={() => scroll('right')} className="p-0.5 rounded bg-white/5 hover:bg-white/10 border border-white/5 transition-colors" aria-label="Scroll right">
+          <ChevronRight className="w-2 h-2 text-zinc-500" />
+        </button>
+      </div>
+    </div>
+  );
+
   // Show skeleton only on very first load
   if (!isInitialized) {
     return (
-      <div className="w-full glass-card p-3 rounded-xl">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Recent Games</h3>
-          <div className="flex items-center gap-1">
-            <div className="w-1.5 h-1.5 rounded-full bg-zinc-600 animate-pulse" />
-            <span className="text-[8px] text-zinc-600 uppercase tracking-wider font-bold">Loading</span>
-          </div>
-        </div>
-        <div className="flex gap-2 overflow-x-auto">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="flex-1 min-w-[140px] max-w-[200px] bg-white/[0.02] border border-white/5 rounded-lg p-2.5 animate-pulse">
-              <div className="h-3 bg-white/5 rounded mb-1.5" />
-              <div className="h-2.5 bg-white/5 rounded mb-1" />
-              <div className="h-2 bg-white/5 rounded w-2/3" />
+      <div className="w-full history-strip">
+        {headerBar}
+        <div className="flex gap-1.5 overflow-x-hidden">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+            <div key={i} className="history-card animate-pulse">
+              <div className="h-3 bg-white/5 rounded w-10" />
             </div>
           ))}
         </div>
@@ -223,94 +234,40 @@ export default function RecentHistory({ programId, rooms, currentRoomId }: Props
   // Empty state
   if (displayHistory.length === 0) {
     return (
-      <div className="w-full glass-card p-3 rounded-xl">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Recent Games - {roomLabel}</h3>
-          <div className="flex items-center gap-1">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#14F195] animate-pulse" />
-            <span className="text-[8px] text-[#14F195] uppercase tracking-wider font-bold">Live</span>
-          </div>
-        </div>
-        <div className="py-4 text-center">
-          <span className="text-[9px] text-zinc-600 font-medium">No games yet</span>
+      <div className="w-full history-strip">
+        {headerBar}
+        <div className="py-1 text-center">
+          <span className="text-[8px] text-zinc-700 font-medium">No games yet</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full glass-card p-3 rounded-xl">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Recent Games - {roomLabel}</h3>
-        <div className="flex items-center gap-1.5">
-          <div className="flex items-center gap-1">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#14F195] animate-pulse" />
-            <span className="text-[8px] text-[#14F195] uppercase tracking-wider font-bold">Live</span>
-          </div>
-          <button
-            onClick={() => scroll('left')}
-            className="p-1 rounded bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
-            aria-label="Scroll left"
-          >
-            <ChevronLeft className="w-2.5 h-2.5 text-zinc-400" />
-          </button>
-          <button
-            onClick={() => scroll('right')}
-            className="p-1 rounded bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
-            aria-label="Scroll right"
-          >
-            <ChevronRight className="w-2.5 h-2.5 text-zinc-400" />
-          </button>
-        </div>
-      </div>
-      
-      <div 
+    <div className="w-full history-strip">
+      {headerBar}
+      <div
         ref={scrollContainerRef}
-        className="flex gap-2 overflow-x-auto custom-scrollbar-horizontal"
-        style={{ scrollbarWidth: 'thin' }}
+        className="flex gap-1.5 overflow-x-auto custom-scrollbar-horizontal"
+        style={{ scrollbarWidth: 'none' }}
       >
         <AnimatePresence mode="popLayout">
           {displayHistory.map((game) => (
-            <motion.div
+            <motion.a
               key={game.signature}
               layout
-              initial={{ opacity: 0, scale: 0.9 }}
+              href={`https://explorer.solana.com/tx/${game.signature}?cluster=devnet`}
+              target="_blank"
+              rel="noopener noreferrer"
+              initial={{ opacity: 0, scale: 0.85 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.2 }}
-              className="flex-1 min-w-[140px] max-w-[200px] bg-white/[0.02] border border-white/5 rounded-lg p-2.5 transition-colors"
+              exit={{ opacity: 0, scale: 0.85 }}
+              transition={{ duration: 0.15 }}
+              className="history-card-mini"
+              title={`${game.totalPot.toFixed(3)} SOL · ${game.playerCount}P · ${game.winnersCount}W`}
             >
-              {/* Header: Multiplier + Explorer Link */}
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-1">
-                  <Trophy className="w-3 h-3 text-[#14F195]" />
-                  <span className="text-[#14F195] font-bold text-sm">{game.multiplier.toFixed(2)}x</span>
-                </div>
-                <a
-                  href={`https://explorer.solana.com/tx/${game.signature}?cluster=devnet`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-zinc-500 hover:text-[#9945FF] transition-colors"
-                  aria-label="View on Solana Explorer"
-                >
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              </div>
-
-              {/* Room + Players + Winners */}
-              <div className="flex items-center gap-2 text-[9px] text-zinc-400 mb-2">
-                <span className="text-[#9945FF] font-bold">{getRoomLabel(game.roomId)}</span>
-                <span className="text-zinc-700">•</span>
-                <span>{game.playerCount}P</span>
-                <span className="text-zinc-700">•</span>
-                <span className="text-[#14F195]">{game.winnersCount}W</span>
-              </div>
-
-              {/* Total Pot */}
-              <div className="text-[9px] font-mono text-zinc-500">
-                {game.totalPot.toFixed(3)} SOL
-              </div>
-            </motion.div>
+              <span className="text-[#14F195] font-black text-xs leading-none">{game.multiplier.toFixed(2)}x</span>
+            </motion.a>
           ))}
         </AnimatePresence>
       </div>

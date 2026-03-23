@@ -101,6 +101,184 @@
   }
 }
 
+.mining-block-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* No background — chip blends directly into site */
+}
+.game-layout {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+.game-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  background: transparent;
+  position: relative;
+  top: 0;
+  z-index: 50;
+  gap: 0.75rem;
+}
+
+.game-area {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  flex: 1;
+  align-items: center;
+}
+
+@media (min-width: 768px) {
+  .game-area {
+    grid-template-columns: 1fr 2fr 1fr;
+    padding: 0.5rem 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .game-header {
+    padding: 0.5rem 1.5rem;
+  }
+  .game-area {
+    grid-template-columns: 200px 1fr 200px;
+    padding: 0.5rem 1.5rem;
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .game-area {
+    grid-template-columns: 220px 1fr 220px;
+    padding: 0.5rem 2rem;
+    gap: 1.25rem;
+  }
+}
+
+.stats-col {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+}
+
+@media (min-width: 768px) {
+  .stats-col {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+}
+
+.center-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  order: -1;
+}
+
+@media (min-width: 768px) {
+  .center-col {
+    order: 0;
+  }
+}
+
+.stat-card {
+  flex: 1;
+  background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(0,0,0,0.4));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 1rem;
+  padding: 0.75rem 1rem;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  border-color: hsla(var(--solana-purple) / 0.5);
+  box-shadow: 0 0 25px hsla(var(--solana-purple) / 0.12);
+}
+
+.stat-label {
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: rgb(113 113 122);
+  margin-bottom: 0.25rem;
+}
+
+.stat-value {
+  font-size: 1.75rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+@media (min-width: 1024px) {
+  .stat-card {
+    padding: 1rem 1.25rem;
+  }
+  .stat-value {
+    font-size: 2.25rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .stat-card {
+    padding: 1.25rem 1.5rem;
+  }
+  .stat-value {
+    font-size: 2.75rem;
+  }
+}
+
+/* Room buttons */
+.room-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.625rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.room-btn-active {
+  background: linear-gradient(90deg, #9945FF, #14F195);
+  color: white;
+  box-shadow: 0 0 15px rgba(153,69,255,0.3);
+}
+
+.room-btn-inactive {
+  background: transparent;
+  color: rgb(113 113 122);
+}
+
+.room-btn-inactive:hover:not(:disabled) {
+  color: rgb(212 212 216);
+}
+
+@media (min-width: 640px) {
+  .room-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+  }
+}
+
 @layer components {
   .glass-card {
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.5));
@@ -264,6 +442,36 @@
 ::-webkit-scrollbar-thumb:hover { background: hsla(var(--solana-purple) / 0.7); }
 
 /* ══════════════════════════════════════════════════
+   HISTORY STRIP
+══════════════════════════════════════════════════ */
+.history-strip {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 0.625rem;
+  padding: 0.375rem 0.625rem;
+}
+
+.history-card-mini {
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+  cursor: pointer;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.history-card-mini:hover {
+  border-color: rgba(20,241,149,0.4);
+  background: rgba(20,241,149,0.06);
+  transform: translateY(-1px);
+}
+
+/* ══════════════════════════════════════════════════
    RESPONSIVE — Wallet Adapter Button
 ══════════════════════════════════════════════════ */
 .wallet-adapter-button {
@@ -310,27 +518,43 @@
 /* ══════════════════════════════════════════════════
    RESPONSIVE — Barrel SVG scale
 ══════════════════════════════════════════════════ */
+/* Large desktop */
+@media (min-width: 1280px) {
+  .barrel-svg-wrapper svg,
+  .mining-block-wrapper svg {
+    width: 420px !important;
+    height: 420px !important;
+  }
+}
+
 /* Desktop */
-@media (min-width: 1025px) {
-  .barrel-svg-wrapper svg {
-    width: 380px !important;
-    height: 380px !important;
+@media (min-width: 1025px) and (max-width: 1279px) {
+  .barrel-svg-wrapper svg,
+  .mining-block-wrapper svg {
+    width: 370px !important;
+    height: 370px !important;
   }
 }
 
 /* Tablet */
 @media (max-width: 1024px) and (min-width: 641px) {
-  .barrel-svg-wrapper svg {
-    width: 320px !important;
-    height: 320px !important;
+  .barrel-svg-wrapper svg,
+  .mining-block-wrapper svg {
+    width: 300px !important;
+    height: 300px !important;
   }
 }
 
 /* Mobile */
 @media (max-width: 640px) {
-  .barrel-svg-wrapper svg {
-    width: 280px !important;
-    height: 280px !important;
+  .barrel-svg-wrapper svg,
+  .mining-block-wrapper svg {
+    width: 240px !important;
+    height: 240px !important;
+  }
+  .mining-block-wrapper > div:first-child,
+  .barrel-svg-wrapper > div:first-child {
+    display: none;
   }
 }
 
@@ -417,3 +641,7 @@
   .custom-scrollbar-horizontal::-webkit-scrollbar-thumb:hover {
     background: rgba(153, 69, 255, 0.5);
   }
+
+/* ══════════════════════════════════════════════════
+   GAME LAYOUT — Full viewport, no scroll for game area
+══════════════════════════════════════════════════ */
