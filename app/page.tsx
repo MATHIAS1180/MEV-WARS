@@ -198,7 +198,7 @@ export default function Home() {
     const current = actualPlayerCount;
     if (prev > 0 && prev < 3 && current === 0 && wasInGameRef.current) {
       toast.success('BLOCK EXPIRED: Not enough searchers. Your funds have been automatically refunded.', { duration: 5000 });
-      // Complete reset after refund
+      // Complete reset after refund - IMMEDIATE
       setIsSpinning(false);
       setCountdown(null);
       setTxPending(false);
@@ -209,7 +209,8 @@ export default function Home() {
       lastPlayersRef.current = [];
       wasInGameRef.current = false;
       setRotation(0);
-      setTimeout(() => stableFetch(), 1000);
+      // Immediate refresh instead of 1 second delay
+      setTimeout(() => stableFetch(), 100);
     }
     prevPlayerCountForRefundRef.current = current;
   }, [actualPlayerCount, stableFetch, setGameResult]);
@@ -224,7 +225,12 @@ export default function Home() {
   const watchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (actualPlayerCount === 0 && !gameResult && (isSpinning || countdown !== null)) {
-      watchdogRef.current = setTimeout(() => { setIsSpinning(false); setCountdown(null); setTxPending(false); stableFetch(); }, 15000);
+      watchdogRef.current = setTimeout(() => { 
+        setIsSpinning(false); 
+        setCountdown(null); 
+        setTxPending(false); 
+        stableFetch(); 
+      }, 3000); // Reduced from 15s to 3s
     } else {
       if (watchdogRef.current) { clearTimeout(watchdogRef.current); watchdogRef.current = null; }
     }
