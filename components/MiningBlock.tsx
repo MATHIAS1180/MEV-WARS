@@ -187,8 +187,8 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
           />
           
           <linearGradient id="blockBg" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="rgba(15,15,30,0.98)" />
-            <stop offset="100%" stopColor="rgba(8,8,18,0.98)" />
+            <stop offset="0%" stopColor="rgba(35,35,55,0.95)" />
+            <stop offset="100%" stopColor="rgba(25,25,45,0.95)" />
           </linearGradient>
 
           {/* Inner border with gradient */}
