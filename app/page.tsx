@@ -9,8 +9,6 @@ import { useGame, BULLET_COLORS, GameResult } from "@/hooks/useGame";
 import { Toaster, toast } from "sonner";
 import { PublicKey } from "@solana/web3.js";
 import MiningBlock from "@/components/MiningBlock";
-import RecentHistory from "@/components/RecentHistory";
-import { PROGRAM_ID } from "@/utils/anchor";
 
 const WalletMultiButton = dynamic(
   async () => (await import("@solana/wallet-adapter-react-ui")).WalletMultiButton,
@@ -308,11 +306,6 @@ export default function Home() {
         </motion.div>
       </header>
 
-      {/* ── RECENT HISTORY STRIP ── */}
-      <div className="px-3 sm:px-4 lg:px-6 mt-2">
-        <RecentHistory programId={PROGRAM_ID} rooms={[101, 102, 103]} currentRoomId={roomId} />
-      </div>
-
       {/* ── MAIN GAME AREA ── */}
       <div className="game-area">
 
@@ -357,7 +350,7 @@ export default function Home() {
           </div>
 
           {/* Action Button */}
-          <div className="w-full max-w-xs sm:max-w-sm mt-1 min-h-[72px] flex items-center justify-center">
+          <div className="w-full max-w-xs sm:max-w-sm mt-1 flex items-center justify-center">
             <AnimatePresence mode="wait">
               {!connected ? (
                 <motion.div key="unconnected" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -377,7 +370,7 @@ export default function Home() {
                 </motion.div>
               ) : displayPlayerIndex !== null ? (
                 <motion.div key="ingame" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-                  className="w-full py-3.5 px-3 rounded-xl border-2 border-dashed border-white/20 bg-white/5 flex flex-col items-center text-center justify-center">
+                  className="w-full rounded-xl border-2 border-dashed border-white/20 bg-white/5 flex flex-col items-center text-center justify-center h-[56px]">
                   <p className="text-zinc-400 font-bold uppercase tracking-widest text-[8px] mb-0.5">Bundle in Mempool</p>
                   <div className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-full shadow-lg" style={{ backgroundColor: BULLET_COLORS[displayPlayerIndex % BULLET_COLORS.length].color, boxShadow: `0 0 10px ${BULLET_COLORS[displayPlayerIndex % BULLET_COLORS.length].color}` }} />
@@ -390,7 +383,7 @@ export default function Home() {
                 <motion.button key="play"
                   initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
                   onClick={handleJoin} disabled={txPending}
-                  className="btn-solana w-full py-3.5 text-sm sm:text-base font-black shadow-[0_0_30px_rgba(153,69,255,0.35)] disabled:opacity-50">
+                  className="btn-solana w-full h-[56px] text-sm sm:text-base font-black shadow-[0_0_30px_rgba(153,69,255,0.35)] disabled:opacity-50">
                   {txPending ? <Loader2 className="animate-spin mx-auto w-5 h-5" /> : `JOIN BLOCK — ${activeRoom.label}`}
                 </motion.button>
               )}
