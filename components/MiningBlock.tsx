@@ -1,10 +1,39 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Solana official colors
-const SURGE_GREEN = "#00FFA3";
-const OCEAN_BLUE = "#03E1FF";
-const PURPLE_DINO = "#DC1FFF";
+// Solana official colors - one for each of the 30 squares
+const SOLANA_COLORS = [
+  "#DC1FFF", // Purple Dino
+  "#03E1FF", // Ocean Blue  
+  "#00FFA3", // Surge Green
+  "#9945FF", // Violet
+  "#14F195", // Solana Green
+  "#00C2FF", // Cyan
+  "#FF6B9D", // Pink
+  "#FFB84D", // Orange
+  "#A855F7", // Purple
+  "#10B981", // Emerald
+  "#06B6D4", // Sky
+  "#EC4899", // Rose
+  "#F59E0B", // Amber
+  "#8B5CF6", // Indigo
+  "#34D399", // Mint
+  "#22D3EE", // Electric
+  "#F472B6", // Candy
+  "#FBBF24", // Gold
+  "#7C3AED", // Deep
+  "#6EE7B7", // Pastel
+  "#67E8F9", // Azure
+  "#FDA4AF", // Blush
+  "#FCD34D", // Lemon
+  "#6D28D9", // Royal
+  "#059669", // Forest
+  "#0891B2", // Ocean
+  "#BE185D", // Magenta
+  "#D97706", // Sunset
+  "#5B21B6", // Ultra
+  "#047857", // Jade
+];
 
 interface Props {
   playerCount: number;
@@ -13,11 +42,12 @@ interface Props {
   countdown: number | null;
 }
 
-// 30 squares arranged in a 5x6 grid (like the image)
+// 30 squares arranged in a 5x6 grid
 const SQUARES = Array.from({ length: 30 }, (_, i) => ({
   id: i,
   row: Math.floor(i / 6),
   col: i % 6,
+  color: SOLANA_COLORS[i],
 }));
 
 // Network connections between adjacent squares
@@ -31,6 +61,11 @@ SQUARES.forEach(sq => {
 
 export default function MiningBlock({ playerCount, isSpinning, countdown }: Props) {
   const isActive = isSpinning || countdown !== null;
+  
+  // Solana gradient colors for various elements
+  const SURGE_GREEN = "#00FFA3";
+  const OCEAN_BLUE = "#03E1FF";
+  const PURPLE_DINO = "#DC1FFF";
 
   return (
     <div className="mining-block-wrapper relative flex items-center justify-center">
@@ -194,7 +229,7 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
 
         {/* 30 squares in a 5x6 grid */}
         <g id="squares">
-          {SQUARES.map(({ id, row, col }) => {
+          {SQUARES.map(({ id, row, col, color }) => {
             const isPlayerActive = id < playerCount;
             const squareSize = 50;
             const spacing = 70;
@@ -205,7 +240,7 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
 
             return (
               <g key={id}>
-                {/* Glow for active squares */}
+                {/* Glow for active squares - using player's unique color */}
                 {isPlayerActive && (
                   <rect
                     x={x - squareSize / 2 - 6}
@@ -213,20 +248,20 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
                     width={squareSize + 12}
                     height={squareSize + 12}
                     rx="8"
-                    fill={PURPLE_DINO}
+                    fill={color}
                     opacity="0.5"
                     style={{ filter: "blur(12px)" }}
                   />
                 )}
 
-                {/* Square */}
+                {/* Square - each player gets their unique color */}
                 <rect
                   x={x - squareSize / 2}
                   y={y - squareSize / 2}
                   width={squareSize}
                   height={squareSize}
                   rx="6"
-                  fill={isPlayerActive ? "url(#squareGrad)" : "rgba(60,60,80,0.3)"}
+                  fill={isPlayerActive ? color : "rgba(60,60,80,0.3)"}
                   stroke={isPlayerActive ? "white" : "rgba(80,80,100,0.4)"}
                   strokeWidth={isPlayerActive ? "2" : "1"}
                   opacity={isPlayerActive ? "1" : "0.4"}

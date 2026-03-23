@@ -198,12 +198,21 @@ export default function Home() {
     const current = actualPlayerCount;
     if (prev > 0 && prev < 3 && current === 0 && wasInGameRef.current) {
       toast.success('BLOCK EXPIRED: Not enough searchers. Your funds have been automatically refunded.', { duration: 5000 });
-      setIsSpinning(false); setCountdown(null); setTxPending(false);
+      // Complete reset after refund
+      setIsSpinning(false);
+      setCountdown(null);
+      setTxPending(false);
+      setShowResult(null);
+      setGameResult(null);
+      setIsProcessingResult(false);
+      myPlayerIndexRef.current = null;
+      lastPlayersRef.current = [];
       wasInGameRef.current = false;
+      setRotation(0);
       setTimeout(() => stableFetch(), 1000);
     }
     prevPlayerCountForRefundRef.current = current;
-  }, [actualPlayerCount, stableFetch]);
+  }, [actualPlayerCount, stableFetch, setGameResult]);
 
   useEffect(() => {
     if (actualPlayerCount === 0 && !gameResult && !txPending && !countdown && !isSpinning && !showResult) {
@@ -407,6 +416,50 @@ export default function Home() {
             )}
           </motion.div>
         </div>
+      </div>
+
+      {/* ── MOBILE STATS SECTION (below fold) ── */}
+      <div className="mobile-stats-section">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="stat-card">
+          <p className="stat-label">Active Searchers</p>
+          <div className="flex items-end gap-1.5">
+            <span className="stat-value neon-text-purple">{playerCount}</span>
+            <span className="text-zinc-700 text-lg font-bold mb-0.5">/ 30</span>
+          </div>
+          <div className="mt-2 h-1 w-full bg-white/5 rounded-full overflow-hidden">
+            <motion.div animate={{ width: `${Math.min((playerCount / 30) * 100, 100)}%` }} className="h-full bg-gradient-to-r from-[#9945FF] to-[#14F195] rounded-full" />
+          </div>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="stat-card">
+          <p className="stat-label">Extraction Est.</p>
+          <p className="stat-value neon-text-cyan">
+            {extractionEstimate > 0 ? `${extractionEstimate.toFixed(2)}x` : '--'}
+          </p>
+          <p className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest mt-1">Win Multiplier</p>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="stat-card">
+          <p className="stat-label">Block Liquidity</p>
+          <p className="stat-value neon-text-cyan">{potAmount.toFixed(3)}<span className="text-xs font-bold opacity-50 ml-1">SOL</span></p>
+          <p className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest mt-1">Pool: {(potAmount * 0.95).toFixed(3)} SOL</p>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="stat-card">
+          <div className="flex items-center gap-1.5 mb-1">
+            <Clock className="w-3.5 h-3.5 text-zinc-500" />
+            <p className="stat-label">Block Expiration</p>
+          </div>
+          <p className="stat-value text-white">
+            {timeRemaining !== null ? `${Math.floor(timeRemaining / 60)}:${(timeRemaining % 60).toString().padStart(2, '0')}` : '--:--'}
+          </p>
+          {timeRemaining !== null && (
+            <div className="mt-2 h-1 w-full bg-white/5 rounded-full overflow-hidden">
+              <motion.div animate={{ width: `${(timeRemaining / BLOCK_EXPIRATION_SECONDS) * 100}%` }}
+                className="h-full bg-gradient-to-r from-[#14F195] to-[#9945FF] rounded-full" />
+            </div>
+          )}
+        </motion.div>
       </div>
 
       {/* ── INFO SECTION (scrollable below fold) ── */}
