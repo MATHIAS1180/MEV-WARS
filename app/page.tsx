@@ -357,7 +357,7 @@ export default function Home() {
           </div>
 
           {/* Action Button */}
-          <div className="w-full max-w-xs sm:max-w-sm mt-3 min-h-[56px] flex items-center justify-center">
+          <div className="w-full max-w-xs sm:max-w-sm mt-1 min-h-[72px] flex items-center justify-center">
             <AnimatePresence mode="wait">
               {!connected ? (
                 <motion.div key="unconnected" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -377,21 +377,21 @@ export default function Home() {
                 </motion.div>
               ) : displayPlayerIndex !== null ? (
                 <motion.div key="ingame" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-                  className="w-full py-3 px-4 rounded-xl border-2 border-dashed border-white/20 bg-white/5 flex flex-col items-center text-center">
-                  <p className="text-zinc-400 font-bold uppercase tracking-widest text-[9px] mb-1">Bundle in Mempool</p>
+                  className="w-full py-2.5 px-3 rounded-xl border-2 border-dashed border-white/20 bg-white/5 flex flex-col items-center text-center">
+                  <p className="text-zinc-400 font-bold uppercase tracking-widest text-[8px] mb-0.5">Bundle in Mempool</p>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full shadow-lg" style={{ backgroundColor: BULLET_COLORS[displayPlayerIndex % BULLET_COLORS.length].color, boxShadow: `0 0 10px ${BULLET_COLORS[displayPlayerIndex % BULLET_COLORS.length].color}` }} />
-                    <span className="text-white font-black tracking-wider uppercase text-sm">{BULLET_COLORS[displayPlayerIndex % BULLET_COLORS.length].name}</span>
+                    <div className="w-2.5 h-2.5 rounded-full shadow-lg" style={{ backgroundColor: BULLET_COLORS[displayPlayerIndex % BULLET_COLORS.length].color, boxShadow: `0 0 10px ${BULLET_COLORS[displayPlayerIndex % BULLET_COLORS.length].color}` }} />
+                    <span className="text-white font-black tracking-wider uppercase text-xs">{BULLET_COLORS[displayPlayerIndex % BULLET_COLORS.length].name}</span>
                   </div>
                   {actualPlayerCount > 0 && actualPlayerCount < 3 && !isProcessingResult &&
-                    <p className="text-zinc-500 text-[9px] font-bold uppercase tracking-widest animate-pulse mt-1">Waiting ({actualPlayerCount}/3 min)...</p>}
+                    <p className="text-zinc-500 text-[8px] font-bold uppercase tracking-widest animate-pulse mt-0.5">Waiting ({actualPlayerCount}/3 min)...</p>}
                 </motion.div>
               ) : (
                 <motion.button key="play"
                   initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
                   onClick={handleJoin} disabled={txPending}
-                  className="btn-solana w-full py-4 text-base sm:text-lg font-black shadow-[0_0_30px_rgba(153,69,255,0.35)] disabled:opacity-50">
-                  {txPending ? <Loader2 className="animate-spin mx-auto w-6 h-6" /> : `JOIN BLOCK — ${activeRoom.label}`}
+                  className="btn-solana w-full py-3.5 text-sm sm:text-base font-black shadow-[0_0_30px_rgba(153,69,255,0.35)] disabled:opacity-50">
+                  {txPending ? <Loader2 className="animate-spin mx-auto w-5 h-5" /> : `JOIN BLOCK — ${activeRoom.label}`}
                 </motion.button>
               )}
             </AnimatePresence>

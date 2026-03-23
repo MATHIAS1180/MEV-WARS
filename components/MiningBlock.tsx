@@ -140,13 +140,6 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
             <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
           </filter>
 
-          {/* Line glow */}
-          <filter id="lineGlow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="3" result="blur"/>
-            <feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1.5 0" in="blur"/>
-            <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-
           {/* Shadow */}
           <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
             <feGaussianBlur in="SourceAlpha" stdDeviation="20"/>
@@ -211,70 +204,6 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
               <animate attributeName="stroke-opacity" values="0.7;1;0.7" dur="2s" repeatCount="indefinite"/>
             )}
           </rect>
-
-          {/* Corner accents */}
-          {[
-            { x: 70, y: 70, rotate: 0 },
-            { x: 530, y: 70, rotate: 90 },
-            { x: 530, y: 530, rotate: 180 },
-            { x: 70, y: 530, rotate: 270 }
-          ].map((corner, i) => (
-            <g key={i} transform={`translate(${corner.x}, ${corner.y}) rotate(${corner.rotate})`}>
-              <line x1="0" y1="0" x2="30" y2="0" stroke={isActive ? SURGE_GREEN : "rgba(100,100,150,0.4)"} strokeWidth="2" strokeLinecap="round"/>
-              <line x1="0" y1="0" x2="0" y2="30" stroke={isActive ? SURGE_GREEN : "rgba(100,100,150,0.4)"} strokeWidth="2" strokeLinecap="round"/>
-              {isActive && (
-                <circle cx="0" cy="0" r="4" fill={SURGE_GREEN} opacity="0.8">
-                  <animate attributeName="r" values="4;6;4" dur="2s" repeatCount="indefinite"/>
-                  <animate attributeName="opacity" values="0.8;1;0.8" dur="2s" repeatCount="indefinite"/>
-                </circle>
-              )}
-            </g>
-          ))}
-        </g>
-
-        {/* Grid lines for tech look */}
-        <g opacity="0.1">
-          {[...Array(5)].map((_, i) => (
-            <line key={`h${i}`} x1="90" y1={90 + i * 110} x2="510" y2={90 + i * 110} stroke="white" strokeWidth="0.5"/>
-          ))}
-          {[...Array(5)].map((_, i) => (
-            <line key={`v${i}`} x1={90 + i * 105} y1="90" x2={90 + i * 105} y2="510" stroke="white" strokeWidth="0.5"/>
-          ))}
-        </g>
-
-        {/* Network connections */}
-        <g id="connections">
-          {CONNECTIONS.map(([fromId, toId]) => {
-            const from = SQUARES[fromId];
-            const to = SQUARES[toId];
-            
-            const squareSize = 58;
-            const spacing = 76;
-            const startX = 300 - (6 * spacing) / 2 + spacing / 2;
-            const startY = 300 - (5 * spacing) / 2 + spacing / 2;
-            
-            const x1 = startX + from.col * spacing;
-            const y1 = startY + from.row * spacing;
-            const x2 = startX + to.col * spacing;
-            const y2 = startY + to.row * spacing;
-
-            const bothActive = fromId < playerCount && toId < playerCount;
-
-            return (
-              <line
-                key={`${fromId}-${toId}`}
-                x1={x1} y1={y1} x2={x2} y2={y2}
-                stroke={bothActive ? from.color : "rgba(80,80,100,0.15)"}
-                strokeWidth={bothActive ? "2.5" : "1"}
-                opacity={bothActive ? "0.6" : "0.2"}
-                filter={bothActive ? "url(#lineGlow)" : undefined}
-              >
-                {bothActive && isActive && (
-                  <animate attributeName="stroke-opacity" values="0.6;0.3;0.6" dur="2s" repeatCount="indefinite"/>
-                )}
-              </line>
-            );
-          })}
         </g>
 
         {/* 30 squares in a 5x6 grid */}
@@ -381,24 +310,6 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
             );
           })}
         </g>
-
-        {/* Searcher counter */}
-        <text x="300" y="565" textAnchor="middle"
-          fill={playerCount > 0 ? SURGE_GREEN : "rgba(255,255,255,0.3)"}
-          fontSize="13" fontFamily="monospace" letterSpacing="4" fontWeight="bold"
-          opacity={playerCount > 0 ? "0.9" : "0.4"}
-          filter={playerCount > 0 ? "url(#glow)" : undefined}>
-          {String(playerCount).padStart(2,'0')}/30 SEARCHERS
-        </text>
-
-        {/* Animated scanning line when active */}
-        {isActive && (
-          <line x1="90" y1="300" x2="510" y2="300" stroke={OCEAN_BLUE} strokeWidth="2" opacity="0.6">
-            <animate attributeName="y1" values="90;510;90" dur="3s" repeatCount="indefinite"/>
-            <animate attributeName="y2" values="90;510;90" dur="3s" repeatCount="indefinite"/>
-            <animate attributeName="opacity" values="0.6;0.2;0.6" dur="3s" repeatCount="indefinite"/>
-          </line>
-        )}
       </svg>
     </div>
   );
