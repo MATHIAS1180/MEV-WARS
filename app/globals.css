@@ -310,19 +310,27 @@
 /* ══════════════════════════════════════════════════
    RESPONSIVE — Barrel SVG scale
 ══════════════════════════════════════════════════ */
+/* Desktop */
+@media (min-width: 1025px) {
+  .barrel-svg-wrapper svg {
+    width: 380px !important;
+    height: 380px !important;
+  }
+}
+
 /* Tablet */
 @media (max-width: 1024px) and (min-width: 641px) {
   .barrel-svg-wrapper svg {
-    width: 340px !important;
-    height: 340px !important;
+    width: 320px !important;
+    height: 320px !important;
   }
 }
 
 /* Mobile */
 @media (max-width: 640px) {
   .barrel-svg-wrapper svg {
-    width: 260px !important;
-    height: 260px !important;
+    width: 280px !important;
+    height: 280px !important;
   }
 }
 
