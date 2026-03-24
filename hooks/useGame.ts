@@ -60,8 +60,12 @@ export function useGame(roomId: number) {
   useEffect(() => { gameResultRef.current = gameResult; }, [gameResult]);
 
   const provider = useMemo(() => {
-    if (!wallet.publicKey) return null;
-    return new AnchorProvider(connection, wallet as any, { commitment: 'confirmed' });
+    // Create a read-only provider even without wallet
+    return new AnchorProvider(
+      connection, 
+      wallet as any, 
+      { commitment: 'confirmed' }
+    );
   }, [connection, wallet]);
 
   const program = useMemo(() => {
@@ -111,7 +115,7 @@ export function useGame(roomId: number) {
   }, []);
 
   const fetchState = useCallback(async () => {
-    if (!program || !wallet.publicKey) return;
+    if (!program) return;
     try {
       const [gamePda] = PublicKey.findProgramAddressSync(
         [Buffer.from('room'), Buffer.from([roomId])], program.programId
@@ -124,11 +128,11 @@ export function useGame(roomId: number) {
       } catch (err) { setGameState({ _corrupted: true }); }
     } catch { setGameState(null); }
     finally { setIsLoading(false); }
-  }, [program, wallet.publicKey, connection, roomId]);
+  }, [program, connection, roomId]);
 
   useEffect(() => {
     setGameResult(null);
-    if (!program || !wallet.publicKey) { setGameState(null); return; }
+    if (!program) { setGameState(null); return; }
     fetchState();
 
     const [gamePda] = PublicKey.findProgramAddressSync(
@@ -246,7 +250,7 @@ export function useGame(roomId: number) {
     return () => {
       connection.removeAccountChangeListener(subId).catch(console.error);
     };
-  }, [program, connection, wallet.publicKey, roomId, parseLogsForResult, fetchState]);
+  }, [program, connection, roomId, parseLogsForResult, fetchState]);
 
   const joinGame = async (entryFeeLamports: number): Promise<boolean> => {
     if (!program || !wallet.publicKey || !provider) throw new Error('Wallet not connected');
