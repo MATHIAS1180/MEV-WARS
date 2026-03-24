@@ -265,8 +265,10 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen flex flex-col relative">
-      {/* Background effects */}
+    <>
+      <Toaster position="top-center" theme="dark" />
+      
+      {/* Background effects - fixed */}
       <div className="fixed inset-0 pointer-events-none z-[-3] overflow-hidden">
         <div className="absolute top-[-10%] left-[-10%] w-[300px] sm:w-[400px] lg:w-[500px] h-[300px] sm:h-[400px] lg:h-[500px] bg-[#DC1FFF]/30 rounded-full blur-[100px] sm:blur-[120px] animate-blob" />
         <div className="absolute top-[20%] right-[-10%] w-[400px] sm:w-[500px] lg:w-[600px] h-[400px] sm:h-[500px] lg:h-[600px] bg-[#00FFA3]/25 rounded-full blur-[120px] sm:blur-[140px] animate-blob animation-delay-2000" />
@@ -274,161 +276,216 @@ export default function Home() {
       </div>
       <div className="cyber-grid" />
       <div className="scanlines" />
-      <Toaster position="top-center" theme="dark" />
 
-      {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-black/40 backdrop-blur-2xl">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 py-3 sm:py-4 flex items-center justify-between gap-3 sm:gap-4">
-          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-            <img src="/images/trigger-logo.png" alt="MEV Wars" className="h-8 sm:h-10 lg:h-12 w-auto filter drop-shadow-[0_0_12px_rgba(220,31,255,0.6)]" />
-          </motion.div>
-
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-3 sm:gap-4">
-            {/* Live Badge with Pulse */}
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-[#00FFA3]/10 border border-[#00FFA3]/30 rounded-full">
-              <div className="relative">
-                <div className="w-2 h-2 rounded-full bg-[#00FFA3] shadow-[0_0_8px_#00FFA3]" />
-                <div className="absolute inset-0 w-2 h-2 rounded-full bg-[#00FFA3] animate-ping" />
-              </div>
-              <span className="text-xs font-black uppercase tracking-widest text-[#00FFA3]">Live</span>
-            </div>
-            <WalletMultiButton />
-          </motion.div>
-        </div>
-      </header>
-
-      {/* Hero Section */}
-      <section className="relative w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 py-8 sm:py-12 lg:py-16">
-        <div className="text-center">
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black uppercase tracking-tighter mb-4 sm:mb-6 leading-tight"
-          >
-            <span className="text-white">MEV Wars</span>
-            <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00FFA3] via-[#03E1FF] to-[#DC1FFF]">
-              Provably Fair
-            </span>
-            <br />
-            <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl text-white/90">
-              Solana Casino Game
-            </span>
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-base sm:text-lg md:text-xl lg:text-2xl text-zinc-300 font-medium max-w-3xl mx-auto mb-8 sm:mb-10 px-4 leading-relaxed"
-          >
-            Join a round. <span className="text-[#00FFA3] font-bold">1 in 3 players wins.</span> Fully on-chain. Instant payouts.
-          </motion.p>
-
-          {/* Social Proof Bar */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 lg:gap-8 mb-8 sm:mb-10"
-          >
-            {[
-              { icon: <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />, text: "100% On-chain", color: "text-[#00FFA3]" },
-              { icon: <Zap className="w-4 h-4 sm:w-5 sm:h-5" />, text: "Provably Fair", color: "text-[#03E1FF]" },
-              { icon: <Clock className="w-4 h-4 sm:w-5 sm:h-5" />, text: "Instant Payouts", color: "text-[#DC1FFF]" },
-            ].map((item, i) => (
-              <div key={i} className={`flex items-center gap-2 ${item.color}`}>
-                {item.icon}
-                <span className="text-xs sm:text-sm font-bold uppercase tracking-wider">{item.text}</span>
-              </div>
-            ))}
-          </motion.div>
-
-          {/* Primary CTA - Only show if not connected */}
-          {!connected && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3 }}
-              className="flex justify-center"
-            >
-              <div className="inline-block">
-                <WalletMultiButton className="!bg-gradient-to-r !from-[#00FFA3] !to-[#03E1FF] !text-black !font-black !uppercase !tracking-wider !rounded-xl !shadow-[0_0_40px_rgba(0,255,163,0.5)] hover:!shadow-[0_0_60px_rgba(0,255,163,0.7)] !transition-all !duration-200 hover:!scale-105 active:!scale-95 !px-8 !py-4 !text-base sm:!text-lg" />
-              </div>
+      {/* Main layout wrapper */}
+      <div className="game-layout-root">
+        {/* Header - Fixed height */}
+        <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-black/40 backdrop-blur-2xl flex-shrink-0" style={{ height: 'var(--nav-height)' }}>
+          <div className="h-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 flex items-center justify-between gap-3 sm:gap-4">
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+              <img src="/images/trigger-logo.png" alt="MEV Wars" className="h-8 sm:h-10 lg:h-12 w-auto filter drop-shadow-[0_0_12px_rgba(220,31,255,0.6)]" />
             </motion.div>
-          )}
-        </div>
-      </section>
 
-      {/* Game Section */}
-      <section className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 py-6 sm:py-8 lg:py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 items-start">
-          {/* Left: Game Visual */}
-          <div className="flex flex-col items-center justify-center order-2 lg:order-1">
-            <div className="relative w-full flex items-center justify-center">
-              <AnimatePresence>
-                {countdown !== null && (
-                  <motion.div initial={{ scale: 2, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }}
-                    className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
-                    <span className="text-[4rem] sm:text-[5rem] md:text-[6rem] lg:text-[7rem] font-black text-white drop-shadow-[0_0_50px_rgba(255,255,255,0.9)] leading-none">{countdown}</span>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-3 sm:gap-4">
+              {/* Live Badge with Pulse */}
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-[#00FFA3]/10 border border-[#00FFA3]/30 rounded-full">
+                <div className="relative">
+                  <div className="w-2 h-2 rounded-full bg-[#00FFA3] shadow-[0_0_8px_#00FFA3]" />
+                  <div className="absolute inset-0 w-2 h-2 rounded-full bg-[#00FFA3] animate-ping" />
+                </div>
+                <span className="text-xs font-black uppercase tracking-widest text-[#00FFA3]">Live</span>
+              </div>
+              <WalletMultiButton />
+            </motion.div>
+          </div>
+        </header>
 
-              <MiningBlock playerCount={actualPlayerCount} isSpinning={isSpinning} rotation={rotation} countdown={countdown} />
-            </div>
+        {/* Scrollable content wrapper */}
+        <div className="game-content-wrapper">
+          {/* Hero Section - Scrollable */}
+          <section className="relative w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 py-8 sm:py-12 lg:py-16">
+            <div className="text-center">
+              <motion.h1
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black uppercase tracking-tighter mb-4 sm:mb-6 leading-tight"
+              >
+                <span className="text-white">MEV Wars</span>
+                <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00FFA3] via-[#03E1FF] to-[#DC1FFF]">
+                  Provably Fair
+                </span>
+                <br />
+                <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl text-white/90">
+                  Solana Casino Game
+                </span>
+              </motion.h1>
 
-            {/* Room Switcher */}
-            <div className="mt-6 sm:mt-8 flex gap-1.5 sm:gap-2 p-1 sm:p-1.5 bg-white/5 rounded-xl border border-white/10 w-full max-w-sm">
-              {ROOMS.map(room => (
-                <button
-                  key={room.id}
-                  onClick={() => !countdown && setRoomId(room.id)}
-                  disabled={!!countdown}
-                  className={`room-btn flex-1 ${roomId === room.id ? 'room-btn-active' : 'room-btn-inactive'}`}
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="text-base sm:text-lg md:text-xl lg:text-2xl text-zinc-300 font-medium max-w-3xl mx-auto mb-8 sm:mb-10 px-4 leading-relaxed"
+              >
+                Join a round. <span className="text-[#00FFA3] font-bold">1 in 3 players wins.</span> Fully on-chain. Instant payouts.
+              </motion.p>
+
+              {/* Social Proof Bar */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 lg:gap-8 mb-8 sm:mb-10"
+              >
+                {[
+                  { icon: <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />, text: "100% On-chain", color: "text-[#00FFA3]" },
+                  { icon: <Zap className="w-4 h-4 sm:w-5 sm:h-5" />, text: "Provably Fair", color: "text-[#03E1FF]" },
+                  { icon: <Clock className="w-4 h-4 sm:w-5 sm:h-5" />, text: "Instant Payouts", color: "text-[#DC1FFF]" },
+                ].map((item, i) => (
+                  <div key={i} className={`flex items-center gap-2 ${item.color}`}>
+                    {item.icon}
+                    <span className="text-xs sm:text-sm font-bold uppercase tracking-wider">{item.text}</span>
+                  </div>
+                ))}
+              </motion.div>
+
+              {/* Primary CTA - Only show if not connected */}
+              {!connected && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.3 }}
+                  className="flex justify-center"
                 >
-                  {room.icon}
-                  <span className="hidden xs:inline sm:inline">{room.label}</span>
-                  <span className="xs:hidden sm:hidden">{room.label.replace(' SOL', '')}</span>
-                </button>
-              ))}
+                  <div className="inline-block">
+                    <WalletMultiButton className="!bg-gradient-to-r !from-[#00FFA3] !to-[#03E1FF] !text-black !font-black !uppercase !tracking-wider !rounded-xl !shadow-[0_0_40px_rgba(0,255,163,0.5)] hover:!shadow-[0_0_60px_rgba(0,255,163,0.7)] !transition-all !duration-200 hover:!scale-105 active:!scale-95 !px-8 !py-4 !text-base sm:!text-lg" />
+                  </div>
+                </motion.div>
+              )}
             </div>
-          </div>
+          </section>
 
-          {/* Right: Game Card */}
-          <div className="flex items-center justify-center lg:justify-start order-1 lg:order-2">
-            <GameCard
-              roomId={roomId}
-              label={activeRoom.label}
-              playerCount={actualPlayerCount}
-              potAmount={potAmount}
-              timeRemaining={timeRemaining}
-              onJoin={handleJoin}
-              isConnected={connected}
-              txPending={txPending}
-              myPlayerIndex={displayPlayerIndex}
-            />
-          </div>
+          {/* Game Section - Fixed viewport, no scroll */}
+          <section className="game-section-fixed">
+            {/* Mobile Layout (< 768px) */}
+            <div className="block lg:hidden h-full flex flex-col">
+              {/* Room Switcher - Mobile */}
+              <div className="tier-selector-mobile flex-shrink-0 flex gap-1.5 sm:gap-2 p-1 sm:p-1.5 bg-white/5 rounded-xl border border-white/10 mb-2">
+                {ROOMS.map(room => (
+                  <button
+                    key={room.id}
+                    onClick={() => !countdown && setRoomId(room.id)}
+                    disabled={!!countdown}
+                    className={`room-btn flex-1 ${roomId === room.id ? 'room-btn-active' : 'room-btn-inactive'}`}
+                  >
+                    {room.icon}
+                    <span className="hidden xs:inline sm:inline">{room.label}</span>
+                    <span className="xs:hidden sm:hidden">{room.label.replace(' SOL', '')}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Mining Block - Mobile */}
+              <div className="mining-block-container-mobile flex-1 min-h-0">
+                <div className="relative w-full h-full flex items-center justify-center">
+                  <AnimatePresence>
+                    {countdown !== null && (
+                      <motion.div initial={{ scale: 2, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }}
+                        className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
+                        <span className="text-[4rem] sm:text-[5rem] md:text-[6rem] lg:text-[7rem] font-black text-white drop-shadow-[0_0_50px_rgba(255,255,255,0.9)] leading-none">{countdown}</span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  <MiningBlock playerCount={actualPlayerCount} isSpinning={isSpinning} rotation={rotation} countdown={countdown} />
+                </div>
+              </div>
+
+              {/* Game Panel - Mobile (Bottom) */}
+              <div className="game-panel-mobile flex-shrink-0">
+                <GameCard
+                  roomId={roomId}
+                  label={activeRoom.label}
+                  playerCount={actualPlayerCount}
+                  potAmount={potAmount}
+                  timeRemaining={timeRemaining}
+                  onJoin={handleJoin}
+                  isConnected={connected}
+                  txPending={txPending}
+                  myPlayerIndex={displayPlayerIndex}
+                />
+              </div>
+            </div>
+
+            {/* Desktop Layout (≥ 768px) */}
+            <div className="hidden lg:grid h-full">
+              {/* Room Switcher - Desktop (spans all columns) */}
+              <div className="tier-selector-desktop flex justify-center">
+                <div className="flex gap-2 p-1.5 bg-white/5 rounded-xl border border-white/10">
+                  {ROOMS.map(room => (
+                    <button
+                      key={room.id}
+                      onClick={() => !countdown && setRoomId(room.id)}
+                      disabled={!!countdown}
+                      className={`room-btn ${roomId === room.id ? 'room-btn-active' : 'room-btn-inactive'}`}
+                    >
+                      {room.icon}
+                      <span>{room.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Mining Block - Desktop (Center) */}
+              <div className="mining-block-container-desktop">
+                <div className="relative w-full h-full flex items-center justify-center">
+                  <AnimatePresence>
+                    {countdown !== null && (
+                      <motion.div initial={{ scale: 2, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }}
+                        className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
+                        <span className="text-[7rem] font-black text-white drop-shadow-[0_0_50px_rgba(255,255,255,0.9)] leading-none">{countdown}</span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  <MiningBlock playerCount={actualPlayerCount} isSpinning={isSpinning} rotation={rotation} countdown={countdown} />
+                </div>
+              </div>
+
+              {/* Game Panel - Desktop (Right Side) */}
+              <div className="game-panel-desktop">
+                <GameCard
+                  roomId={roomId}
+                  label={activeRoom.label}
+                  playerCount={actualPlayerCount}
+                  potAmount={potAmount}
+                  timeRemaining={timeRemaining}
+                  onJoin={handleJoin}
+                  isConnected={connected}
+                  txPending={txPending}
+                  myPlayerIndex={displayPlayerIndex}
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* How It Works */}
+          <HowItWorks />
+
+          {/* Why Different */}
+          <WhyDifferent />
+
+          {/* Provably Fair */}
+          <ProvablyFair />
+
+          {/* Live Activity */}
+          <LiveActivity />
+
+          {/* FAQ */}
+          <FAQ />
+
+          {/* Footer */}
+          <Footer />
         </div>
-      </section>
-
-      {/* How It Works */}
-      <HowItWorks />
-
-      {/* Why Different */}
-      <WhyDifferent />
-
-      {/* Provably Fair */}
-      <ProvablyFair />
-
-      {/* Live Activity */}
-      <LiveActivity />
-
-      {/* FAQ */}
-      <FAQ />
-
-      {/* Footer */}
-      <Footer />
+      </div>
 
       {/* Result Overlay */}
       <AnimatePresence>
@@ -441,6 +498,6 @@ export default function Home() {
           />
         )}
       </AnimatePresence>
-    </main>
+    </>
   );
 }
