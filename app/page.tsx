@@ -436,12 +436,20 @@ export default function Home() {
               {/* Game Arena */}
               <div className="glass-card p-3 sm:p-4 lg:p-6">
                 
-                {/* Timer - Above Mining Block */}
-                {timeRemaining !== null && timeRemaining > 0 && actualPlayerCount > 0 && (
-                  <div className="mb-3 sm:mb-4">
-                    <CountdownTimer secondsLeft={timeRemaining} totalSeconds={30} />
-                  </div>
-                )}
+                {/* Timer - Floating Above */}
+                <AnimatePresence>
+                  {timeRemaining !== null && timeRemaining > 0 && actualPlayerCount > 0 && (
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      transition={{ duration: 0.3 }}
+                      className="absolute -top-20 sm:-top-24 left-1/2 -translate-x-1/2 z-30"
+                    >
+                      <CountdownTimer secondsLeft={timeRemaining} totalSeconds={30} />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* Mining Block Container - Dynamic Size */}
                 <div className="relative w-full flex items-center justify-center">
