@@ -1,6 +1,6 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trophy, UserPlus, RefreshCw } from "lucide-react";
+import { Trophy, UserPlus, RefreshCw, ExternalLink } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useLiveActivity } from "@/hooks/useLiveActivity";
 
@@ -10,8 +10,11 @@ const ROOM_LABELS: Record<number, string> = {
   103: "1.0 SOL",
 };
 
+// Program ID for Solana Explorer links
+const PROGRAM_ID = "BqVHWpwUDgMik5gbTciFfozadpxGw5ukMwjW62HYvEpf";
+
 export default function LiveActivity() {
-  const { activities } = useLiveActivity();
+  const { activities, isLoadingHistory } = useLiveActivity();
   const [timeNow, setTimeNow] = useState(Date.now());
 
   // Update time every second for "X seconds ago"
@@ -45,12 +48,28 @@ export default function LiveActivity() {
             </div>
             Live Activity
           </h3>
-          <span className="text-xs text-zinc-500 font-mono">
-            {activities.length} event{activities.length !== 1 ? 's' : ''}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-zinc-500 font-mono">
+              {activities.length} event{activities.length !== 1 ? 's' : ''}
+            </span>
+            <a
+              href={`https://explorer.solana.com/address/${PROGRAM_ID}?cluster=devnet`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00FFA3]/30 rounded-lg transition-all text-xs font-bold uppercase tracking-wider text-zinc-400 hover:text-[#00FFA3]"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">View All</span>
+            </a>
+          </div>
         </div>
 
-        {activities.length === 0 ? (
+        {isLoadingHistory ? (
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <RefreshCw className="w-8 h-8 text-[#00FFA3] mb-3 animate-spin" />
+            <p className="text-sm text-zinc-400">Loading recent activity...</p>
+          </div>
+        ) : activities.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <RefreshCw className="w-8 h-8 text-zinc-600 mb-3 animate-spin" style={{ animationDuration: '3s' }} />
             <p className="text-sm text-zinc-500">Waiting for activity...</p>
