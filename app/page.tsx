@@ -330,7 +330,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 lg:gap-8 mb-8 sm:mb-10"
+            className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 lg:gap-8"
           >
             {[
               { icon: <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />, text: "100% On-chain", color: "text-[#00FFA3]" },
@@ -343,20 +343,6 @@ export default function Home() {
               </div>
             ))}
           </motion.div>
-
-          {/* Primary CTA - Only show if not connected */}
-          {!connected && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3 }}
-              className="flex justify-center"
-            >
-              <div className="inline-block">
-                <WalletMultiButton className="!bg-gradient-to-r !from-[#00FFA3] !to-[#03E1FF] !text-black !font-black !uppercase !tracking-wider !rounded-xl !shadow-[0_0_40px_rgba(0,255,163,0.5)] hover:!shadow-[0_0_60px_rgba(0,255,163,0.7)] !transition-all !duration-200 hover:!scale-105 active:!scale-95 !px-8 !py-4 !text-base sm:!text-lg" />
-              </div>
-            </motion.div>
-          )}
         </div>
       </section>
 
