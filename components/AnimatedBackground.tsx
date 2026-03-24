@@ -69,8 +69,11 @@ export default function AnimatedBackground() {
       }
     }
 
-    // Create particles
-    const particleCount = Math.min(Math.floor((canvas.width * canvas.height) / 15000), 80);
+    // Create particles - optimized for mobile
+    const particleCount = Math.min(
+      Math.floor((canvas.width * canvas.height) / 20000), // Reduced density
+      window.innerWidth < 768 ? 40 : 60 // Fewer particles on mobile
+    );
     const particles: Particle[] = [];
     for (let i = 0; i < particleCount; i++) {
       particles.push(new Particle(canvas.width, canvas.height));

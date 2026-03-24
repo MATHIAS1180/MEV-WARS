@@ -15,6 +15,12 @@
     --purple-dino: #DC1FFF;
     --black: #000000;
     
+    /* ── Improved text colors for better contrast ── */
+    --text-primary: #ffffff;
+    --text-secondary: #e4e4e7;  /* zinc-200 instead of zinc-400 */
+    --text-tertiary: #a1a1aa;   /* zinc-400 instead of zinc-600 */
+    --text-muted: #71717a;      /* zinc-500 instead of zinc-600 */
+    
     /* ── Responsive Layout Variables ── */
     --nav-height: 52px;
     --tier-bar-height: 48px;
