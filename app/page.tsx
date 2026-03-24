@@ -4,12 +4,13 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import dynamic from "next/dynamic";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Zap, Trophy, Coins, ShieldCheck, Clock } from "lucide-react";
+import { Zap, Trophy, Coins, ShieldCheck, Clock, Users, Loader2 } from "lucide-react";
 import { useGame } from "@/hooks/useGame";
 import { Toaster, toast } from "sonner";
 import { PublicKey } from "@solana/web3.js";
 import MiningBlock from "@/components/MiningBlock";
 import ResultOverlay from "@/components/ResultOverlay";
+import CountdownTimer from "@/components/CountdownTimer";
 import GameCard from "@/components/GameCard";
 import HowItWorks from "@/components/HowItWorks";
 import WhyDifferent from "@/components/WhyDifferent";
@@ -35,6 +36,46 @@ export default function Home() {
   const { connected, publicKey } = useWallet();
   const [roomId, setRoomId] = useState<number>(101);
   const { gameState, fetchState, joinGame, gameResult, setGameResult } = useGame(roomId);
+
+  // Dynamic viewport sizing
+  const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
+  
+  useEffect(() => {
+    const updateSize = () => {
+      setViewportSize({
+        width: window.innerWidth,
+        height: window.innerHeight
+      });
+    };
+    
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
+
+  // Calculate optimal mining block size based on viewport
+  const getMiningBlockSize = () => {
+    const { width, height } = viewportSize;
+    
+    // Mobile portrait
+    if (width < 640) {
+      return Math.min(width - 60, height * 0.4, 320);
+    }
+    // Mobile landscape / Small tablet
+    if (width < 768) {
+      return Math.min(width - 80, height * 0.45, 380);
+    }
+    // Tablet
+    if (width < 1024) {
+      return Math.min(width * 0.5, height * 0.5, 420);
+    }
+    // Desktop - calculate based on available space
+    const availableHeight = height - 300; // Subtract header, stats, padding
+    const availableWidth = width * 0.6; // Left column is ~60% on desktop
+    return Math.min(availableWidth - 100, availableHeight, 500);
+  };
+
+  const miningBlockSize = getMiningBlockSize();
 
   const activeRoom = useMemo(() => ROOMS.find(r => r.id === roomId)!, [roomId]);
   const isWaiting = !gameState || (typeof gameState.state === 'object' && 'waiting' in gameState.state);
@@ -346,54 +387,173 @@ export default function Home() {
         </div>
       </section>
 
-          {/* Game Section - Simple responsive layout */}
-          <section className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 py-6 sm:py-8 lg:py-12">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 items-start">
-              {/* Left: Game Visual */}
-              <div className="flex flex-col items-center justify-center order-2 lg:order-1">
-                <div className="relative w-full flex items-center justify-center">
-                  <AnimatePresence>
-                    {countdown !== null && (
-                      <motion.div initial={{ scale: 2, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }}
-                        className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
-                        <span className="text-[4rem] sm:text-[5rem] md:text-[6rem] lg:text-[7rem] font-black text-white drop-shadow-[0_0_50px_rgba(255,255,255,0.9)] leading-none">{countdown}</span>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  <MiningBlock playerCount={actualPlayerCount} isSpinning={isSpinning} rotation={rotation} countdown={countdown} />
+          {/* Game Section - Dynamic Responsive */}
+          <section className="w-full max-w-[1600px] mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
+            
+            {/* Stats Bar */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-3 sm:mb-4">
+              
+              {/* Round Info */}
+              <div className="glass-card p-2.5 sm:p-4">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[0.6rem] sm:text-[0.65rem] text-zinc-400 uppercase font-bold tracking-wider">Round</p>
+                  <div className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 bg-[#00FFA3]/10 border border-[#00FFA3]/30 rounded-full">
+                    <div className="w-1 sm:w-1.5 h-1 sm:h-1.5 rounded-full bg-[#00FFA3] animate-pulse" />
+                    <span className="text-[0.5rem] sm:text-[0.55rem] font-black uppercase text-[#00FFA3]">Live</span>
+                  </div>
                 </div>
+                <p className="text-lg sm:text-xl lg:text-2xl font-black text-white">#{roomId}</p>
+                <p className="text-xs sm:text-sm text-[#00FFA3] font-bold">{activeRoom.label}</p>
+              </div>
 
-                {/* Room Switcher */}
-                <div className="mt-6 sm:mt-8 flex gap-1.5 sm:gap-2 p-1 sm:p-1.5 bg-white/5 rounded-xl border border-white/10 w-full max-w-sm">
-                  {ROOMS.map(room => (
-                    <button
-                      key={room.id}
-                      onClick={() => !countdown && setRoomId(room.id)}
-                      disabled={!!countdown}
-                      className={`room-btn flex-1 ${roomId === room.id ? 'room-btn-active' : 'room-btn-inactive'}`}
-                    >
-                      {room.icon}
-                      <span className="hidden xs:inline sm:inline">{room.label}</span>
-                      <span className="xs:hidden sm:hidden">{room.label.replace(' SOL', '')}</span>
-                    </button>
-                  ))}
+              {/* Pool */}
+              <div className="glass-card p-2.5 sm:p-4 text-center">
+                <p className="text-[0.6rem] sm:text-[0.65rem] text-zinc-400 uppercase font-bold tracking-wider mb-1">Pool</p>
+                <p className="text-lg sm:text-xl lg:text-2xl font-black text-white">{potAmount.toFixed(3)}</p>
+                <p className="text-[0.6rem] sm:text-xs text-zinc-500">SOL</p>
+              </div>
+              
+              {/* Players */}
+              <div className="glass-card p-2.5 sm:p-4 text-center">
+                <p className="text-[0.6rem] sm:text-[0.65rem] text-zinc-400 uppercase font-bold tracking-wider mb-1">Players</p>
+                <p className="text-lg sm:text-xl lg:text-2xl font-black text-white">{actualPlayerCount}</p>
+                <p className="text-[0.6rem] sm:text-xs text-zinc-500">{Math.max(1, Math.floor(actualPlayerCount / 3))} winners</p>
+              </div>
+              
+              {/* Win Chance */}
+              <div className="glass-card p-2.5 sm:p-4 text-center bg-gradient-to-br from-[#00FFA3]/5 to-[#DC1FFF]/5 border-[#00FFA3]/30">
+                <p className="text-[0.6rem] sm:text-[0.65rem] text-zinc-400 uppercase font-bold tracking-wider mb-1">Win Chance</p>
+                <p className="text-lg sm:text-xl lg:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF]">
+                  {actualPlayerCount >= 3 ? ((Math.max(1, Math.floor(actualPlayerCount / 3)) / actualPlayerCount) * 100).toFixed(1) : "33.3"}%
+                </p>
+                <p className="text-[0.6rem] sm:text-xs text-zinc-500">to win</p>
+              </div>
+            </div>
+
+            {/* Main Game Container */}
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] xl:grid-cols-[1fr_360px] gap-3 sm:gap-4">
+              
+              {/* Game Arena */}
+              <div className="glass-card p-3 sm:p-4 lg:p-6">
+                
+                {/* Timer - Above Mining Block */}
+                {timeRemaining !== null && timeRemaining > 0 && actualPlayerCount > 0 && (
+                  <div className="mb-3 sm:mb-4">
+                    <CountdownTimer secondsLeft={timeRemaining} totalSeconds={30} />
+                  </div>
+                )}
+
+                {/* Mining Block Container - Dynamic Size */}
+                <div className="relative w-full flex items-center justify-center">
+                  <div 
+                    className="relative aspect-square"
+                    style={{ 
+                      width: `${miningBlockSize}px`,
+                      maxWidth: '100%'
+                    }}
+                  >
+                    
+                    {/* Countdown Overlay */}
+                    <AnimatePresence>
+                      {countdown !== null && (
+                        <motion.div 
+                          initial={{ scale: 2, opacity: 0 }} 
+                          animate={{ scale: 1, opacity: 1 }} 
+                          exit={{ scale: 0, opacity: 0 }}
+                          className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none"
+                        >
+                          <span 
+                            className="font-black text-white drop-shadow-[0_0_60px_rgba(255,255,255,0.9)]"
+                            style={{ fontSize: `${miningBlockSize * 0.35}px` }}
+                          >
+                            {countdown}
+                          </span>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                    
+                    {/* Mining Block */}
+                    <div className="w-full h-full">
+                      <MiningBlock 
+                        playerCount={actualPlayerCount} 
+                        isSpinning={isSpinning} 
+                        rotation={rotation} 
+                        countdown={countdown} 
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Right: Game Card */}
-              <div className="flex items-center justify-center lg:justify-start order-1 lg:order-2">
-                <GameCard
-                  roomId={roomId}
-                  label={activeRoom.label}
-                  playerCount={actualPlayerCount}
-                  potAmount={potAmount}
-                  timeRemaining={timeRemaining}
-                  onJoin={handleJoin}
-                  isConnected={connected}
-                  txPending={txPending}
-                  myPlayerIndex={displayPlayerIndex}
-                />
+              {/* Control Panel */}
+              <div className="glass-card p-3 sm:p-4 lg:p-6 flex flex-col gap-3 sm:gap-4">
+                
+                {/* Bet Selection */}
+                <div>
+                  <h3 className="text-xs sm:text-sm font-black uppercase text-white mb-2 sm:mb-3 tracking-wider">Select Your Bet</h3>
+                  <div className="space-y-2">
+                    {ROOMS.map(room => (
+                      <button
+                        key={room.id}
+                        onClick={() => !countdown && setRoomId(room.id)}
+                        disabled={!!countdown}
+                        className={`w-full flex items-center justify-between p-2.5 sm:p-3 rounded-xl font-bold text-xs sm:text-sm transition-all ${
+                          roomId === room.id 
+                            ? 'bg-gradient-to-r from-[#9945FF] to-[#14F195] text-white shadow-[0_0_20px_rgba(153,69,255,0.4)]' 
+                            : 'bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-200 border border-white/10'
+                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <span className="w-3.5 h-3.5 sm:w-4 sm:h-4">{room.icon}</span>
+                          <span>{room.label}</span>
+                        </span>
+                        {roomId === room.id && (
+                          <span className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-white/20 flex items-center justify-center text-xs">✓</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Divider */}
+                <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+
+                {/* Action Area */}
+                <div className="flex-1 flex flex-col justify-end gap-2 sm:gap-3">
+                  {!connected ? (
+                    <div className="text-center p-3 sm:p-4 border-2 border-dashed border-zinc-700 rounded-xl">
+                      <p className="text-[0.65rem] sm:text-xs text-zinc-500 font-bold uppercase tracking-wider">Connect Your Wallet</p>
+                      <p className="text-[0.6rem] sm:text-[0.65rem] text-zinc-600 mt-1">Use the button in the header</p>
+                    </div>
+                  ) : myPlayerIndex !== null ? (
+                    <div className="p-3 sm:p-4 bg-gradient-to-r from-[#00FFA3]/10 to-[#03E1FF]/10 border-2 border-[#00FFA3]/40 rounded-xl">
+                      <div className="flex items-center justify-center gap-2 mb-1">
+                        <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-[#00FFA3]" />
+                        <p className="text-base sm:text-lg font-black text-[#00FFA3]">You're In!</p>
+                      </div>
+                      <p className="text-center text-xs sm:text-sm text-zinc-400">Position #{(displayPlayerIndex ?? myPlayerIndex) + 1}</p>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleJoin}
+                      disabled={txPending}
+                      className="w-full py-3 sm:py-4 px-4 sm:px-6 bg-gradient-to-r from-[#00FFA3] to-[#03E1FF] text-black font-black uppercase text-xs sm:text-sm rounded-xl shadow-[0_0_30px_rgba(0,255,163,0.4)] hover:shadow-[0_0_50px_rgba(0,255,163,0.6)] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {txPending ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <Loader2 className="animate-spin w-4 h-4 sm:w-5 sm:h-5" />
+                          <span>Processing...</span>
+                        </span>
+                      ) : (
+                        `Enter Round — ${activeRoom.label}`
+                      )}
+                    </button>
+                  )}
+                  
+                  <p className="text-[0.6rem] sm:text-[0.65rem] text-center text-zinc-600 leading-relaxed">
+                    Winners are selected automatically on-chain. Provably fair & transparent.
+                  </p>
+                </div>
               </div>
             </div>
           </section>

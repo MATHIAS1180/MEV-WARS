@@ -750,144 +750,29 @@
 }
 
 /* ══════════════════════════════════════════════════
-   RESPONSIVE — MiningBlock SVG scale
-══════════════════════════════════════════════════ */
-/* Mobile Portrait */
-@media (max-width: 479px) {
-  .barrel-svg-wrapper svg,
-  .mining-block-wrapper svg {
-    width: 280px !important;
-    height: 280px !important;
-  }
-}
-
-/* Mobile Landscape / Small Tablet */
-@media (min-width: 480px) and (max-width: 767px) {
-  .barrel-svg-wrapper svg,
-  .mining-block-wrapper svg {
-    width: 320px !important;
-    height: 320px !important;
-  }
-}
-
-/* Tablet */
-@media (min-width: 768px) and (max-width: 1023px) {
-  .barrel-svg-wrapper svg,
-  .mining-block-wrapper svg {
-    width: 360px !important;
-    height: 360px !important;
-  }
-}
-
-/* Desktop */
-@media (min-width: 1024px) and (max-width: 1279px) {
-  .barrel-svg-wrapper svg,
-  .mining-block-wrapper svg {
-    width: 400px !important;
-    height: 400px !important;
-  }
-}
-
-/* Large Desktop */
-@media (min-width: 1280px) and (max-width: 1535px) {
-  .barrel-svg-wrapper svg,
-  .mining-block-wrapper svg {
-    width: 420px !important;
-    height: 420px !important;
-  }
-}
-
-/* Extra Large Desktop */
-@media (min-width: 1536px) {
-  .barrel-svg-wrapper svg,
-  .mining-block-wrapper svg {
-    width: 480px !important;
-    height: 480px !important;
-  }
-}
-
-@media (max-width: 767px) {
-  .mining-block-wrapper > div:first-child,
-  .barrel-svg-wrapper > div:first-child {
-    display: none;
-  }
-}
-
-/* ══════════════════════════════════════════════════
-   RESPONSIVE — btn-solana
-══════════════════════════════════════════════════ */
-.btn-solana {
-  font-size: 0.875rem;
-  letter-spacing: 0.1em;
-  padding: 0.875rem 1.5rem;
-}
-
-@media (max-width: 639px) {
-  .btn-solana {
-    font-size: 0.75rem;
-    letter-spacing: 0.08em;
-    padding: 0.75rem 1.25rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .btn-solana {
-    font-size: 0.9375rem;
-    letter-spacing: 0.12em;
-    padding: 1rem 1.75rem;
-  }
-}
-
-@media (min-width: 1536px) {
-  .btn-solana {
-    font-size: 1rem;
-    letter-spacing: 0.15em;
-    padding: 1.125rem 2rem;
-  }
-}
-
-@keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-  100% { transform: translateY(0px); }
-}
-.animate-float {
-  animation: float 6s ease-in-out infinite;
-}
-
-@keyframes glow-pulse {
-  0% { box-shadow: 0 0 20px hsla(var(--solana-purple) / 0.2); }
-  50% { box-shadow: 0 0 40px hsla(var(--solana-cyan) / 0.4), 0 0 20px hsla(var(--solana-purple) / 0.2); }
-  100% { box-shadow: 0 0 20px hsla(var(--solana-purple) / 0.2); }
-}
-.glow-pulse {
-  animation: glow-pulse 3s infinite;
-}
-
-@keyframes blob {
-  0% { transform: translate(0px, 0px) scale(1); }
-  33% { transform: translate(30px, -50px) scale(1.1); }
-  66% { transform: translate(-20px, 20px) scale(0.9); }
-  100% { transform: translate(0px, 0px) scale(1); }
-}
-.animate-blob {
-  animation: blob 15s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
-}
-.animation-delay-2000 { animation-delay: 2s; }
-.animation-delay-4000 { animation-delay: 4s; }
-.animation-delay-6000 { animation-delay: 6s; }
-
-@keyframes shimmer {
-  100% { transform: translateX(100%); }
-}
-
-/* ══════════════════════════════════════════════════
-   GAME LAYOUT — Full viewport, no scroll for game area
+   MINING BLOCK - RESPONSIVE SIZING
 ══════════════════════════════════════════════════ */
 
-/* ══════════════════════════════════════════════════
-   RESPONSIVE GAME LAYOUT - SIMPLIFIED
-   Simple 2-column layout that works everywhere
-══════════════════════════════════════════════════ */
+.mining-block-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
 
-/* Remove complex game layout classes - use simple approach */
+.mining-block-wrapper svg {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+}
+
+/* Remove fixed SVG sizing - let it scale naturally */
+.barrel-svg-wrapper svg,
+.mining-block-wrapper svg {
+  width: 100% !important;
+  height: 100% !important;
+}
