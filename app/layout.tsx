@@ -7,8 +7,9 @@ const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "Solana Russian Roulette",
-  description: "High-stakes Degen Gaming on Solana Testnet",
+  title: "MEV Wars – Best Solana Casino with Provably Fair On-Chain Gameplay",
+  description: "Play MEV Wars, a provably fair Solana casino game. 1 in 3 players wins. Fast, transparent and fully on-chain.",
+  keywords: ["solana casino", "crypto casino", "provably fair casino", "on-chain game", "web3 gambling", "mev wars", "blockchain casino"],
 };
 
 export default function RootLayout({

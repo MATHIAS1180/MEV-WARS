@@ -1,28 +1,72 @@
 "use client";
-
-import { ShieldCheck, Zap } from "lucide-react";
-import { PROGRAM_ID } from "@/utils/anchor";
+import { Twitter, Github, MessageCircle } from "lucide-react";
 
 export default function Footer() {
   return (
-    <footer className="w-full bg-black border-t border-white/5 py-12 mt-32">
-      <div className="max-w-screen-xl mx-auto px-8 flex flex-col md:flex-row justify-between items-center gap-8">
-        <div className="flex flex-col gap-2 italic">
-          <div className="flex items-center gap-3">
-            <img src="/images/trigger-logo.png" alt="Trigger" className="h-5 w-auto brightness-150" />
-            <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-white">Trigger Protocol</span>
+    <footer className="w-full border-t border-white/5 bg-black/20 backdrop-blur-xl mt-auto">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+          {/* Brand */}
+          <div>
+            <img src="/images/trigger-logo.png" alt="MEV Wars" className="h-10 w-auto mb-4 filter drop-shadow-[0_0_12px_rgba(153,69,255,0.6)]" />
+            <p className="text-zinc-400 text-sm leading-relaxed">
+              Provably fair Solana casino game. 1 in 3 players wins. Fully on-chain.
+            </p>
           </div>
-          <p className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest">
-            High Velocity Elimination • © 2026
-          </p>
+
+          {/* Links */}
+          <div>
+            <h4 className="text-white font-bold uppercase tracking-wider text-sm mb-4">Legal</h4>
+            <ul className="space-y-2">
+              <li>
+                <a href="#" className="text-zinc-400 hover:text-[#00FFA3] text-sm transition-colors">
+                  Terms of Service
+                </a>
+              </li>
+              <li>
+                <a href="#" className="text-zinc-400 hover:text-[#00FFA3] text-sm transition-colors">
+                  Privacy Policy
+                </a>
+              </li>
+              <li>
+                <a href="#" className="text-zinc-400 hover:text-[#00FFA3] text-sm transition-colors">
+                  Responsible Gaming
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Social */}
+          <div>
+            <h4 className="text-white font-bold uppercase tracking-wider text-sm mb-4">Community</h4>
+            <div className="flex items-center gap-4">
+              <a
+                href="#"
+                className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400 hover:text-[#00FFA3] hover:border-[#00FFA3]/30 transition-all"
+              >
+                <Twitter className="w-5 h-5" />
+              </a>
+              <a
+                href="#"
+                className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400 hover:text-[#00FFA3] hover:border-[#00FFA3]/30 transition-all"
+              >
+                <MessageCircle className="w-5 h-5" />
+              </a>
+              <a
+                href="#"
+                className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400 hover:text-[#00FFA3] hover:border-[#00FFA3]/30 transition-all"
+              >
+                <Github className="w-5 h-5" />
+              </a>
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-8 text-[9px] font-bold text-zinc-500 uppercase tracking-widest">
-          <a href="#" className="hover:text-white transition-colors">Twitter</a>
-          <a href="#" className="hover:text-white transition-colors">Discord</a>
-          <a href="#" className="hover:text-white transition-colors">Docs</a>
-          <div className="h-4 w-[1px] bg-white/5" />
-          <span className="text-zinc-700 font-mono">v1.2.0-Alpha</span>
+        {/* Bottom */}
+        <div className="pt-6 border-t border-white/5 text-center">
+          <p className="text-zinc-600 text-xs">
+            © {new Date().getFullYear()} MEV Wars. Built on Solana. All rights reserved.
+          </p>
         </div>
       </div>
     </footer>
