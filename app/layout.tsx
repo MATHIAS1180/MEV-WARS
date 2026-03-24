@@ -20,6 +20,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${spaceGrotesk.variable} ${inter.variable} font-sans bg-[var(--bg-color)] text-zinc-100 antialiased min-h-screen flex flex-col selection:bg-[#9945FF]/40 selection:text-white`}>
+        <div className="liquid-overlay" />
         <WalletContextProvider>
           {children}
         </WalletContextProvider>
