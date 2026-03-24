@@ -4,12 +4,13 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import dynamic from "next/dynamic";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, Zap, Trophy, Skull, Coins, ShieldCheck, Clock } from "lucide-react";
-import { useGame, BULLET_COLORS } from "@/hooks/useGame";
+import { Zap, Trophy, Coins, ShieldCheck, Clock } from "lucide-react";
+import { useGame } from "@/hooks/useGame";
 import { Toaster, toast } from "sonner";
 import { PublicKey } from "@solana/web3.js";
 import MiningBlock from "@/components/MiningBlock";
-import Hero from "@/components/Hero";
+import ResultOverlay from "@/components/ResultOverlay";
+import GameCard from "@/components/GameCard";
 import HowItWorks from "@/components/HowItWorks";
 import WhyDifferent from "@/components/WhyDifferent";
 import ProvablyFair from "@/components/ProvablyFair";
@@ -88,6 +89,21 @@ export default function Home() {
     }
     prevMyIndexRef.current = myPlayerIndex;
   }, [myPlayerIndex]);
+
+  // Notification when other players join
+  const prevActualPlayerCountRef = useRef<number>(0);
+  useEffect(() => {
+    const prev = prevActualPlayerCountRef.current;
+    const current = actualPlayerCount;
+    
+    // Someone joined (not us)
+    if (current > prev && prev > 0 && myPlayerIndex !== null) {
+      toast.info(`Player joined! ${current} players in round`, { duration: 2000 });
+    }
+    
+    // Update ref
+    prevActualPlayerCountRef.current = current;
+  }, [actualPlayerCount, myPlayerIndex]);
 
   const gameResultProcessedRef = useRef<string | null>(null);
   
@@ -202,19 +218,37 @@ export default function Home() {
   }, [actualPlayerCount, stableFetch, setGameResult]);
 
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+  const hasNotifiedTimerStartRef = useRef<boolean>(false);
+  
   useEffect(() => {
     if (gameState && isWaiting && actualPlayerCount > 0) {
+      // Notify when timer starts (3+ players)
+      if (actualPlayerCount >= 3 && !hasNotifiedTimerStartRef.current) {
+        toast.success('Round starting! Timer activated', { duration: 3000 });
+        hasNotifiedTimerStartRef.current = true;
+      }
+      
       const iv = setInterval(() => {
         const blockStart = gameState.blockStartTime ? Number(gameState.blockStartTime.toString()) : gameState.lastActivityTime ? Number(gameState.lastActivityTime.toString()) : Date.now() / 1000;
         const elapsed = Math.floor(Date.now() / 1000) - blockStart;
         const r = BLOCK_EXPIRATION_SECONDS - elapsed;
         const remaining = r > 0 ? r : 0;
         setTimeRemaining(remaining);
+        
+        // Warning notifications
+        if (remaining === 10 && actualPlayerCount < 3) {
+          toast.warning('10 seconds left! Need 3 players minimum', { duration: 3000 });
+        }
+        if (remaining === 5 && actualPlayerCount >= 3) {
+          toast.info('5 seconds until round ends!', { duration: 2000 });
+        }
+        
         if (remaining === 0) triggerCrank();
       }, 1000);
       return () => clearInterval(iv);
     }
     setTimeRemaining(null);
+    hasNotifiedTimerStartRef.current = false;
   }, [gameState, isWaiting, actualPlayerCount, triggerCrank]);
 
   const handleJoin = async () => {
@@ -243,16 +277,20 @@ export default function Home() {
       <Toaster position="top-center" theme="dark" />
 
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-black/30 backdrop-blur-2xl">
+      <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-black/40 backdrop-blur-2xl">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 py-3 sm:py-4 flex items-center justify-between gap-3 sm:gap-4">
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
             <img src="/images/trigger-logo.png" alt="MEV Wars" className="h-8 sm:h-10 lg:h-12 w-auto filter drop-shadow-[0_0_12px_rgba(220,31,255,0.6)]" />
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-2 sm:gap-3">
-            <div className="hidden sm:flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#00FFA3] shadow-[0_0_6px_#00FFA3] animate-pulse" />
-              <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-[#00FFA3]">Live</span>
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-3 sm:gap-4">
+            {/* Live Badge with Pulse */}
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-[#00FFA3]/10 border border-[#00FFA3]/30 rounded-full">
+              <div className="relative">
+                <div className="w-2 h-2 rounded-full bg-[#00FFA3] shadow-[0_0_8px_#00FFA3]" />
+                <div className="absolute inset-0 w-2 h-2 rounded-full bg-[#00FFA3] animate-ping" />
+              </div>
+              <span className="text-xs font-black uppercase tracking-widest text-[#00FFA3]">Live</span>
             </div>
             <WalletMultiButton />
           </motion.div>
@@ -260,28 +298,31 @@ export default function Home() {
       </header>
 
       {/* Hero Section */}
-      <section className="relative w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 py-6 sm:py-8 lg:py-12">
+      <section className="relative w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 py-8 sm:py-12 lg:py-16">
         <div className="text-center">
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black uppercase tracking-tighter mb-3 sm:mb-4 leading-tight"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black uppercase tracking-tighter mb-4 sm:mb-6 leading-tight"
           >
-            MEV Wars{" "}
+            <span className="text-white">MEV Wars</span>
+            <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00FFA3] via-[#03E1FF] to-[#DC1FFF]">
               Provably Fair
             </span>
             <br />
-            <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl">Solana Casino Game</span>
+            <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl text-white/90">
+              Solana Casino Game
+            </span>
           </motion.h1>
 
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-base sm:text-lg md:text-xl lg:text-2xl text-zinc-200 font-medium max-w-3xl mx-auto mb-6 sm:mb-8 px-4"
+            className="text-base sm:text-lg md:text-xl lg:text-2xl text-zinc-300 font-medium max-w-3xl mx-auto mb-8 sm:mb-10 px-4 leading-relaxed"
           >
-            Join a round. 1 in 3 players wins. Fully on-chain. Instant payouts.
+            Join a round. <span className="text-[#00FFA3] font-bold">1 in 3 players wins.</span> Fully on-chain. Instant payouts.
           </motion.p>
 
           {/* Social Proof Bar */}
@@ -289,19 +330,33 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 lg:gap-8 mb-6 sm:mb-8"
+            className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 lg:gap-8 mb-8 sm:mb-10"
           >
             {[
-              { icon: <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />, text: "100% On-chain" },
-              { icon: <Zap className="w-4 h-4 sm:w-5 sm:h-5" />, text: "Provably Fair" },
-              { icon: <Clock className="w-4 h-4 sm:w-5 sm:h-5" />, text: "Instant Payouts" },
+              { icon: <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />, text: "100% On-chain", color: "text-[#00FFA3]" },
+              { icon: <Zap className="w-4 h-4 sm:w-5 sm:h-5" />, text: "Provably Fair", color: "text-[#03E1FF]" },
+              { icon: <Clock className="w-4 h-4 sm:w-5 sm:h-5" />, text: "Instant Payouts", color: "text-[#DC1FFF]" },
             ].map((item, i) => (
-              <div key={i} className="flex items-center gap-2 text-[#00FFA3]">
+              <div key={i} className={`flex items-center gap-2 ${item.color}`}>
                 {item.icon}
                 <span className="text-xs sm:text-sm font-bold uppercase tracking-wider">{item.text}</span>
               </div>
             ))}
           </motion.div>
+
+          {/* Primary CTA - Only show if not connected */}
+          {!connected && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3 }}
+              className="flex justify-center"
+            >
+              <div className="inline-block">
+                <WalletMultiButton className="!bg-gradient-to-r !from-[#00FFA3] !to-[#03E1FF] !text-black !font-black !uppercase !tracking-wider !rounded-xl !shadow-[0_0_40px_rgba(0,255,163,0.5)] hover:!shadow-[0_0_60px_rgba(0,255,163,0.7)] !transition-all !duration-200 hover:!scale-105 active:!scale-95 !px-8 !py-4 !text-base sm:!text-lg" />
+              </div>
+            </motion.div>
+          )}
         </div>
       </section>
 
@@ -342,84 +397,17 @@ export default function Home() {
 
           {/* Right: Game Card */}
           <div className="flex items-center justify-center lg:justify-start order-1 lg:order-2">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="glass-card p-4 sm:p-6 lg:p-8 max-w-md w-full"
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between mb-4 sm:mb-6">
-                <div>
-                  <p className="text-[10px] sm:text-xs text-zinc-500 uppercase tracking-wider mb-1">Round #{roomId}</p>
-                  <h3 className="text-xl sm:text-2xl font-black text-white">{activeRoom.label}</h3>
-                </div>
-                <div className="px-2 sm:px-3 py-1 sm:py-1.5 bg-[#00FFA3]/10 border border-[#00FFA3]/30 rounded-lg">
-                  <p className="text-[10px] sm:text-xs text-[#00FFA3] font-bold uppercase">Live</p>
-                </div>
-              </div>
-
-              {/* Stats Grid */}
-              <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
-                <div className="bg-white/5 rounded-xl p-3 sm:p-4 border border-white/10">
-                  <p className="text-[10px] sm:text-xs text-zinc-500 uppercase tracking-wider mb-1 sm:mb-2">Players</p>
-                  <p className="text-xl sm:text-2xl font-black text-white">{actualPlayerCount}</p>
-                  <p className="text-[10px] sm:text-xs text-zinc-600 mt-1">{Math.max(1, Math.floor(actualPlayerCount / 3))} winner{Math.floor(actualPlayerCount / 3) !== 1 ? "s" : ""}</p>
-                </div>
-
-                <div className="bg-white/5 rounded-xl p-3 sm:p-4 border border-white/10">
-                  <p className="text-[10px] sm:text-xs text-zinc-500 uppercase tracking-wider mb-1 sm:mb-2">Pool</p>
-                  <p className="text-xl sm:text-2xl font-black text-white">{potAmount.toFixed(3)}</p>
-                  <p className="text-[10px] sm:text-xs text-zinc-600 mt-1">SOL</p>
-                </div>
-              </div>
-
-              {/* Win Probability */}
-              <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-gradient-to-r from-[#00FFA3]/10 to-[#03E1FF]/10 border border-[#00FFA3]/20 rounded-xl">
-                <p className="text-[10px] sm:text-xs text-zinc-400 uppercase tracking-wider mb-1">Your Win Chance</p>
-                <p className="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#00FFA3] to-[#03E1FF]">
-                  {actualPlayerCount >= 3 ? ((Math.max(1, Math.floor(actualPlayerCount / 3)) / actualPlayerCount) * 100).toFixed(1) : "33.3"}%
-                </p>
-                <p className="text-[10px] sm:text-xs text-zinc-500 mt-1">1 winner per 3 players</p>
-              </div>
-
-              {/* Timer */}
-              {timeRemaining !== null && actualPlayerCount > 0 && (
-                <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-white/5 rounded-xl border border-white/10">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] sm:text-xs text-zinc-400 uppercase tracking-wider">Time Remaining</span>
-                    <span className="text-lg sm:text-xl font-black text-white">
-                      {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, "0")}
-                    </span>
-                  </div>
-                  <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                    <motion.div animate={{ width: `${(timeRemaining / BLOCK_EXPIRATION_SECONDS) * 100}%` }}
-                      className="h-full bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF] rounded-full" />
-                  </div>
-                </div>
-              )}
-
-              {/* Action Button */}
-              {!connected ? (
-                <div className="w-full text-center p-3 sm:p-4 border border-dashed border-zinc-800 rounded-xl text-zinc-600 font-bold uppercase tracking-wider text-xs sm:text-sm">
-                  Connect Wallet to Play
-                </div>
-              ) : displayPlayerIndex !== null ? (
-                <div className="w-full p-3 sm:p-4 bg-[#00FFA3]/10 border-2 border-[#00FFA3]/30 rounded-xl text-center">
-                  <p className="text-[10px] sm:text-xs text-zinc-400 uppercase tracking-wider mb-1">You're In!</p>
-                  <p className="text-sm sm:text-base font-bold text-[#00FFA3]">Position #{displayPlayerIndex + 1}</p>
-                </div>
-              ) : (
-                <button
-                  onClick={handleJoin}
-                  disabled={txPending}
-                  className="btn-solana w-full h-12 sm:h-14 text-sm sm:text-base font-black shadow-[0_0_30px_rgba(0,255,163,0.3)] disabled:opacity-50"
-                >
-                  {txPending ? <Loader2 className="animate-spin mx-auto w-5 h-5" /> : `ENTER ROUND — ${activeRoom.label}`}
-                </button>
-              )}
-
-              <p className="text-[10px] sm:text-xs text-center text-zinc-600 mt-3 sm:mt-4">Winners are selected automatically on-chain</p>
-            </motion.div>
+            <GameCard
+              roomId={roomId}
+              label={activeRoom.label}
+              playerCount={actualPlayerCount}
+              potAmount={potAmount}
+              timeRemaining={timeRemaining}
+              onJoin={handleJoin}
+              isConnected={connected}
+              txPending={txPending}
+              myPlayerIndex={displayPlayerIndex}
+            />
           </div>
         </div>
       </section>
@@ -445,29 +433,12 @@ export default function Home() {
       {/* Result Overlay */}
       <AnimatePresence>
         {showResult && (
-          <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/80 p-6 backdrop-blur-xl">
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              className="max-w-sm w-full p-8 text-center rounded-3xl relative border border-white/10 glass-card">
-              <div className="relative z-10 flex flex-col items-center">
-                <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 border border-white/10 bg-white/5">
-                  {showResult.type === 'win' ? <Trophy className="w-7 h-7 text-[#00FFA3]" /> : <Skull className="w-7 h-7 text-zinc-600" />}
-                </div>
-                <h2 className="text-3xl font-bold text-white uppercase tracking-tighter mb-2">
-                  {showResult.type === 'win' ? 'YOU WON!' : 'BETTER LUCK NEXT TIME'}
-                </h2>
-                <p className="text-zinc-400 text-sm leading-relaxed mb-6">{showResult.msg}</p>
-                {showResult.amount && (
-                  <div className="w-full bg-white/5 p-6 rounded-2xl border border-white/10 mb-6 flex flex-col items-center gap-1">
-                    <span className="text-xs text-zinc-500 uppercase font-bold tracking-widest">Prize</span>
-                    <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#00FFA3] to-[#03E1FF]">+{showResult.amount} SOL</span>
-                  </div>
-                )}
-                <button onClick={() => setShowResult(null)} className="btn-solana w-full py-3.5 text-sm font-black">
-                  {showResult.type === 'win' ? 'Play Again' : 'Try Again'}
-                </button>
-              </div>
-            </motion.div>
-          </div>
+          <ResultOverlay
+            type={showResult.type}
+            message={showResult.msg}
+            amount={showResult.amount}
+            onClose={() => setShowResult(null)}
+          />
         )}
       </AnimatePresence>
     </main>

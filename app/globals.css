@@ -4,17 +4,84 @@
 
 @layer base {
   :root {
-    /* Pure black background for premium feel */
-    --bg-color: #000000; 
-    /* Solana Official Colors */
+    /* ═══════════════════════════════════════════════════
+       DESIGN SYSTEM - MEV WARS CASINO
+       Based on Solana Official Colors Only
+    ═══════════════════════════════════════════════════ */
+    
+    /* ── Core Colors ── */
     --surge-green: #00FFA3;
     --ocean-blue: #03E1FF;
     --purple-dino: #DC1FFF;
+    --black: #000000;
+    
+    /* ── Background System ── */
+    --bg-primary: #000000;
+    --bg-secondary: #0a0a0f;
+    --bg-tertiary: #111116;
+    
+    /* ── Glassmorphism ── */
+    --glass-bg: rgba(0, 0, 0, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+    --glass-blur: 24px;
+    
+    /* ── Gradients ── */
+    --gradient-primary: linear-gradient(90deg, #00FFA3, #03E1FF);
+    --gradient-secondary: linear-gradient(135deg, #DC1FFF, #03E1FF);
+    --gradient-accent: linear-gradient(90deg, #DC1FFF, #00FFA3);
+    --gradient-bg: linear-gradient(135deg, #1a0b2e 0%, #16213e 50%, #0f0a1e 100%);
+    
+    /* ── Shadows & Glows ── */
+    --glow-green: 0 0 20px rgba(0, 255, 163, 0.4);
+    --glow-blue: 0 0 20px rgba(3, 225, 255, 0.4);
+    --glow-purple: 0 0 20px rgba(220, 31, 255, 0.4);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
+    
+    /* ── Typography ── */
+    --font-primary: 'Space Grotesk', sans-serif;
+    --font-secondary: 'Inter', sans-serif;
+    
+    /* ── Spacing Scale ── */
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 1rem;
+    --space-lg: 1.5rem;
+    --space-xl: 2rem;
+    --space-2xl: 3rem;
+    
+    /* ── Border Radius ── */
+    --radius-sm: 0.5rem;
+    --radius-md: 0.75rem;
+    --radius-lg: 1rem;
+    --radius-xl: 1.5rem;
+    --radius-2xl: 2rem;
+    --radius-full: 9999px;
+    
+    /* ── Transitions ── */
+    --transition-fast: 150ms ease;
+    --transition-base: 200ms ease;
+    --transition-slow: 300ms ease;
+    
+    /* ── Z-Index Scale ── */
+    --z-base: 0;
+    --z-dropdown: 10;
+    --z-sticky: 20;
+    --z-fixed: 30;
+    --z-modal-backdrop: 40;
+    --z-modal: 50;
+    --z-popover: 60;
+    --z-tooltip: 70;
+    
+    /* Legacy support */
     --solana-purple: 265 100% 64%;
     --solana-cyan: 154 91% 51%;
     --solana-green: 191 100% 50%;
     --accent: 265 100% 64%;
     --grid-color: rgba(220, 31, 255, 0.05);
+    --bg-color: #000000;
   }
   
   body {

@@ -1,86 +1,73 @@
 "use client";
-
 import { motion } from "framer-motion";
-import { Users, Trophy, Clock, Zap } from "lucide-react";
+import { Users, Trophy, Coins, Clock } from "lucide-react";
 
 interface StatsGridProps {
   playerCount: number;
   potAmount: number;
-  timeRemaining: number | null;
+  winnerCount: number;
+  timeRemaining?: number | null;
 }
 
-export default function StatsGrid({ playerCount, potAmount, timeRemaining }: StatsGridProps) {
+export default function StatsGrid({ playerCount, potAmount, winnerCount, timeRemaining }: StatsGridProps) {
   const stats = [
     {
-      label: "Chamber Load",
-      value: `${playerCount} / 3`,
-      sub: "Units Armed",
-      icon: Users,
-      progress: (playerCount / 3) * 100,
-      color: "var(--accent-primary)"
+      icon: <Users className="w-5 h-5" />,
+      label: "Players",
+      value: playerCount,
+      suffix: "",
+      color: "from-[#00FFA3] to-[#03E1FF]",
     },
     {
-      label: "Live Jackpot",
-      value: `${potAmount.toFixed(3)}`,
-      sub: "SOL Net Winner",
-      icon: Trophy,
-      color: "white"
+      icon: <Trophy className="w-5 h-5" />,
+      label: "Winners",
+      value: winnerCount,
+      suffix: "",
+      color: "from-[#DC1FFF] to-[#00FFA3]",
     },
     {
-      label: "Session Timer",
-      value: timeRemaining !== null ? `${timeRemaining}s` : "-- : --",
-      sub: "Safety Purge",
-      icon: Clock,
-      color: "var(--accent-secondary)"
+      icon: <Coins className="w-5 h-5" />,
+      label: "Pool",
+      value: potAmount.toFixed(3),
+      suffix: "SOL",
+      color: "from-[#03E1FF] to-[#DC1FFF]",
     },
-    {
-      label: "Win Probability",
-      value: "33.3%",
-      sub: "Verifiable Entropy",
-      icon: Zap,
-      color: "white"
-    }
   ];
 
+  if (timeRemaining !== null && timeRemaining !== undefined) {
+    stats.push({
+      icon: <Clock className="w-5 h-5" />,
+      label: "Time Left",
+      value: `${Math.floor(timeRemaining / 60)}:${(timeRemaining % 60).toString().padStart(2, "0")}`,
+      suffix: "",
+      color: "from-[#00FFA3] to-[#DC1FFF]",
+    });
+  }
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+    <div className="grid grid-cols-2 gap-3 sm:gap-4">
       {stats.map((stat, i) => (
         <motion.div
           key={stat.label}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: i * 0.1 }}
-          className="glass-card p-6 flex flex-col justify-between h-32 group"
+          transition={{ delay: i * 0.05 }}
+          className="bg-white/5 rounded-xl p-3 sm:p-4 border border-white/10 hover:border-white/20 transition-all duration-200"
         >
-          <div className="flex justify-between items-start">
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 group-hover:text-zinc-400 transition-colors">
-                {stat.label}
-              </span>
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-bold tracking-tight text-white">
-                  {stat.value}
-                </span>
-                {stat.label === "Live Jackpot" && <span className="text-[10px] font-bold text-zinc-600">SOL</span>}
-              </div>
+          <div className="flex items-center gap-2 mb-2">
+            <div className={`text-transparent bg-clip-text bg-gradient-to-r ${stat.color}`}>
+              {stat.icon}
             </div>
-            <div className="p-2 rounded-lg bg-white/5 border border-white/5 group-hover:border-white/10 transition-all">
-              <stat.icon size={14} className="text-zinc-500 group-hover:text-white transition-colors" />
-            </div>
+            <p className="text-[10px] sm:text-xs text-zinc-500 uppercase tracking-wider font-bold">
+              {stat.label}
+            </p>
           </div>
-
-          <div className="flex flex-col gap-2">
-            <div className="flex justify-between items-center text-[9px] font-bold uppercase tracking-tighter text-zinc-600">
-              <span>{stat.sub}</span>
-            </div>
-            {stat.progress !== undefined && (
-              <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                <motion.div 
-                  initial={{ width: 0 }}
-                  animate={{ width: `${stat.progress}%` }}
-                  className="h-full bg-white"
-                />
-              </div>
+          <div className="flex items-baseline gap-1">
+            <p className={`text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r ${stat.color}`}>
+              {stat.value}
+            </p>
+            {stat.suffix && (
+              <span className="text-xs text-zinc-600 font-bold">{stat.suffix}</span>
             )}
           </div>
         </motion.div>
