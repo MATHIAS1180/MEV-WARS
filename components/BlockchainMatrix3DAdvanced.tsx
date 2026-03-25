@@ -334,9 +334,7 @@ function EnhancedCubeInstances({ players, isActive }: BlockchainMatrix3DProps) {
   return (
     <>
       <instancedMesh ref={meshRef} args={[undefined, undefined, totalCubes]}>
-        <boxGeometry args={[1, 1, 1]}>
-          <bufferAttribute attach="attributes-position" />
-        </boxGeometry>
+        <boxGeometry args={[1, 1, 1]} />
         <meshPhysicalMaterial
           color={MATRIX_CONFIG.defaultColor}
           emissive={MATRIX_CONFIG.defaultColor}
