@@ -126,7 +126,7 @@ export default function Home() {
   const prevMyIndexRef = useRef<number | null>(null);
   useEffect(() => {
     if (myPlayerIndex !== null && myPlayerIndex !== prevMyIndexRef.current) {
-      toast.info(`Entered round — Position #${myPlayerIndex + 1}`);
+      toast.info(`Entered round ÔÇö Position #${myPlayerIndex + 1}`);
     }
     prevMyIndexRef.current = myPlayerIndex;
   }, [myPlayerIndex]);
@@ -444,7 +444,7 @@ export default function Home() {
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.8 }}
                       transition={{ duration: 0.3 }}
-                      className="absolute top-4 sm:top-6 left-1/2 -translate-x-1/2 z-30"
+                      className="absolute -top-20 sm:-top-24 left-1/2 -translate-x-1/2 z-30"
                     >
                       <CountdownTimer secondsLeft={timeRemaining} totalSeconds={30} />
                     </motion.div>
@@ -668,7 +668,7 @@ export default function Home() {
                           <span>Processing...</span>
                         </span>
                       ) : (
-                        `Enter Round — ${activeRoom.label}`
+                        `Enter Round ÔÇö ${activeRoom.label}`
                       )}
                     </button>
                   )}

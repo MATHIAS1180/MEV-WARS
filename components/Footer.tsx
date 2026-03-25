@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import { Twitter, Github, MessageCircle } from "lucide-react";
 
 export default function Footer() {
@@ -8,7 +9,13 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
           {/* Brand */}
           <div>
-            <img src="/images/trigger-logo.png" alt="MEV Wars" className="h-10 w-auto mb-4 filter drop-shadow-[0_0_12px_rgba(153,69,255,0.6)]" />
+            <Image 
+              src="/images/trigger-logo.png" 
+              alt="MEV Wars" 
+              width={120} 
+              height={40} 
+              className="h-10 w-auto mb-4 filter drop-shadow-[0_0_12px_rgba(153,69,255,0.6)]" 
+            />
             <p className="text-zinc-400 text-sm leading-relaxed">
               Provably fair Solana casino game. 1 in 3 players wins. Fully on-chain.
             </p>
@@ -42,18 +49,21 @@ export default function Footer() {
             <div className="flex items-center gap-4">
               <a
                 href="#"
+                aria-label="Follow us on Twitter"
                 className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400 hover:text-[#00FFA3] hover:border-[#00FFA3]/30 transition-all"
               >
                 <Twitter className="w-5 h-5" />
               </a>
               <a
                 href="#"
+                aria-label="Join our Discord"
                 className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400 hover:text-[#00FFA3] hover:border-[#00FFA3]/30 transition-all"
               >
                 <MessageCircle className="w-5 h-5" />
               </a>
               <a
                 href="#"
+                aria-label="View our GitHub"
                 className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400 hover:text-[#00FFA3] hover:border-[#00FFA3]/30 transition-all"
               >
                 <Github className="w-5 h-5" />

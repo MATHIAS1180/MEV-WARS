@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "lighthouse": "node scripts/lighthouse-test.js",
+    "lighthouse:prod": "TEST_URL=https://mev-wars-casino.vercel.app node scripts/lighthouse-test.js",
+    "analyze": "ANALYZE=true next build"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.29.0",
