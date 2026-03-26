@@ -286,3 +286,83 @@
 .animation-delay-4000 {
   animation-delay: 4s;
 }
+
+/* MEV Terminal Enhanced Animations */
+
+/* Data Cube Pulse */
+@keyframes cubeGlow {
+  0%, 100% { filter: drop-shadow(0 0 10px rgba(153, 69, 255, 0.8)); }
+  50% { filter: drop-shadow(0 0 20px rgba(0, 209, 255, 0.8)) drop-shadow(0 0 30px rgba(153, 69, 255, 0.5)); }
+}
+
+/* Laser Sweep Effect */
+@keyframes laserSweep {
+  0% { transform: translateX(-100%); }
+  50% { opacity: 0.8; }
+  100% { transform: translateX(100%); opacity: 0.3; }
+}
+
+/* Data Stream Pulse */
+@keyframes dataStreamPulse {
+  0%, 100% { stroke-dashoffset: 0; opacity: 0.3; }
+  50% { stroke-dashoffset: -20; opacity: 0.8; }
+}
+
+/* Block Hash Status Flicker */
+@keyframes hashFlicker {
+  0%, 100% { opacity: 0.6; }
+  25% { opacity: 0.3; }
+  50% { opacity: 0.8; }
+  75% { opacity: 0.4; }
+}
+
+/* Winner Block Explosion Pulse */
+@keyframes explosionPulse {
+  0% { transform: scale(1); filter: drop-shadow(0 0 5px rgba(20, 241, 149, 0.5)); }
+  50% { transform: scale(1.3); filter: drop-shadow(0 0 30px rgba(20, 241, 149, 1)); }
+  100% { transform: scale(0.8); filter: drop-shadow(0 0 10px rgba(20, 241, 149, 0.6)); }
+}
+
+/* Particle Burst */
+@keyframes particleBurst {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--tx), var(--ty)) scale(0);
+    opacity: 0;
+  }
+}
+
+/* Cyber Grid Flow */
+@keyframes gridFlow {
+  0% { background-position: 0 0; }
+  100% { background-position: 50px 50px; }
+}
+
+.grid-flow {
+  animation: gridFlow 20s linear infinite;
+}
+
+/* 3D Cube Tilt */
+@keyframes cubeTilt {
+  0%, 100% { transform: perspective(1000px) rotateX(0deg) rotateY(0deg); }
+  25% { transform: perspective(1000px) rotateX(2deg) rotateY(-2deg); }
+  50% { transform: perspective(1000px) rotateX(0deg) rotateY(0deg); }
+  75% { transform: perspective(1000px) rotateX(-2deg) rotateY(2deg); }
+}
+
+.cube-tilt {
+  animation: cubeTilt 4s ease-in-out infinite;
+}
+
+/* Neon Flicker */
+@keyframes neonFlicker {
+  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity: 0.95; }
+  20%, 24%, 55% { opacity: 0.5; }
+}
+
+.neon-glow {
+  animation: neonFlicker 3s infinite;
+}

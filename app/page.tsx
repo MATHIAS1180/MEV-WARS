@@ -8,7 +8,7 @@ import { Zap, Trophy, Coins, ShieldCheck, Clock, Users, Loader2 } from "lucide-r
 import { useGame } from "@/hooks/useGame";
 import { Toaster, toast } from "sonner";
 import { PublicKey } from "@solana/web3.js";
-import MiningBlock from "@/components/MiningBlock";
+import MiningBlockEnhanced from "@/components/MiningBlockEnhanced";
 import ResultOverlay from "@/components/ResultOverlay";
 import CountdownTimer from "@/components/CountdownTimer";
 import GameCard from "@/components/GameCard";
@@ -597,7 +597,7 @@ export default function Home() {
                     
                     {/* Mining Block */}
                     <div className="w-full h-full">
-                      <MiningBlock 
+                      <MiningBlockEnhanced 
                         playerCount={actualPlayerCount} 
                         isSpinning={isSpinning} 
                         rotation={rotation} 
