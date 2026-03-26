@@ -8,10 +8,7 @@ import { Zap, Trophy, Coins, ShieldCheck, Clock, Users, Loader2 } from "lucide-r
 import { useGame } from "@/hooks/useGame";
 import { Toaster, toast } from "sonner";
 import { PublicKey } from "@solana/web3.js";
-import MiningBlockEnhanced from "@/components/MiningBlockEnhanced";
-import PlayerStatsDashboard from "@/components/PlayerStatsDashboard";
-import TournamentPanel from "@/components/TournamentPanel";
-import LiveActivityTicker from "@/components/LiveActivityTicker";
+import MiningBlock from "@/components/MiningBlock";
 import ResultOverlay from "@/components/ResultOverlay";
 import CountdownTimer from "@/components/CountdownTimer";
 import GameCard from "@/components/GameCard";
@@ -311,10 +308,10 @@ export default function Home() {
   return (
     <main className="min-h-screen flex flex-col relative">
       {/* Background effects */}
-      <div className="fixed inset-0 pointer-events-none z-[-3]" style={{willChange: 'opacity', backfaceVisibility: 'hidden'}}>
-        <div className="absolute top-[-10%] left-[-10%] w-[300px] sm:w-[400px] lg:w-[500px] h-[300px] sm:h-[400px] lg:h-[500px] bg-[#DC1FFF]/30 rounded-full blur-[100px] sm:blur-[120px] animate-blob" style={{willChange: 'transform'}} />
-        <div className="absolute top-[20%] right-[-10%] w-[400px] sm:w-[500px] lg:w-[600px] h-[400px] sm:h-[500px] lg:h-[600px] bg-[#00FFA3]/25 rounded-full blur-[120px] sm:blur-[140px] animate-blob animation-delay-2000" style={{willChange: 'transform'}} />
-        <div className="absolute bottom-[-20%] left-[20%] w-[400px] sm:w-[500px] lg:w-[600px] h-[400px] sm:h-[500px] lg:h-[600px] bg-[#03E1FF]/25 rounded-full blur-[130px] sm:blur-[150px] animate-blob animation-delay-4000" style={{willChange: 'transform'}} />
+      <div className="fixed inset-0 pointer-events-none z-[-3] overflow-hidden">
+        <div className="absolute top-[-10%] left-[-10%] w-[300px] sm:w-[400px] lg:w-[500px] h-[300px] sm:h-[400px] lg:h-[500px] bg-[#DC1FFF]/30 rounded-full blur-[100px] sm:blur-[120px] animate-blob" />
+        <div className="absolute top-[20%] right-[-10%] w-[400px] sm:w-[500px] lg:w-[600px] h-[400px] sm:h-[500px] lg:h-[600px] bg-[#00FFA3]/25 rounded-full blur-[120px] sm:blur-[140px] animate-blob animation-delay-2000" />
+        <div className="absolute bottom-[-20%] left-[20%] w-[400px] sm:w-[500px] lg:w-[600px] h-[400px] sm:h-[500px] lg:h-[600px] bg-[#03E1FF]/25 rounded-full blur-[130px] sm:blur-[150px] animate-blob animation-delay-4000" />
       </div>
       <div className="cyber-grid" />
       <div className="scanlines" />
@@ -412,7 +409,7 @@ export default function Home() {
               {/* Pool */}
               <div className="glass-card p-2.5 sm:p-4 text-center">
                 <p className="text-[0.6rem] sm:text-[0.65rem] text-zinc-400 uppercase font-bold tracking-wider mb-1">Pool</p>
-                <p className="text-lg sm:text-xl lg:text-2xl font-black text-[#00D1FF]">{potAmount.toFixed(3)}</p>
+                <p className="text-lg sm:text-xl lg:text-2xl font-black text-white">{potAmount.toFixed(3)}</p>
                 <p className="text-[0.6rem] sm:text-xs text-zinc-500">SOL</p>
               </div>
               
@@ -600,7 +597,7 @@ export default function Home() {
                     
                     {/* Mining Block */}
                     <div className="w-full h-full">
-                      <MiningBlockEnhanced 
+                      <MiningBlock 
                         playerCount={actualPlayerCount} 
                         isSpinning={isSpinning} 
                         rotation={rotation} 
@@ -626,7 +623,7 @@ export default function Home() {
                         className={`w-full flex items-center justify-between p-2.5 sm:p-3 rounded-xl font-bold text-xs sm:text-sm transition-all ${
                           roomId === room.id 
                             ? 'bg-gradient-to-r from-[#9945FF] to-[#14F195] text-white shadow-[0_0_20px_rgba(153,69,255,0.4)]' 
-                            : 'bg-[rgba(10,10,10,0.6)] backdrop-blur-[16px] text-slate-100 hover:bg-[rgba(10,10,10,0.7)] hover:text-white border border-[rgba(153,69,255,0.2)] shadow-[0_8px_32px_rgba(0,0,0,0.7)] hover:shadow-[0_12px_48px_rgba(153,69,255,0.15)]'
+                            : 'bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-200 border border-white/10'
                         } disabled:opacity-50 disabled:cursor-not-allowed`}
                       >
                         <span className="flex items-center gap-2">
@@ -663,7 +660,7 @@ export default function Home() {
                     <button
                       onClick={handleJoin}
                       disabled={txPending}
-                      className="w-full py-3 sm:py-4 px-4 sm:px-6 bg-[#14F195] text-black font-black uppercase text-xs sm:text-sm rounded-xl shadow-[0_0_30px_rgba(20,241,149,0.4)] hover:shadow-[0_0_50px_rgba(153,69,255,0.4),0_0_80px_rgba(0,209,255,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full py-3 sm:py-4 px-4 sm:px-6 bg-gradient-to-r from-[#00FFA3] to-[#03E1FF] text-black font-black uppercase text-xs sm:text-sm rounded-xl shadow-[0_0_30px_rgba(0,255,163,0.4)] hover:shadow-[0_0_50px_rgba(0,255,163,0.6)] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {txPending ? (
                         <span className="flex items-center justify-center gap-2">
@@ -683,28 +680,6 @@ export default function Home() {
               </div>
             </div>
           </section>
-
-      {/* Phase 2: Dashboard & Tournament */}
-      <section className="w-full max-w-[1600px] mx-auto px-3 sm:px-6 lg:px-8 py-6">
-        <div className="grid grid-cols-1 xl:grid-cols-[560px_1fr] gap-4">
-          <div className="space-y-4">
-            <PlayerStatsDashboard />
-            <TournamentPanel />
-          </div>
-          <div className="space-y-4">
-            <LiveActivityTicker />
-            <div className="glass-card p-6">
-              <h3 className="text-xl font-black text-white mb-2">Avatar & Identity</h3>
-              <p className="text-sm text-zinc-400 mb-4">Select an avatar theme for your MEV terminal and customize your in-session HUD identity.</p>
-              <div className="grid grid-cols-3 gap-2">
-                {['Apex', 'Neon', 'Quantum', 'Ghost', 'Vortex', 'Nova'].map((theme) => (
-                  <button key={theme} className="py-2 rounded-lg border border-white/10 bg-[#0d0d16]/60 text-xs text-white hover:border-[#00D1FF]/40 hover:bg-[#00D1FF]/15 transition">{theme}</button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* How It Works */}
       <HowItWorks />
