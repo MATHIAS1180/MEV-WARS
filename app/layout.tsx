@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Space_Grotesk, Inter } from "next/font/google";
 import "./globals.css";
 import { WalletContextProvider } from "@/components/WalletContextProvider";
-import AnimatedBackground from "@/components/AnimatedBackground";
+import { FlickeringGrid } from "@/components/ui/flickering-grid";
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space" });
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -61,8 +61,11 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
-      <body className={`${spaceGrotesk.variable} ${inter.variable} font-sans bg-[var(--bg-color)] text-zinc-100 antialiased min-h-screen flex flex-col selection:bg-[#9945FF]/40 selection:text-white`}>
-        <AnimatedBackground />
+      <body className={`${spaceGrotesk.variable} ${inter.variable} font-sans bg-black text-zinc-100 antialiased min-h-screen flex flex-col selection:bg-[#9945FF]/40 selection:text-white`}>
+        <div className="fixed inset-0 z-[-2]">
+          <FlickeringGrid />
+        </div>
+        <div className="fixed inset-0 z-[-1]" style={{ background: 'radial-gradient(ellipse at center, transparent 0%, transparent 50%, rgba(0,0,0,0.4) 100%)' }}></div>
         <WalletContextProvider>
           {children}
         </WalletContextProvider>

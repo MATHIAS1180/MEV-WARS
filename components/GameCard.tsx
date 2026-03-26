@@ -111,7 +111,7 @@ export default function GameCard({
           <button
             onClick={onJoin}
             disabled={txPending}
-            className="w-full py-3 sm:py-4 px-4 sm:px-6 bg-gradient-to-r from-[#00FFA3] to-[#03E1FF] text-black font-black uppercase tracking-wider rounded-lg lg:rounded-xl shadow-[0_0_30px_rgba(0,255,163,0.4)] hover:shadow-[0_0_50px_rgba(0,255,163,0.6)] transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm lg:text-base"
+            className="w-full py-3 sm:py-4 px-4 sm:px-6 bg-gradient-to-r from-[#14F195] to-[#03E1FF] text-black font-black uppercase tracking-wider rounded-lg lg:rounded-xl shadow-[0_0_30px_rgba(20,241,149,0.4)] hover:shadow-[0_0_50px_rgba(20,241,149,0.6)] transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm lg:text-base"
           >
             {txPending ? <Loader2 className="animate-spin mx-auto w-4 h-4 sm:w-5 sm:h-5" /> : `ENTER ROUND — ${label}`}
           </button>
