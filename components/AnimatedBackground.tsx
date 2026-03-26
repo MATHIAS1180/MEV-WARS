@@ -20,7 +20,7 @@ export default function AnimatedBackground() {
     window.addEventListener('resize', resizeCanvas);
 
     const isMobile = window.innerWidth < 768;
-    const particleCount = isMobile ? 20 : 30;
+    const particleCount = isMobile ? 8 : 12; // Réduit de 20/30 à 8/12
 
     interface Orb {
       x: number;
@@ -48,10 +48,10 @@ export default function AnimatedBackground() {
         y,
         targetX: x,
         targetY: y,
-        radius: Math.random() * 80 + 40,
+        radius: Math.random() * 60 + 30, // Réduit de 80+40 à 60+30
         color: colors[Math.floor(Math.random() * colors.length)],
-        opacity: Math.random() * 0.15 + 0.05,
-        speed: Math.random() * 0.3 + 0.1
+        opacity: Math.random() * 0.08 + 0.02, // Réduit de 0.15+0.05 à 0.08+0.02
+        speed: Math.random() * 0.2 + 0.05 // Réduit la vitesse
       });
     }
 
