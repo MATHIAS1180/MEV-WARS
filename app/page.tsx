@@ -308,10 +308,10 @@ export default function Home() {
   return (
     <main className="min-h-screen flex flex-col relative">
       {/* Background effects */}
-      <div className="fixed inset-0 pointer-events-none z-[-3] overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[300px] sm:w-[400px] lg:w-[500px] h-[300px] sm:h-[400px] lg:h-[500px] bg-[#DC1FFF]/30 rounded-full blur-[100px] sm:blur-[120px] animate-blob" />
-        <div className="absolute top-[20%] right-[-10%] w-[400px] sm:w-[500px] lg:w-[600px] h-[400px] sm:h-[500px] lg:h-[600px] bg-[#00FFA3]/25 rounded-full blur-[120px] sm:blur-[140px] animate-blob animation-delay-2000" />
-        <div className="absolute bottom-[-20%] left-[20%] w-[400px] sm:w-[500px] lg:w-[600px] h-[400px] sm:h-[500px] lg:h-[600px] bg-[#03E1FF]/25 rounded-full blur-[130px] sm:blur-[150px] animate-blob animation-delay-4000" />
+      <div className="fixed inset-0 pointer-events-none z-[-3]" style={{willChange: 'opacity', backfaceVisibility: 'hidden'}}>
+        <div className="absolute top-[-10%] left-[-10%] w-[300px] sm:w-[400px] lg:w-[500px] h-[300px] sm:h-[400px] lg:h-[500px] bg-[#DC1FFF]/30 rounded-full blur-[100px] sm:blur-[120px] animate-blob" style={{willChange: 'transform'}} />
+        <div className="absolute top-[20%] right-[-10%] w-[400px] sm:w-[500px] lg:w-[600px] h-[400px] sm:h-[500px] lg:h-[600px] bg-[#00FFA3]/25 rounded-full blur-[120px] sm:blur-[140px] animate-blob animation-delay-2000" style={{willChange: 'transform'}} />
+        <div className="absolute bottom-[-20%] left-[20%] w-[400px] sm:w-[500px] lg:w-[600px] h-[400px] sm:h-[500px] lg:h-[600px] bg-[#03E1FF]/25 rounded-full blur-[130px] sm:blur-[150px] animate-blob animation-delay-4000" style={{willChange: 'transform'}} />
       </div>
       <div className="cyber-grid" />
       <div className="scanlines" />
