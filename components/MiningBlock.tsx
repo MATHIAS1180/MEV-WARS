@@ -1,6 +1,7 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
+import styles from './MiningBlock.module.css';
 
 // Solana official colors - one for each of the 30 squares
 const SOLANA_COLORS = [
@@ -95,7 +96,7 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
   const PURPLE_DINO = "#DC1FFF";
 
   return (
-    <div ref={containerRef} className="mining-block-wrapper absolute inset-0 w-full h-full">
+    <div ref={containerRef} className={styles.miningBlockWrapper}>
       {/* Ambient glow */}
       <div className="absolute pointer-events-none" style={{
         inset: -100,
@@ -145,7 +146,7 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
         )}
       </AnimatePresence>
 
-      <svg className="absolute inset-0 w-full h-full" viewBox={`0 0 ${dimensions.width} ${dimensions.height}`} fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+      <svg className={styles.miningBlockSvg} viewBox={`0 0 ${dimensions.width} ${dimensions.height}`} fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
         <defs>
           {/* Solana gradient for border */}
           <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
