@@ -15,6 +15,9 @@ const config: Config = {
           green: '#00C2FF',
           dark: '#0a0a0f',
           panel: '#111116',
+        },
+        cyber: {
+          blue: '#00D1FF',
         }
       }
     },

@@ -233,20 +233,24 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
                       width={squareSize + 16}
                       height={squareSize + 16}
                       rx="10"
-                      fill={color}
+                      fill="#9945FF"
                       opacity="0.3"
                       style={{ filter: "blur(15px)" }}
-                    />
+                    >
+                      <animate attributeName="opacity" values="0.3;0.6;0.3" dur="1.5s" repeatCount="indefinite"/>
+                    </rect>
                     <rect
                       x={x - squareSize / 2 - 4}
                       y={y - squareSize / 2 - 4}
                       width={squareSize + 8}
                       height={squareSize + 8}
                       rx="8"
-                      fill={color}
+                      fill="#00D1FF"
                       opacity="0.5"
                       style={{ filter: "blur(8px)" }}
-                    />
+                    >
+                      <animate attributeName="opacity" values="0.5;0.8;0.5" dur="1.5s" repeatCount="indefinite"/>
+                    </rect>
                   </>
                 )}
 
@@ -269,13 +273,13 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
                   height={squareSize}
                   rx="8"
                   fill={isPlayerActive ? color : "rgba(40,40,60,0.4)"}
-                  stroke={isPlayerActive ? "white" : "rgba(60,60,80,0.3)"}
-                  strokeWidth={isPlayerActive ? "2.5" : "1"}
+                  stroke={isPlayerActive ? "#9945FF" : "rgba(60,60,80,0.3)"}
+                  strokeWidth={isPlayerActive ? "3" : "1"}
                   opacity={isPlayerActive ? "1" : "0.3"}
                   filter={isPlayerActive ? "url(#glow)" : "url(#innerShadow)"}
                 >
                   {isPlayerActive && isActive && (
-                    <animate attributeName="opacity" values="1;0.8;1" dur="2s" repeatCount="indefinite"/>
+                    <animate attributeName="stroke" values="#9945FF;#00D1FF;#9945FF" dur="2s" repeatCount="indefinite"/>
                   )}
                 </rect>
 
