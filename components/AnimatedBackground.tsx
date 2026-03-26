@@ -20,7 +20,7 @@ export default function AnimatedBackground() {
     window.addEventListener('resize', resizeCanvas);
 
     const isMobile = window.innerWidth < 768;
-    const particleCount = isMobile ? 8 : 12; // Réduit de 20/30 à 8/12
+    const particleCount = isMobile ? 3 : 5; // Drastiquement réduit pour un fond épuré
 
     interface Orb {
       x: number;
@@ -48,10 +48,10 @@ export default function AnimatedBackground() {
         y,
         targetX: x,
         targetY: y,
-        radius: Math.random() * 60 + 30, // Réduit de 80+40 à 60+30
+        radius: Math.random() * 40 + 20, // Encore plus petit
         color: colors[Math.floor(Math.random() * colors.length)],
-        opacity: Math.random() * 0.08 + 0.02, // Réduit de 0.15+0.05 à 0.08+0.02
-        speed: Math.random() * 0.2 + 0.05 // Réduit la vitesse
+        opacity: Math.random() * 0.04 + 0.01, // Très subtil
+        speed: Math.random() * 0.1 + 0.02 // Très lent
       });
     }
 
@@ -101,14 +101,10 @@ export default function AnimatedBackground() {
   }, []);
 
   return (
-    <>
-      <canvas
-        ref={canvasRef}
-        className="fixed top-0 left-0 w-full h-full pointer-events-none"
-        style={{ zIndex: -1 }}
-      />
-      <div className="scanlines" />
-      <div className="vignette" />
-    </>
+    <canvas
+      ref={canvasRef}
+      className="fixed top-0 left-0 w-full h-full pointer-events-none"
+      style={{ zIndex: -1 }}
+    />
   );
 }
