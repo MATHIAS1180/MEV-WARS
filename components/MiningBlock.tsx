@@ -120,7 +120,7 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
         )}
       </AnimatePresence>
 
-      <svg className={styles.miningBlockSvg} viewBox="0 0 1000 600" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+      <svg className={styles.miningBlockSvg} viewBox="0 0 600 600" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
         <defs>
           {/* Solana gradient for border */}
           <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -172,7 +172,7 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
         <g filter="url(#shadow)">
           {/* Outer glow ring */}
           <rect
-            x="80" y="60" width="840" height="480"
+            x="60" y="60" width="480" height="480"
             fill="none"
             stroke={isActive ? "url(#borderGrad)" : PURPLE_DINO}
             strokeWidth="2"
@@ -183,7 +183,7 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
 
           {/* Background with gradient */}
           <rect
-            x="80" y="60" width="840" height="480"
+            x="60" y="60" width="480" height="480"
             fill="url(#blockBg)"
             rx="24"
           />
@@ -195,7 +195,7 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
 
           {/* Inner border with gradient */}
           <rect
-            x="80" y="60" width="840" height="480"
+            x="60" y="60" width="480" height="480"
             fill="none"
             stroke={isActive ? "url(#borderGrad)" : "rgba(100,100,150,0.3)"}
             strokeWidth="2"
@@ -213,15 +213,12 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
           {SQUARES.map(({ id, row, col, color }) => {
             const isPlayerActive = id < playerCount;
             const squareSize = 56;
-            const spacingX = 140;
-            const spacingY = 90;
+            const spacingX = 72;
+            const spacingY = 72;
             const gridWidth = 6 * spacingX - (spacingX - squareSize);
             const gridHeight = 5 * spacingY - (spacingY - squareSize);
-            const padding = 80;
-            const blockWidth = 1000 - padding * 2;
-            const blockHeight = 600 - padding * 2;
-            const startX = padding + (blockWidth - gridWidth) / 2 + squareSize / 2;
-            const startY = padding + (blockHeight - gridHeight) / 2 + squareSize / 2;
+            const startX = 60 + (480 - gridWidth) / 2 + squareSize / 2;
+            const startY = 60 + (480 - gridHeight) / 2 + squareSize / 2;
             const x = startX + col * spacingX;
             const y = startY + row * spacingY;
 
