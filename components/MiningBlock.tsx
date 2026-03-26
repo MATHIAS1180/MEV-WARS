@@ -95,7 +95,7 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
   const PURPLE_DINO = "#DC1FFF";
 
   return (
-    <div ref={containerRef} className="mining-block-wrapper relative w-full h-full flex items-center justify-center">
+    <div ref={containerRef} className="mining-block-wrapper absolute inset-0 w-full h-full">
       {/* Ambient glow */}
       <div className="absolute pointer-events-none" style={{
         inset: -100,
@@ -128,7 +128,7 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
       {/* Countdown number */}
       <AnimatePresence mode="wait">
         {countdown !== null && countdown > 0 && (
-          <motion.div key={`cd-${countdown}`} className="absolute z-20 pointer-events-none"
+          <motion.div key={`cd-${countdown}`} className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center"
             initial={{ scale: 0.3, opacity: 0 }}
             animate={{ scale: [0.3, 1.2, 1], opacity: [0, 1, 1] }}
             exit={{ scale: 1.6, opacity: 0 }}
@@ -145,7 +145,7 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
         )}
       </AnimatePresence>
 
-      <svg width="100%" height="100%" viewBox={`0 0 ${dimensions.width} ${dimensions.height}`} fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+      <svg className="absolute inset-0 w-full h-full" viewBox={`0 0 ${dimensions.width} ${dimensions.height}`} fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
         <defs>
           {/* Solana gradient for border */}
           <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
