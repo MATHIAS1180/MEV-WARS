@@ -25,49 +25,6 @@
     font-display: swap;
   }
 
-  body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: -5;
-    background: radial-gradient(
-      ellipse 1200px 800px at 50% 0%,
-      rgba(10, 10, 20, 0.8) 0%,
-      rgba(0, 0, 0, 1) 60%
-    );
-    pointer-events: none;
-    backface-visibility: hidden;
-    will-change: opacity;
-  }
-
-  body::after {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: -4;
-    background: 
-      radial-gradient(circle 600px at 20% 20%, rgba(220, 31, 255, 0.03) 0%, transparent 50%),
-      radial-gradient(circle 600px at 80% 80%, rgba(0, 255, 163, 0.02) 0%, transparent 50%);
-    pointer-events: none;
-    animation: ambientGlow 20s ease-in-out infinite;
-    backface-visibility: hidden;
-    will-change: opacity;
-    transform: translate3d(0, 0, 0);
-  }
-
-  @keyframes ambientGlow {
-    0%, 100% { opacity: 0.4; }
-    25% { opacity: 0.55; }
-    50% { opacity: 0.7; }
-    75% { opacity: 0.55; }
-  }
-
   ::selection {
     background: rgba(0, 255, 163, 0.3);
     color: #fff;
