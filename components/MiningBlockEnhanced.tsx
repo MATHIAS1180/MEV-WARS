@@ -1,6 +1,6 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 // Solana official colors - one for each of the 30 squares
 const SOLANA_COLORS = [
@@ -41,17 +41,45 @@ interface Props {
   isSpinning: boolean;
   rotation: number;
   countdown: number | null;
+  winnerIndex?: number;
+  isWaiting?: boolean;
+  currentPot?: number;
 }
 
-// 30 data cubes in a 5x6 grid (unconfirmed transactions)
-const DATA_CUBES = Array.from({ length: 30 }, (_, i) => ({
-  id: i,
-  row: Math.floor(i / 6),
-  col: i % 6,
-  color: SOLANA_COLORS[i],
-}));
+export default function MiningBlockEnhanced({ playerCount, isSpinning, countdown, winnerIndex, isWaiting = false, currentPot = 0 }: Props) {
+  const [cols, setCols] = useState(6);
+  const [rows, setRows] = useState(5);
 
-export default function MiningBlockEnhanced({ playerCount, isSpinning, countdown }: Props) {
+  useEffect(() => {
+    const updateGrid = () => {
+      const width = window.innerWidth;
+      if (width < 768) {
+        setCols(3);
+        setRows(10);
+      } else if (width < 1024) {
+        setCols(4);
+        setRows(8);
+      } else {
+        setCols(6);
+        setRows(5);
+      }
+    };
+
+    updateGrid();
+    window.addEventListener('resize', updateGrid);
+    return () => window.removeEventListener('resize', updateGrid);
+  }, []);
+
+  const DATA_CUBES = useMemo(() => {
+    const length = cols * rows;
+    return Array.from({ length }, (_, i) => ({
+      id: i,
+      row: Math.floor(i / cols),
+      col: i % cols,
+      color: SOLANA_COLORS[i % SOLANA_COLORS.length],
+    }));
+  }, [cols, rows]);
+
   const isActive = isSpinning || countdown !== null;
   const [laserPos, setLaserPos] = useState(0);
   
@@ -71,15 +99,17 @@ export default function MiningBlockEnhanced({ playerCount, isSpinning, countdown
   const PURPLE_DINO = "#DC1FFF";
   const CYBER_BLUE = "#00D1FF";
 
-  // Get occupied block indices
-  const occupiedIds = Array.from({ length: playerCount }, (_, i) => i);
+  // Get occupied block indices - clamp to available cubes
+  const occupiedCount = Math.min(playerCount, DATA_CUBES.length);
+  const occupiedIds = Array.from({ length: occupiedCount }, (_, i) => i);
 
   // Generate data stream lines between adjacent occupied blocks
   const dataStreamLines = occupiedIds.slice(0, -1).map(id => {
     const fromBlock = DATA_CUBES[id];
     const toBlock = DATA_CUBES[id + 1];
+    if (!fromBlock || !toBlock) return null;
     return { from: fromBlock, to: toBlock, id: `stream-${id}` };
-  });
+  }).filter((line): line is NonNullable<typeof line> => line !== null);
 
   return (
     <div className="mining-block-wrapper relative flex items-center justify-center">
@@ -102,18 +132,18 @@ export default function MiningBlockEnhanced({ playerCount, isSpinning, countdown
           transition={{ duration: 0.5 }}
         >
           <div className="px-6 py-2 rounded-full border border-[#00D1FF]/50 backdrop-blur-xl bg-black/40">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-[#00D1FF] animate-pulse" />
-                <span className="text-xs font-mono text-[#00D1FF] uppercase tracking-wider">
-                  BLOCK HASH
-                </span>
+            <div className="grid grid-cols-1 gap-1 text-center min-w-[350px]">
+              <div className="flex items-center justify-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#00D1FF] animate-pulse" />
+                <span className="text-xs font-mono text-[#00D1FF] uppercase tracking-wider">BLOCK HASH STATUS</span>
+                <span className="text-xs font-mono text-zinc-400">{isSpinning ? 'MINING...': isWaiting ? 'QUEUE' : 'CALCULATING...'}</span>
               </div>
-              <span className="text-xs font-mono text-white/60 animate-pulse">
-                {Array(8).fill(0).map((_, i) => 
-                  String.fromCharCode(Math.random() * 26 + 65)
+              <div className="text-xs font-mono text-white/70 truncate">
+                {Array(12).fill(0).map((_, i) => 
+                  String.fromCharCode(65 + Math.floor(Math.random() * 26))
                 ).join('')}...
-              </span>
+              </div>
+              <div className="text-sm font-black text-[#14F195]">Current Pot: {currentPot.toFixed(2)} SOL</div>
             </div>
           </div>
         </motion.div>
@@ -236,13 +266,13 @@ export default function MiningBlockEnhanced({ playerCount, isSpinning, countdown
         </defs>
 
         {/* Data stream lines connecting occupied blocks */}
-        <g id="dataStreams" opacity={playerCount >= 2 ? 1 : 0} style={{ transition: 'opacity 0.5s' }}>
-          {dataStreamLines.map(({ from, to, id: streamId }) => {
+        <g id="dataStreams" opacity={playerCount >= 3 ? 1 : 0} style={{ transition: 'opacity 0.5s' }}>
+          {playerCount >= 3 && dataStreamLines.map(({ from, to, id: streamId }) => {
             const squareSize = 60;
             const spacingX = 76;
             const spacingY = 76;
-            const gridWidth = 6 * spacingX - (spacingX - squareSize);
-            const gridHeight = 5 * spacingY - (spacingY - squareSize);
+            const gridWidth = cols * spacingX - (spacingX - squareSize);
+            const gridHeight = rows * spacingY - (spacingY - squareSize);
             const startX = 60 + (480 - gridWidth) / 2 + squareSize / 2;
             const startY = 60 + (480 - gridHeight) / 2 + squareSize / 2;
             
@@ -326,12 +356,12 @@ export default function MiningBlockEnhanced({ playerCount, isSpinning, countdown
         {/* 30 Data Cubes Grid */}
         <g id="dataCubes">
           {DATA_CUBES.map(({ id, row, col, color }) => {
-            const isOccupied = id < playerCount;
+            const isOccupied = id < occupiedCount;
             const squareSize = 60;
             const spacingX = 76;
             const spacingY = 76;
-            const gridWidth = 6 * spacingX - (spacingX - squareSize);
-            const gridHeight = 5 * spacingY - (spacingY - squareSize);
+            const gridWidth = cols * spacingX - (spacingX - squareSize);
+            const gridHeight = rows * spacingY - (spacingY - squareSize);
             const startX = 60 + (480 - gridWidth) / 2 + squareSize / 2;
             const startY = 60 + (480 - gridHeight) / 2 + squareSize / 2;
             const x = startX + col * spacingX;
@@ -447,11 +477,22 @@ export default function MiningBlockEnhanced({ playerCount, isSpinning, countdown
                   </circle>
                 )}
 
+                {/* Winner pulse effect */}
+                {winnerIndex === id && (
+                  <circle cx={x} cy={y} r="12" fill="none" stroke="#14F195" strokeWidth="2" opacity="0.8">
+                    <animate attributeName="r" values="12;22;12" dur="0.9s" repeatCount="indefinite"/>
+                    <animate attributeName="opacity" values="0.8;0.2;0.8" dur="0.9s" repeatCount="indefinite"/>
+                  </circle>
+                )}
+
                 {/* Empty state indicator */}
                 {!isOccupied && (
-                  <circle cx={x} cy={y} r="2" fill={CYBER_BLUE} opacity="0.2">
-                    <animate attributeName="opacity" values="0.2;0.1;0.2" dur="2s" repeatCount="indefinite"/>
-                  </circle>
+                  <> 
+                    <circle cx={x} cy={y} r="2" fill={CYBER_BLUE} opacity="0.2">
+                      <animate attributeName="opacity" values="0.2;0.1;0.2" dur="2s" repeatCount="indefinite"/>
+                    </circle>
+                    <text x={x} y={y + 12} textAnchor="middle" fill="#00D1FF" fontSize="6" fontFamily="monospace" opacity="0.6">NO DATA</text>
+                  </>
                 )}
 
                 {/* Player index number */}

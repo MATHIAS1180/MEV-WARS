@@ -63,7 +63,15 @@ export default function RootLayout({
       </head>
       <body className={`${spaceGrotesk.variable} ${inter.variable} font-sans bg-black text-zinc-100 antialiased min-h-screen flex flex-col selection:bg-[#9945FF]/40 selection:text-white`}>
         <div className="fixed inset-0 z-[-2]">
-          <FlickeringGrid />
+          <FlickeringGrid
+            squareSize={5}
+            gridGap={8}
+            flickerChance={0.36}
+            color="rgb(3, 225, 255)"
+            maxOpacity={0.42}
+            showGridLines
+            animationSpeed={1.5}
+          />
         </div>
         <div className="fixed inset-0 z-[-1]" style={{ background: 'radial-gradient(ellipse at center, transparent 0%, transparent 50%, rgba(0,0,0,0.4) 100%)' }}></div>
         <WalletContextProvider>

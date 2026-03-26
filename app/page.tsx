@@ -9,6 +9,9 @@ import { useGame } from "@/hooks/useGame";
 import { Toaster, toast } from "sonner";
 import { PublicKey } from "@solana/web3.js";
 import MiningBlockEnhanced from "@/components/MiningBlockEnhanced";
+import PlayerStatsDashboard from "@/components/PlayerStatsDashboard";
+import TournamentPanel from "@/components/TournamentPanel";
+import LiveActivityTicker from "@/components/LiveActivityTicker";
 import ResultOverlay from "@/components/ResultOverlay";
 import CountdownTimer from "@/components/CountdownTimer";
 import GameCard from "@/components/GameCard";
@@ -680,6 +683,28 @@ export default function Home() {
               </div>
             </div>
           </section>
+
+      {/* Phase 2: Dashboard & Tournament */}
+      <section className="w-full max-w-[1600px] mx-auto px-3 sm:px-6 lg:px-8 py-6">
+        <div className="grid grid-cols-1 xl:grid-cols-[560px_1fr] gap-4">
+          <div className="space-y-4">
+            <PlayerStatsDashboard />
+            <TournamentPanel />
+          </div>
+          <div className="space-y-4">
+            <LiveActivityTicker />
+            <div className="glass-card p-6">
+              <h3 className="text-xl font-black text-white mb-2">Avatar & Identity</h3>
+              <p className="text-sm text-zinc-400 mb-4">Select an avatar theme for your MEV terminal and customize your in-session HUD identity.</p>
+              <div className="grid grid-cols-3 gap-2">
+                {['Apex', 'Neon', 'Quantum', 'Ghost', 'Vortex', 'Nova'].map((theme) => (
+                  <button key={theme} className="py-2 rounded-lg border border-white/10 bg-[#0d0d16]/60 text-xs text-white hover:border-[#00D1FF]/40 hover:bg-[#00D1FF]/15 transition">{theme}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* How It Works */}
       <HowItWorks />
