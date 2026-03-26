@@ -1,5 +1,6 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
 
 // Solana official colors - one for each of the 30 squares
 const SOLANA_COLORS = [
@@ -60,6 +61,32 @@ SQUARES.forEach(sq => {
 });
 
 export default function MiningBlock({ playerCount, isSpinning, countdown }: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dimensions, setDimensions] = useState({ width: 800, height: 500 });
+
+  useEffect(() => {
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        const { width, height } = containerRef.current.getBoundingClientRect();
+        setDimensions({ width: width || 800, height: height || 500 });
+      }
+    };
+
+    updateDimensions();
+    window.addEventListener('resize', updateDimensions);
+    
+    // Use ResizeObserver for better responsiveness
+    const resizeObserver = new ResizeObserver(updateDimensions);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    return () => {
+      window.removeEventListener('resize', updateDimensions);
+      resizeObserver.disconnect();
+    };
+  }, []);
+
   const isActive = isSpinning || countdown !== null;
   
   // Solana gradient colors for various elements
@@ -68,7 +95,7 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
   const PURPLE_DINO = "#DC1FFF";
 
   return (
-    <div className="mining-block-wrapper relative flex items-center justify-center">
+    <div ref={containerRef} className="mining-block-wrapper relative w-full h-full flex items-center justify-center">
       {/* Ambient glow */}
       <div className="absolute pointer-events-none" style={{
         inset: -100,
@@ -118,7 +145,7 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
         )}
       </AnimatePresence>
 
-      <svg width="100%" height="100%" viewBox="0 0 800 500" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+      <svg width="100%" height="100%" viewBox={`0 0 ${dimensions.width} ${dimensions.height}`} fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
         <defs>
           {/* Solana gradient for border */}
           <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -170,7 +197,10 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
         <g filter="url(#shadow)">
           {/* Outer glow ring */}
           <rect
-            x="60" y="30" width="680" height="440"
+            x={dimensions.width * 0.08} 
+            y={dimensions.height * 0.08} 
+            width={dimensions.width * 0.84} 
+            height={dimensions.height * 0.84}
             fill="none"
             stroke={isActive ? "url(#borderGrad)" : PURPLE_DINO}
             strokeWidth="2"
@@ -181,7 +211,10 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
 
           {/* Background with gradient */}
           <rect
-            x="60" y="30" width="680" height="440"
+            x={dimensions.width * 0.08} 
+            y={dimensions.height * 0.08} 
+            width={dimensions.width * 0.84} 
+            height={dimensions.height * 0.84}
             fill="url(#blockBg)"
             rx="24"
           />
@@ -193,7 +226,10 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
 
           {/* Inner border with gradient */}
           <rect
-            x="60" y="30" width="680" height="440"
+            x={dimensions.width * 0.08} 
+            y={dimensions.height * 0.08} 
+            width={dimensions.width * 0.84} 
+            height={dimensions.height * 0.84}
             fill="none"
             stroke={isActive ? "url(#borderGrad)" : "rgba(100,100,150,0.3)"}
             strokeWidth="2"
@@ -211,15 +247,18 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
           {SQUARES.map(({ id, row, col, color }) => {
             const isPlayerActive = id < playerCount;
             // Reduced size for better mobile display
-            const squareSize = 56;
-            const spacingX = 100;
-            const spacingY = 72;
+            const squareSize = Math.min(56, dimensions.width / 15, dimensions.height / 10);
+            const spacingX = dimensions.width / 8;
+            const spacingY = dimensions.height / 6.5;
             // Center the grid perfectly in the rectangular block
             // Grid dimensions: 6 columns, 5 rows
             const gridWidth = 6 * spacingX - (spacingX - squareSize);
             const gridHeight = 5 * spacingY - (spacingY - squareSize);
-            const startX = 60 + (680 - gridWidth) / 2 + squareSize / 2;
-            const startY = 30 + (440 - gridHeight) / 2 + squareSize / 2;
+            const padding = Math.min(60, dimensions.width * 0.08);
+            const blockWidth = dimensions.width - padding * 2;
+            const blockHeight = dimensions.height - padding * 2;
+            const startX = padding + (blockWidth - gridWidth) / 2 + squareSize / 2;
+            const startY = padding + (blockHeight - gridHeight) / 2 + squareSize / 2;
             const x = startX + col * spacingX;
             const y = startY + row * spacingY;
 
