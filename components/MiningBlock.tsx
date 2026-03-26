@@ -206,13 +206,14 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
           </rect>
         </g>
 
-        {/* 30 squares in a 5x6 grid - perfectly centered */}
+        {/* 30 squares in a 5x6 grid - optimized for mobile */}
         <g id="squares">
           {SQUARES.map(({ id, row, col, color }) => {
             const isPlayerActive = id < playerCount;
-            const squareSize = 60;
-            const spacingX = 76;
-            const spacingY = 76;
+            // Reduced size for better mobile display
+            const squareSize = 56;
+            const spacingX = 72;
+            const spacingY = 72;
             // Center the grid perfectly in the 480x480 block
             // Grid dimensions: 6 columns, 5 rows
             const gridWidth = 6 * spacingX - (spacingX - squareSize);
@@ -224,57 +225,57 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
 
             return (
               <g key={id}>
-                {/* Outer glow for active squares */}
+                {/* Outer glow for active squares - optimized */}
                 {isPlayerActive && (
                   <>
                     <rect
-                      x={x - squareSize / 2 - 8}
-                      y={y - squareSize / 2 - 8}
-                      width={squareSize + 16}
-                      height={squareSize + 16}
-                      rx="10"
+                      x={x - squareSize / 2 - 6}
+                      y={y - squareSize / 2 - 6}
+                      width={squareSize + 12}
+                      height={squareSize + 12}
+                      rx="9"
                       fill="#9945FF"
-                      opacity="0.3"
-                      style={{ filter: "blur(15px)" }}
+                      opacity="0.25"
+                      style={{ filter: "blur(12px)" }}
                     >
-                      <animate attributeName="opacity" values="0.3;0.6;0.3" dur="1.5s" repeatCount="indefinite"/>
+                      <animate attributeName="opacity" values="0.25;0.5;0.25" dur="1.5s" repeatCount="indefinite"/>
                     </rect>
                     <rect
-                      x={x - squareSize / 2 - 4}
-                      y={y - squareSize / 2 - 4}
-                      width={squareSize + 8}
-                      height={squareSize + 8}
-                      rx="8"
+                      x={x - squareSize / 2 - 3}
+                      y={y - squareSize / 2 - 3}
+                      width={squareSize + 6}
+                      height={squareSize + 6}
+                      rx="7"
                       fill="#00D1FF"
-                      opacity="0.5"
-                      style={{ filter: "blur(8px)" }}
+                      opacity="0.4"
+                      style={{ filter: "blur(6px)" }}
                     >
-                      <animate attributeName="opacity" values="0.5;0.8;0.5" dur="1.5s" repeatCount="indefinite"/>
+                      <animate attributeName="opacity" values="0.4;0.7;0.4" dur="1.5s" repeatCount="indefinite"/>
                     </rect>
                   </>
                 )}
 
-                {/* Square background shadow */}
+                {/* Square background shadow - reduced */}
                 <rect
-                  x={x - squareSize / 2 + 2}
-                  y={y - squareSize / 2 + 2}
+                  x={x - squareSize / 2 + 1.5}
+                  y={y - squareSize / 2 + 1.5}
                   width={squareSize}
                   height={squareSize}
-                  rx="8"
-                  fill="rgba(0,0,0,0.4)"
-                  opacity="0.6"
+                  rx="7"
+                  fill="rgba(0,0,0,0.3)"
+                  opacity="0.5"
                 />
 
-                {/* Main square */}
+                {/* Main square - optimized stroke */}
                 <rect
                   x={x - squareSize / 2}
                   y={y - squareSize / 2}
                   width={squareSize}
                   height={squareSize}
-                  rx="8"
+                  rx="7"
                   fill={isPlayerActive ? color : "rgba(40,40,60,0.4)"}
                   stroke={isPlayerActive ? "#9945FF" : "rgba(60,60,80,0.3)"}
-                  strokeWidth={isPlayerActive ? "3" : "1"}
+                  strokeWidth={isPlayerActive ? "2" : "1"}
                   opacity={isPlayerActive ? "1" : "0.3"}
                   filter={isPlayerActive ? "url(#glow)" : "url(#innerShadow)"}
                 >
@@ -283,14 +284,14 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
                   )}
                 </rect>
 
-                {/* Top highlight for depth */}
+                {/* Top highlight for depth - adjusted */}
                 {isPlayerActive && (
                   <rect
-                    x={x - squareSize / 2 + 4}
-                    y={y - squareSize / 2 + 4}
-                    width={squareSize - 8}
-                    height={(squareSize - 8) / 2}
-                    rx="6"
+                    x={x - squareSize / 2 + 3}
+                    y={y - squareSize / 2 + 3}
+                    width={squareSize - 6}
+                    height={(squareSize - 6) / 2}
+                    rx="5"
                     fill="url(#topHighlight)"
                   />
                 )}
@@ -300,18 +301,18 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
                   <stop offset="100%" stopColor="rgba(255,255,255,0)" />
                 </linearGradient>
 
-                {/* Pulsing center dot */}
+                {/* Pulsing center dot - smaller */}
                 {isPlayerActive && (
-                  <circle cx={x} cy={y} r="5" fill="white" opacity="0.95">
-                    <animate attributeName="opacity" values="0.95;0.4;0.95" dur="1.5s" repeatCount="indefinite"/>
-                    <animate attributeName="r" values="5;7;5" dur="1.5s" repeatCount="indefinite"/>
+                  <circle cx={x} cy={y} r="4" fill="white" opacity="0.9">
+                    <animate attributeName="opacity" values="0.9;0.4;0.9" dur="1.5s" repeatCount="indefinite"/>
+                    <animate attributeName="r" values="4;6;4" dur="1.5s" repeatCount="indefinite"/>
                   </circle>
                 )}
 
-                {/* Player number badge */}
+                {/* Player number badge - smaller font */}
                 {isPlayerActive && (
-                  <text x={x} y={y + squareSize/2 - 8} textAnchor="middle" 
-                    fill="white" fontSize="9" fontWeight="bold" opacity="0.6">
+                  <text x={x} y={y + squareSize/2 - 6} textAnchor="middle" 
+                    fill="white" fontSize="8" fontWeight="bold" opacity="0.6">
                     #{id + 1}
                   </text>
                 )}
