@@ -1,7 +1,8 @@
 import { useConnection } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { PROGRAM_ID, IDL } from '../utils/anchor';
+import { PROGRAM_ID } from '../config/constants';
+import { IDL } from '../utils/anchor';
 import { Program, AnchorProvider, EventParser, BorshCoder } from '@coral-xyz/anchor';
 
 export interface Activity {

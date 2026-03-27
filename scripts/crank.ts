@@ -23,63 +23,13 @@ import { Program, AnchorProvider, Wallet, BN } from '@coral-xyz/anchor';
 import bs58 from 'bs58';
 import * as fs from 'fs';
 import * as path from 'path';
+import { PROGRAM_ID, TREASURY_PUBKEY, ROOM_IDS, BLOCK_EXPIRATION_SECONDS } from '../config/constants';
+import { IDL } from '../utils/anchor';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
 const RPC_URL = process.env.RPC_URL || 'http://localhost:8899';
-const BLOCK_EXPIRATION_SECONDS = 30;
 const POLL_INTERVAL_MS = 3000;
-
-const ROOM_IDS = [101, 102, 103];
-
-const PROGRAM_ID = new PublicKey('2DKNipJx8QpQ1BzEScj3YoJ3CwpEbzyeEFVYvPbSsEtV');
-const TREASURY_PUBKEY = new PublicKey('FC2km6B1ub8fBf4FdLFs1hbJjmLx6EJbdAzN9Ajnb8nt');
-
-// ─── IDL (minimal subset needed for crank) ───────────────────────────────────
-
-const IDL: any = {
-  version: '0.1.0',
-  name: 'solana_russian_roulette',
-  instructions: [
-    {
-      name: 'refundExpiredGame',
-      accounts: [{ name: 'game', isMut: true, isSigner: false }],
-      args: [{ name: 'roomId', type: 'u8' }],
-    },
-    {
-      name: 'settleWinner',
-      accounts: [{ name: 'game', isMut: true, isSigner: false }],
-      args: [{ name: 'roomId', type: 'u8' }],
-    },
-  ],
-  accounts: [
-    {
-      name: 'Game',
-      type: {
-        kind: 'struct',
-        fields: [
-          { name: 'roomId', type: 'u8' },
-          { name: 'entryFee', type: 'u64' },
-          { name: 'players', type: { array: ['publicKey', 100] } },
-          { name: 'playerCount', type: 'u8' },
-          { name: 'state', type: { defined: 'GameState' } },
-          { name: 'potAmount', type: 'u64' },
-          { name: 'resolveSlot', type: 'u64' },
-          { name: 'lastActivityTime', type: 'i64' },
-          { name: 'blockStartTime', type: 'i64' },
-          { name: 'bump', type: 'u8' },
-        ],
-      },
-    },
-  ],
-  types: [
-    {
-      name: 'GameState',
-      type: { kind: 'enum', variants: [{ name: 'Waiting' }] },
-    },
-  ],
-  errors: [],
-};
 
 // ─── Keypair loading ──────────────────────────────────────────────────────────
 

@@ -1,8 +1,6 @@
 import { Connection, PublicKey } from '@solana/web3.js';
 import { Idl } from '@coral-xyz/anchor';
-
-export const PROGRAM_ID = new PublicKey("2DKNipJx8QpQ1BzEScj3YoJ3CwpEbzyeEFVYvPbSsEtV");
-export const TREASURY_PUBKEY = new PublicKey("FC2km6B1ub8fBf4FdLFs1hbJjmLx6EJbdAzN9Ajnb8nt");
+import { PROGRAM_ID, TREASURY_PUBKEY } from '../config/constants';
 
 // Localhost for local dev — override via NEXT_PUBLIC_RPC_URL in .env
 export const connection = new Connection(
@@ -53,6 +51,18 @@ export const IDL: Idl = {
       ],
       args: [
         { name: "roomId", type: "u8" }
+      ]
+    },
+    {
+      name: "withdrawFees",
+      accounts: [
+        { name: "treasury", isMut: true, isSigner: false },
+        { name: "recipient", isMut: true, isSigner: false },
+        { name: "authority", isMut: false, isSigner: true },
+        { name: "systemProgram", isMut: false, isSigner: false }
+      ],
+      args: [
+        { name: "amount", type: "u64" }
       ]
     }
   ],
@@ -114,6 +124,14 @@ export const IDL: Idl = {
       ]
     },
     {
+      name: "FeesWithdrawnEvent",
+      fields: [
+        { name: "amount", type: "u64", index: false },
+        { name: "recipient", type: "publicKey", index: false },
+        { name: "timestamp", type: "i64", index: false }
+      ]
+    },
+    {
       name: "GameRefundedEvent",
       fields: [
         { name: "game", type: "publicKey", index: false }
@@ -129,6 +147,8 @@ export const IDL: Idl = {
     { code: 6005, name: "GameEmpty", msg: "Game is empty." },
     { code: 6006, name: "TimerNotExpired", msg: "Timer has not expired yet. Wait 30 seconds." },
     { code: 6007, name: "TooManyPlayers", msg: "Too many players for refund. Game must have less than 3 players." },
-    { code: 6008, name: "NotEnoughPlayers", msg: "Not enough players. Need at least 3 players to settle." }
+    { code: 6008, name: "NotEnoughPlayers", msg: "Not enough players. Need at least 3 players to settle." },
+    { code: 6009, name: "Unauthorized", msg: "Unauthorized. Only admin can perform this action." },
+    { code: 6010, name: "InsufficientFunds", msg: "Insufficient funds in treasury." }
   ]
 };

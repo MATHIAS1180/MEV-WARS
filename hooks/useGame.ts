@@ -2,7 +2,8 @@ import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { Program, AnchorProvider, setProvider, BN, EventParser, BorshCoder } from '@coral-xyz/anchor';
 import { PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { PROGRAM_ID, IDL } from '../utils/anchor';
+import { PROGRAM_ID } from '../config/constants';
+import { IDL } from '../utils/anchor';
 
 export interface GameResult {
   // Multi-winner: first winner for display compat, full list for multi-payout
@@ -150,46 +151,33 @@ export function useGame(roomId: number) {
         if (prev >= 3 && decoded.playerCount === 0 && !gameResultRef.current) {
           console.log('[useGame] Game settled detected! prev:', prev, 'current:', decoded.playerCount);
           setIsScanningLogs(true);
-          
+
           // Calculate number of winners (1 per 3 players)
           const numWinners = Math.floor(prev / 3);
           const totalPot = decoded.potAmount?.toNumber() || 0;
           const rewardPool = totalPot * 0.95;
           const perWinner = rewardPool / numWinners;
-          
+
           // Get all players who were in the game
           const allPlayers = (decoded.players as any[])
             .slice(0, prev)
             .map((p: any) => p.toString())
             .filter((p: string) => p !== PublicKey.default.toString());
-          
-          // Select random winners (simple random for mock, will be replaced by real result)
-          const shuffled = [...allPlayers].sort(() => Math.random() - 0.5);
-          const mockWinners = shuffled.slice(0, numWinners);
-          
-          console.log('[useGame] Creating mock result:', {
+
+          console.log('[useGame] Waiting for blockchain result:', {
             players: prev,
             numWinners,
             totalPot,
             perWinner,
-            mockWinners
+            allPlayers
           });
-          
-          // Start with a mock result immediately to trigger countdown
-          const mockResult: GameResult = {
-            winner: mockWinners[0] || '',
-            winnerIndex: 0,
-            winners: mockWinners,
-            totalPot: totalPot,
-            winnerAmount: perWinner,
-          };
-          
+
           let retries = 10;
           const fetchResult = async () => {
-            if (gameResultRef.current && gameResultRef.current !== mockResult) { 
-              console.log('[useGame] Real result found, stopping scan');
-              setIsScanningLogs(false); 
-              return; 
+            if (gameResultRef.current) {
+              console.log('[useGame] Result already found, stopping scan');
+              setIsScanningLogs(false);
+              return;
             }
             try {
               console.log('[useGame] Fetching signatures, retry:', 10 - retries);
@@ -204,10 +192,10 @@ export function useGame(roomId: number) {
                 if (tx?.meta?.logMessages) {
                   console.log('[useGame] Parsing logs for sig:', sig.signature.slice(0, 8));
                   const result = parseLogsForResult(tx.meta.logMessages);
-                  if (result) { 
+                  if (result) {
                     console.log('[useGame] Found real result!', result);
-                    foundResult = result; 
-                    break; 
+                    foundResult = result;
+                    break;
                   }
                 }
               }
@@ -218,31 +206,24 @@ export function useGame(roomId: number) {
                 console.log('[useGame] No result yet, retrying in 2s...');
                 setTimeout(fetchResult, 2000);
               } else {
-                console.log('[useGame] Max retries reached, using mock result');
-                setGameResult(mockResult);
+                console.log('[useGame] Max retries reached, no result found');
+                // Don't set any result - let user know settlement failed
                 setIsScanningLogs(false);
+                // Could show error toast here
               }
             } catch (e) {
               console.error('[useGame] Error fetching result:', e);
               if (retries-- > 0) setTimeout(fetchResult, 2000);
               else {
-                console.log('[useGame] Using mock result after errors');
-                setGameResult(mockResult);
+                console.log('[useGame] Using no result after errors');
                 setIsScanningLogs(false);
+                // Could show error toast here
               }
             }
           };
-          
-          // Trigger countdown immediately with mock result
-          setTimeout(() => {
-            if (!gameResultRef.current) {
-              console.log('[useGame] Setting mock result to trigger countdown');
-              setGameResult(mockResult);
-            }
-          }, 500);
-          
-          // Start fetching real result in background
-          setTimeout(fetchResult, 1000);
+
+          // Start fetching real result immediately (no mock!)
+          fetchResult();
         }
       } catch (e) { console.error('Failed to decode', e); }
     }, 'confirmed');

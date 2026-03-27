@@ -2,6 +2,7 @@
 import { Space_Grotesk, Inter } from "next/font/google";
 import "./globals.css";
 import { WalletContextProvider } from "@/components/WalletContextProvider";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space" });
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -62,7 +63,9 @@ export default function RootLayout({
       </head>
       <body className={`${spaceGrotesk.variable} ${inter.variable} font-sans bg-black text-zinc-100 antialiased min-h-screen flex flex-col selection:bg-[#9945FF]/40 selection:text-white`}>
         <WalletContextProvider>
-          {children}
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
         </WalletContextProvider>
       </body>
     </html>

@@ -4,7 +4,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import dynamic from "next/dynamic";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Zap, Trophy, Coins, ShieldCheck, Clock, Users, Loader2 } from "lucide-react";
+import { Zap, Trophy, Coins, ShieldCheck, Clock, Loader2 } from "lucide-react";
 import { useGame } from "@/hooks/useGame";
 import { Toaster, toast } from "sonner";
 import { PublicKey } from "@solana/web3.js";
@@ -18,17 +18,21 @@ import ProvablyFair from "@/components/ProvablyFair";
 import FAQ from "@/components/FAQ";
 import LiveActivity from "@/components/LiveActivity";
 import Footer from "@/components/Footer";
+import { ROOMS } from "@/config/constants";
+
+const getRoomIcon = (iconName: string) => {
+  switch (iconName) {
+    case 'Coins': return <Coins className="w-3.5 h-3.5 sm:w-4 sm:h-4" />;
+    case 'Zap': return <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />;
+    case 'Trophy': return <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4" />;
+    default: return <Coins className="w-3.5 h-3.5 sm:w-4 sm:h-4" />;
+  }
+};
 
 const WalletMultiButton = dynamic(
   async () => (await import("@solana/wallet-adapter-react-ui")).WalletMultiButton,
   { ssr: false }
 );
-
-const ROOMS = [
-  { id: 101, label: "0.01 SOL", lamports: 0.01 * 1e9, icon: <Coins className="w-3.5 h-3.5" /> },
-  { id: 102, label: "0.1 SOL",  lamports: 0.1  * 1e9, icon: <Zap className="w-3.5 h-3.5" /> },
-  { id: 103, label: "1.0 SOL",  lamports: 1    * 1e9, icon: <Trophy className="w-3.5 h-3.5" /> },
-];
 
 const BLOCK_EXPIRATION_SECONDS = 30;
 
@@ -92,8 +96,8 @@ export default function Home() {
 
   const myPlayerIndex = useMemo(() => {
     if (!gameState?.players || !publicKey) return null;
-    const idx = (gameState.players as any[]).findIndex(
-      (p: any) => p.toString() === publicKey.toString()
+    const idx = (gameState.players as PublicKey[]).findIndex(
+      (p: PublicKey) => p.toString() === publicKey.toString()
     );
     return idx >= 0 ? idx : null;
   }, [gameState?.players, publicKey]);
@@ -116,9 +120,9 @@ export default function Home() {
   const lastPlayersRef = useRef<string[]>([]);
   useEffect(() => {
     if (actualPlayerCount > 0 && gameState?.players) {
-      const real = (gameState.players as any[])
-        .filter((p: any) => p.toString() !== PublicKey.default.toString())
-        .map((p: any) => p.toString());
+      const real = (gameState.players as PublicKey[])
+        .filter((p: PublicKey) => p.toString() !== PublicKey.default.toString())
+        .map((p: PublicKey) => p.toString());
       if (real.length > 0) lastPlayersRef.current = real;
     }
   }, [gameState?.players, actualPlayerCount]);
@@ -301,8 +305,11 @@ export default function Home() {
       const txPromise = joinGame(activeRoom.lamports);
       toast.promise(txPromise, { loading: 'Submitting transaction...', success: 'Entered round successfully!', error: (e: any) => `Failed: ${e.message}` });
       await txPromise;
-    } catch (e) { console.error(e); }
-    finally { setTxPending(false); }
+    } catch (e) {
+      // Error already handled by toast
+    } finally {
+      setTxPending(false);
+    }
   };
 
   return (
@@ -627,7 +634,7 @@ export default function Home() {
                         } disabled:opacity-50 disabled:cursor-not-allowed`}
                       >
                         <span className="flex items-center gap-2">
-                          <span className="w-3.5 h-3.5 sm:w-4 sm:h-4">{room.icon}</span>
+                          <span className="w-3.5 h-3.5 sm:w-4 sm:h-4">{getRoomIcon(room.iconName)}</span>
                           <span>{room.label}</span>
                         </span>
                         {roomId === room.id && (

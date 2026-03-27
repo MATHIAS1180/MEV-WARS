@@ -11,7 +11,8 @@
 import { Connection, Keypair, PublicKey, SystemProgram } from '@solana/web3.js';
 import { Program, AnchorProvider, Wallet, BN } from '@coral-xyz/anchor';
 import bs58 from 'bs58';
-import { IDL, PROGRAM_ID } from '../utils/anchor';
+import { PROGRAM_ID, ROOMS } from '../config/constants';
+import { IDL } from '../utils/anchor';
 
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://api.devnet.solana.com';
 
@@ -55,13 +56,7 @@ async function main() {
   );
   const program = new Program(IDL as any, PROGRAM_ID, provider);
 
-  const rooms = [
-    { id: 101, label: '0.01 SOL', fee: 0.01 * 1e9 },
-    { id: 102, label: '0.1 SOL', fee: 0.1 * 1e9 },
-    { id: 103, label: '1.0 SOL', fee: 1.0 * 1e9 },
-  ];
-
-  for (const room of rooms) {
+  for (const room of ROOMS) {
     const [gamePda] = PublicKey.findProgramAddressSync(
       [Buffer.from('room'), Buffer.from([room.id])],
       PROGRAM_ID
@@ -79,7 +74,7 @@ async function main() {
 
     try {
       const tx = await program.methods
-        .initializeGame(room.id, new BN(room.fee))
+        .initializeGame(room.id, new BN(room.entryFee))
         .accounts({
           game: gamePda,
           authority: wallet.publicKey,

@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { ShieldCheck, Zap, Crosshair, Trophy } from "lucide-react";
-import { PROGRAM_ID } from "@/utils/anchor";
+import { PROGRAM_ID } from "@/config/constants";
 
 export default function InfoSections() {
   const specs = [

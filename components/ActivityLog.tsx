@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Box, ShieldCheck, Zap } from "lucide-react";
-import { PROGRAM_ID } from "@/utils/anchor";
+import { PROGRAM_ID } from "@/config/constants";
 
 interface LogEntry {
   id: string;

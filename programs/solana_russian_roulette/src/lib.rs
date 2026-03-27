@@ -205,6 +205,37 @@ pub mod solana_russian_roulette {
 
         Ok(())
     }
+
+    /// Withdraw accumulated fees from treasury (admin only)
+    pub fn withdraw_fees(ctx: Context<WithdrawFees>, amount: u64) -> Result<()> {
+        let treasury = &ctx.accounts.treasury;
+        let recipient = &ctx.accounts.recipient;
+        let authority = &ctx.accounts.authority;
+
+        // Security: Only authorized admin can withdraw
+        require!(
+            authority.key() == Pubkey::from_str("FC2km6B1ub8fBf4FdLFs1hbJjmLx6EJbdAzN9Ajnb8nt").unwrap(),
+            ErrorCode::Unauthorized
+        );
+
+        // Check treasury has enough funds
+        require!(
+            treasury.lamports() >= amount,
+            ErrorCode::InsufficientFunds
+        );
+
+        // Transfer funds
+        **treasury.try_borrow_mut_lamports()? -= amount;
+        **recipient.try_borrow_mut_lamports()? += amount;
+
+        emit!(FeesWithdrawnEvent {
+            amount,
+            recipient: recipient.key(),
+            timestamp: Clock::get()?.unix_timestamp,
+        });
+
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
@@ -257,6 +288,17 @@ pub struct RefundExpiredGame<'info> {
         bump = game.bump
     )]
     pub game: Account<'info, Game>,
+}
+
+#[derive(Accounts)]
+pub struct WithdrawFees<'info> {
+    #[account(mut)]
+    pub treasury: UncheckedAccount<'info>,
+    #[account(mut)]
+    pub recipient: UncheckedAccount<'info>,
+    #[account(signer)]
+    pub authority: Signer<'info>,
+    pub system_program: Program<'info, System>,
 }
 
 #[account]
@@ -319,6 +361,13 @@ pub struct WinnerExtractedEvent {
     pub amount: u64,
 }
 
+#[event]
+pub struct FeesWithdrawnEvent {
+    pub amount: u64,
+    pub recipient: Pubkey,
+    pub timestamp: i64,
+}
+
 #[error_code]
 pub enum ErrorCode {
     #[msg("The game is not in waiting state.")]
@@ -339,4 +388,8 @@ pub enum ErrorCode {
     TooManyPlayers,
     #[msg("Not enough players. Need at least 3 players to settle.")]
     NotEnoughPlayers,
+    #[msg("Unauthorized. Only admin can perform this action.")]
+    Unauthorized,
+    #[msg("Insufficient funds in treasury.")]
+    InsufficientFunds,
 }

@@ -2,12 +2,48 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Connection, Keypair, PublicKey, Transaction } from '@solana/web3.js';
 import { Program, AnchorProvider, BN } from '@coral-xyz/anchor';
 import bs58 from 'bs58';
-import { IDL, PROGRAM_ID, TREASURY_PUBKEY } from '../../../utils/anchor';
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+import { IDL } from '../../../utils/anchor';
+import { PROGRAM_ID, TREASURY_PUBKEY } from '../../../config/constants';
+
+// Rate limiting: 10 requests per 60 seconds per IP
+const ratelimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(10, "60 s"),
+  analytics: true,
+  prefix: "mev-wars-crank",
+});
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limiting check
+    const clientIp = req.ip || req.headers.get('x-forwarded-for') || 'unknown';
+    const { success, limit, reset, remaining } = await ratelimit.limit(clientIp);
+
+    if (!success) {
+      return NextResponse.json(
+        {
+          error: 'Rate limit exceeded',
+          retryAfter: reset,
+          limit,
+          remaining,
+        },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': limit.toString(),
+            'X-RateLimit-Reset': new Date(reset).toISOString(),
+            'X-RateLimit-Remaining': remaining.toString(),
+          },
+        }
+      );
+    }
+
     const { roomId } = await req.json();
-    if (typeof roomId !== 'number') return NextResponse.json({ error: 'Invalid room id' }, { status: 400 });
+    if (typeof roomId !== 'number' || roomId < 101 || roomId > 103) {
+      return NextResponse.json({ error: 'Invalid room id (must be 101-103)' }, { status: 400 });
+    }
 
     const crankPrivKey = process.env.CRANK_PRIVATE_KEY;
     if (!crankPrivKey) return NextResponse.json({ error: 'CRANK_PRIVATE_KEY not set' }, { status: 500 });

@@ -9,10 +9,14 @@ import { clusterApiUrl } from "@solana/web3.js";
 import '@solana/wallet-adapter-react-ui/styles.css';
 
 export const WalletContextProvider: FC<{ children: ReactNode }> = ({ children }) => {
-    // The network can be set to 'devnet', 'testnet', or 'mainnet-beta'.
-    const network = clusterApiUrl("devnet");
+    // Read network from environment variable, default to devnet
+    const network = (process.env.NEXT_PUBLIC_SOLANA_NETWORK as 'devnet' | 'testnet' | 'mainnet-beta') || 'devnet';
 
-    const endpoint = useMemo(() => network, [network]);
+    // Use custom RPC URL if provided, otherwise use clusterApiUrl
+    let endpoint = process.env.NEXT_PUBLIC_RPC_URL;
+    if (!endpoint) {
+        endpoint = clusterApiUrl(network);
+    }
 
     const wallets = useMemo(
         () => [],
