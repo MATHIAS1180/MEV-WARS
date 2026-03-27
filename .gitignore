@@ -33,4 +33,69 @@ yarn-error.log*
 kp.json
 secret.txt
 vars.txt
-.vercel
+
+# Development documentation and notes
+# These files are generated during development and should not be committed
+AUDIT_*.md
+DEPLOYMENT_*.md
+IMPLEMENT_*.md
+DEPLOY_*.md
+LIGHTHOUSE_*.md
+3D_MATRIX_*.md
+BLOCKCHAIN_MATRIX_*.md
+*_QUICK_*.md
+*_NOTES.md
+*_SUMMARY.md
+*_REPORT.md
+*_EXAMPLE.tsx
+DESIGN_AUDIT_*.md
+RESPONSIVE_*.md
+QUICK_START*.md
+FINAL_*.md
+FIXED_*.md
+FIXES_*.md
+FIX_*.md
+CACHE_*.md
+CRANK_STATUS.md
+COMPONENT_SHOWCASE.md
+REAL_TIME_*.md
+REFUND_*.md
+MINING_BLOCK_*.md
+OPTION_B_*.md
+PERFORMANCE_*.md
+SUCCESS.md
+ULTIMATE_*.md
+VERCEL_CHECK.md
+WEB_VITALS_*.md
+LIVE_ACTIVITY_*.md
+
+# Development scripts (keep only those in scripts/ folder)
+check_program.js
+execute_resolve.js
+fetch_state.js
+init-rooms-solpg.js
+keygen.js
+simulate_resolve.js
+test-crank.js
+*.py
+!scripts/**
+
+# Test and debug logs
+last_error.txt
+*_deploy_log.txt
+sim_logs.json
+state_output.json
+
+# Backup and old files
+*.bak
+*.old
+**/*-old.tsx
+**/*-old.ts
+**/*.*.clean
+**/*.*.working
+old_idl.json
+
+# IDE and system files
+.vscode/launch.json
+.DS_Store
+Thumbs.db
