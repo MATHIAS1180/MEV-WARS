@@ -652,7 +652,7 @@ export default function Home() {
                     <div className="p-3 sm:p-4 bg-gradient-to-r from-[#00FFA3]/10 to-[#03E1FF]/10 border-2 border-[#00FFA3]/40 rounded-xl">
                       <div className="flex items-center justify-center gap-2 mb-1">
                         <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-[#00FFA3]" />
-                        <p className="text-base sm:text-lg font-black text-[#00FFA3]">You're In!</p>
+                        <p className="text-base sm:text-lg font-black text-[#00FFA3]">You&apos;re In!</p>
                       </div>
                       <p className="text-center text-xs sm:text-sm text-zinc-400">Position #{(displayPlayerIndex ?? myPlayerIndex) + 1}</p>
                     </div>

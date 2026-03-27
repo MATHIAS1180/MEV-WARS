@@ -101,7 +101,7 @@ export default function GameCard({
           </div>
         ) : myPlayerIndex !== null ? (
           <div className="w-full p-3 sm:p-4 bg-gradient-to-r from-[#00FFA3]/10 to-[#03E1FF]/10 border-2 border-[#00FFA3]/40 rounded-lg lg:rounded-xl text-center">
-            <p className="text-[0.625rem] sm:text-xs text-zinc-400 uppercase tracking-wider mb-1 font-bold">You're In!</p>
+            <p className="text-[0.625rem] sm:text-xs text-zinc-400 uppercase tracking-wider mb-1 font-bold">You&apos;re In!</p>
             <div className="flex items-center justify-center gap-1.5 sm:gap-2">
               <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-[#00FFA3]" />
               <p className="text-base sm:text-lg font-black text-[#00FFA3]">Position #{myPlayerIndex + 1}</p>
