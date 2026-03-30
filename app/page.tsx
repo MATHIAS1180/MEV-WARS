@@ -31,7 +31,14 @@ const getRoomIcon = (iconName: string) => {
 
 const WalletMultiButton = dynamic(
   async () => (await import("@solana/wallet-adapter-react-ui")).WalletMultiButton,
-  { ssr: false }
+  {
+    ssr: false,
+    loading: () => (
+      <button className="px-4 py-2 rounded-xl border border-white/15 text-xs sm:text-sm font-bold text-zinc-300 bg-white/5">
+        Connect Wallet
+      </button>
+    ),
+  }
 );
 
 const ROUND_EXPIRATION_SECONDS = 20;
@@ -42,7 +49,7 @@ export default function Home() {
   const { gameState, fetchState, joinGame, initializeRoom, crankRoom, secureGain, gameResult, setGameResult } = useGame(roomId);
 
   // Dynamic viewport sizing
-  const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
+  const [viewportSize, setViewportSize] = useState({ width: 1280, height: 720 });
   
   useEffect(() => {
     const updateSize = () => {
@@ -60,23 +67,25 @@ export default function Home() {
   // Calculate optimal mining block size based on viewport
   const getMiningBlockSize = () => {
     const { width, height } = viewportSize;
+
+    if (width <= 0 || height <= 0) return 320;
     
     // Mobile portrait
     if (width < 640) {
-      return Math.min(width - 60, height * 0.4, 320);
+      return Math.max(240, Math.min(width - 60, height * 0.4, 320));
     }
     // Mobile landscape / Small tablet
     if (width < 768) {
-      return Math.min(width - 80, height * 0.45, 380);
+      return Math.max(260, Math.min(width - 80, height * 0.45, 380));
     }
     // Tablet
     if (width < 1024) {
-      return Math.min(width * 0.5, height * 0.5, 420);
+      return Math.max(280, Math.min(width * 0.5, height * 0.5, 420));
     }
     // Desktop - calculate based on available space
     const availableHeight = height - 300; // Subtract header, stats, padding
     const availableWidth = width * 0.6; // Left column is ~60% on desktop
-    return Math.min(availableWidth - 100, availableHeight, 500);
+    return Math.max(300, Math.min(availableWidth - 100, availableHeight, 500));
   };
 
   const miningBlockSize = getMiningBlockSize();
@@ -359,11 +368,11 @@ export default function Home() {
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-black/40 backdrop-blur-2xl">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 py-3 sm:py-4 flex items-center justify-between gap-3 sm:gap-4">
-          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+          <motion.div initial={false} animate={{ opacity: 1, x: 0 }}>
             <img src="/images/trigger-logo.png" alt="MEV Wars" className="h-8 sm:h-10 lg:h-12 w-auto filter drop-shadow-[0_0_12px_rgba(220,31,255,0.6)]" />
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-3 sm:gap-4">
+          <motion.div initial={false} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-3 sm:gap-4">
             {/* Live Badge with Pulse */}
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-[#00FFA3]/10 border border-[#00FFA3]/30 rounded-full">
               <div className="relative">
@@ -381,7 +390,7 @@ export default function Home() {
       <section className="relative w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 py-8 sm:py-12 lg:py-16">
         <div className="text-center">
           <motion.h1
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
             className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black uppercase tracking-tighter mb-4 sm:mb-6 leading-tight"
           >
@@ -397,7 +406,7 @@ export default function Home() {
           </motion.h1>
 
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
             className="text-base sm:text-lg md:text-xl lg:text-2xl text-zinc-300 font-medium max-w-3xl mx-auto mb-8 sm:mb-10 px-4 leading-relaxed"
@@ -407,7 +416,7 @@ export default function Home() {
 
           {/* Social Proof Bar */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
             className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 lg:gap-8"
