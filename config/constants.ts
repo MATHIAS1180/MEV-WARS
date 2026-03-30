@@ -2,7 +2,7 @@
 import { PublicKey } from '@solana/web3.js';
 
 // Blockchain Configuration
-export const PROGRAM_ID = new PublicKey("2JNhd8ePoxBHtaQnLesv4ofb18Ft4XcrXK2Y5BHjxP63");
+export const PROGRAM_ID = new PublicKey("3WoG4JYKGQWJBXVnXjfTB7cAQoQBpmKS84cjM1yMZ3S5");
 export const TREASURY_PUBKEY = new PublicKey("FC2km6B1ub8fBf4FdLFs1hbJjmLx6EJbdAzN9Ajnb8nt");
 
 // Game Configuration
@@ -15,22 +15,22 @@ export const ROOMS = [
   {
     id: 101 as const,
     label: "0.01 SOL" as const,
-    lamports: 0.01 * 1e9,
-    entryFee: 0.01 * 1e9,
+    lamports: 10_000_000,
+    entryFee: 10_000_000,
     iconName: "Coins" as const,
   },
   {
     id: 102 as const,
     label: "0.1 SOL" as const,
-    lamports: 0.1 * 1e9,
-    entryFee: 0.1 * 1e9,
+    lamports: 100_000_000,
+    entryFee: 100_000_000,
     iconName: "Zap" as const,
   },
   {
     id: 103 as const,
     label: "1.0 SOL" as const,
-    lamports: 1 * 1e9,
-    entryFee: 1 * 1e9,
+    lamports: 1_000_000_000,
+    entryFee: 1_000_000_000,
     iconName: "Trophy" as const,
   },
 ] as const;

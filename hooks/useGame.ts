@@ -1,6 +1,6 @@
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { Program, AnchorProvider, setProvider, BN, EventParser, BorshCoder } from '@coral-xyz/anchor';
-import { PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
+import { PublicKey, SystemProgram } from '@solana/web3.js';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { PROGRAM_ID } from '../config/constants';
 import { IDL } from '../utils/anchor';
@@ -252,26 +252,25 @@ export function useGame(roomId: number) {
       [Buffer.from('room'), Buffer.from([roomId])], program.programId
     );
 
-    const tx = new Transaction();
     const info = await connection.getAccountInfo(gamePda);
     if (!info) {
-      tx.add(await program.methods
-        .initializeGame(roomId, new BN(entryFeeLamports))
-        .accounts({
-          game: gamePda,
-          authority: wallet.publicKey,
-          systemProgram: SystemProgram.programId
-        })
-        .instruction());
+      throw new Error('Room not initialized on-chain. Please contact admin to initialize rooms.');
     }
 
-    tx.add(await program.methods.joinGame(roomId).accounts({
+    const account = await program.account.game.fetch(gamePda) as unknown as GameStateData;
+    const onChainEntryFee = Number(account.entryFee.toString());
+    if (onChainEntryFee !== entryFeeLamports) {
+      throw new Error(
+        `Entry fee mismatch for room #${roomId}: on-chain=${onChainEntryFee} lamports, expected=${entryFeeLamports}.`
+      );
+    }
+
+    const signature = await program.methods.joinGame(roomId).accounts({
       game: gamePda,
       player: wallet.publicKey,
       systemProgram: SystemProgram.programId,
-    }).instruction());
+    }).rpc();
 
-    const signature = await provider.sendAndConfirm(tx);
     console.log('joinGame TX confirmed:', signature);
     fetchState();
     return true;

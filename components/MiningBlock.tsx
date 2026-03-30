@@ -1,6 +1,6 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import styles from './MiningBlock.module.css';
 
 // Solana official colors - one for each of the 30 squares
@@ -52,17 +52,30 @@ const SQUARES = Array.from({ length: 30 }, (_, i) => ({
   color: SOLANA_COLORS[i],
 }));
 
-// Network connections between adjacent squares
-const CONNECTIONS: [number, number][] = [];
-SQUARES.forEach(sq => {
-  // Connect to right neighbor
-  if (sq.col < 5) CONNECTIONS.push([sq.id, sq.id + 1]);
-  // Connect to bottom neighbor
-  if (sq.row < 4) CONNECTIONS.push([sq.id, sq.id + 6]);
-});
-
 export default function MiningBlock({ playerCount, isSpinning, countdown }: Props) {
   const isActive = isSpinning || countdown !== null;
+  const [performanceMode, setPerformanceMode] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    const updatePerformanceMode = () => {
+      const nav = navigator as Navigator & { deviceMemory?: number };
+      const lowCpu = (nav.hardwareConcurrency ?? 8) <= 4;
+      const lowMemory = (nav.deviceMemory ?? 8) <= 4;
+      const smallViewport = window.innerWidth < 1024;
+      setPerformanceMode(media.matches || lowCpu || lowMemory || smallViewport);
+    };
+
+    updatePerformanceMode();
+    window.addEventListener('resize', updatePerformanceMode);
+    media.addEventListener('change', updatePerformanceMode);
+
+    return () => {
+      window.removeEventListener('resize', updatePerformanceMode);
+      media.removeEventListener('change', updatePerformanceMode);
+    };
+  }, []);
   
   // Solana gradient colors for various elements
   const SURGE_GREEN = "#00FFA3";
@@ -77,7 +90,7 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
         background: isActive
           ? `radial-gradient(ellipse, ${PURPLE_DINO}45 0%, ${OCEAN_BLUE}30 40%, transparent 75%)`
           : `radial-gradient(ellipse, ${PURPLE_DINO}20 0%, ${OCEAN_BLUE}15 40%, transparent 75%)`,
-        filter: "blur(60px)",
+        filter: performanceMode ? "blur(36px)" : "blur(60px)",
         transition: "background 1s ease",
       }} />
 
@@ -85,7 +98,7 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
       <AnimatePresence>
         {countdown !== null && countdown > 0 && (
           <div key={`rings-${countdown}`} className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            {[...Array(3)].map((_, i) => {
+            {[...Array(performanceMode ? 1 : 3)].map((_, i) => {
               const rc = countdown === 1 ? "#FF6B9D" : countdown === 2 ? "#FFB84D" : SURGE_GREEN;
               return (
                 <motion.div key={i} className="absolute"
@@ -125,13 +138,13 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
           {/* Solana gradient for border */}
           <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor={PURPLE_DINO}>
-              {isActive && <animate attributeName="stop-color" values={`${PURPLE_DINO};${OCEAN_BLUE};${SURGE_GREEN};${PURPLE_DINO}`} dur="4s" repeatCount="indefinite"/>}
+              {isActive && !performanceMode && <animate attributeName="stop-color" values={`${PURPLE_DINO};${OCEAN_BLUE};${SURGE_GREEN};${PURPLE_DINO}`} dur="4s" repeatCount="indefinite"/>}
             </stop>
             <stop offset="50%" stopColor={OCEAN_BLUE}>
-              {isActive && <animate attributeName="stop-color" values={`${OCEAN_BLUE};${SURGE_GREEN};${PURPLE_DINO};${OCEAN_BLUE}`} dur="4s" repeatCount="indefinite"/>}
+              {isActive && !performanceMode && <animate attributeName="stop-color" values={`${OCEAN_BLUE};${SURGE_GREEN};${PURPLE_DINO};${OCEAN_BLUE}`} dur="4s" repeatCount="indefinite"/>}
             </stop>
             <stop offset="100%" stopColor={SURGE_GREEN}>
-              {isActive && <animate attributeName="stop-color" values={`${SURGE_GREEN};${PURPLE_DINO};${OCEAN_BLUE};${SURGE_GREEN}`} dur="4s" repeatCount="indefinite"/>}
+              {isActive && !performanceMode && <animate attributeName="stop-color" values={`${SURGE_GREEN};${PURPLE_DINO};${OCEAN_BLUE};${SURGE_GREEN}`} dur="4s" repeatCount="indefinite"/>}
             </stop>
           </linearGradient>
 
@@ -166,6 +179,11 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
               <feMergeNode in="SourceGraphic"/>
             </feMerge>
           </filter>
+
+          <linearGradient id="topHighlight" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="rgba(255,255,255,0.25)" />
+            <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+          </linearGradient>
         </defs>
 
         {/* Main block with shadow and depth */}
@@ -202,7 +220,7 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
             rx="24"
             opacity={isActive ? "0.9" : "0.5"}
           >
-            {isActive && (
+            {isActive && !performanceMode && (
               <animate attributeName="stroke-opacity" values="0.7;1;0.7" dur="2s" repeatCount="indefinite"/>
             )}
           </rect>
@@ -225,7 +243,7 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
             return (
               <g key={id}>
                 {/* Outer glow for active squares - optimized */}
-                {isPlayerActive && (
+                {isPlayerActive && !performanceMode && (
                   <>
                     <rect
                       x={x - squareSize / 2 - 6}
@@ -276,9 +294,9 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
                   stroke={isPlayerActive ? "#9945FF" : "rgba(60,60,80,0.3)"}
                   strokeWidth={isPlayerActive ? "2" : "1"}
                   opacity={isPlayerActive ? "1" : "0.3"}
-                  filter={isPlayerActive ? "url(#glow)" : "url(#innerShadow)"}
+                  filter={performanceMode ? undefined : (isPlayerActive ? "url(#glow)" : "url(#innerShadow)")}
                 >
-                  {isPlayerActive && isActive && (
+                  {isPlayerActive && isActive && !performanceMode && (
                     <animate attributeName="stroke" values="#9945FF;#00D1FF;#9945FF" dur="2s" repeatCount="indefinite"/>
                   )}
                 </rect>
@@ -294,18 +312,17 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
                     fill="url(#topHighlight)"
                   />
                 )}
-                
-                <linearGradient id="topHighlight" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="rgba(255,255,255,0.25)" />
-                  <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-                </linearGradient>
 
                 {/* Pulsing center dot - smaller */}
                 {isPlayerActive && (
-                  <circle cx={x} cy={y} r="4" fill="white" opacity="0.9">
-                    <animate attributeName="opacity" values="0.9;0.4;0.9" dur="1.5s" repeatCount="indefinite"/>
-                    <animate attributeName="r" values="4;6;4" dur="1.5s" repeatCount="indefinite"/>
-                  </circle>
+                  performanceMode ? (
+                    <circle cx={x} cy={y} r="4" fill="white" opacity="0.8" />
+                  ) : (
+                    <circle cx={x} cy={y} r="4" fill="white" opacity="0.9">
+                      <animate attributeName="opacity" values="0.9;0.4;0.9" dur="1.5s" repeatCount="indefinite"/>
+                      <animate attributeName="r" values="4;6;4" dur="1.5s" repeatCount="indefinite"/>
+                    </circle>
+                  )
                 )}
 
                 {/* Player number badge - smaller font */}

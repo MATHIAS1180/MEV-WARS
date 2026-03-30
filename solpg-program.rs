@@ -3,7 +3,7 @@ use anchor_lang::system_program;
 use anchor_lang::solana_program::hash::hash;
 use std::str::FromStr;
 
-declare_id!("2JNhd8ePoxBHtaQnLesv4ofb18Ft4XcrXK2Y5BHjxP63");
+declare_id!("3WoG4JYKGQWJBXVnXjfTB7cAQoQBpmKS84cjM1yMZ3S5");
 
 pub const MAX_PLAYERS: usize = 100;
 pub const TREASURY_PUBKEY: &str = "FC2km6B1ub8fBf4FdLFs1hbJjmLx6EJbdAzN9Ajnb8nt";
