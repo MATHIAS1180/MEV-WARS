@@ -3,7 +3,7 @@ use anchor_lang::system_program;
 use anchor_lang::solana_program::hash::hash;
 use std::str::FromStr;
 
-declare_id!("3WoG4JYKGQWJBXVnXjfTB7cAQoQBpmKS84cjM1yMZ3S5");
+declare_id!("HCN6ddARh6UvdMgZWeMXBtUSxPvrLCoTjgo3t48oiAi4");
 
 pub const MAX_PLAYERS: usize = 30;
 pub const TREASURY_PUBKEY: &str = "FC2km6B1ub8fBf4FdLFs1hbJjmLx6EJbdAzN9Ajnb8nt";
@@ -417,7 +417,7 @@ pub struct InitializeGame<'info> {
         seeds = [b"room".as_ref(), &[room_id]],
         bump
     )]
-    pub game: Account<'info, Game>,
+    pub game: Box<Account<'info, Game>>,
     #[account(mut)]
     pub authority: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -431,7 +431,7 @@ pub struct JoinGame<'info> {
         seeds = [b"room".as_ref(), &[room_id]],
         bump = game.bump
     )]
-    pub game: Account<'info, Game>,
+    pub game: Box<Account<'info, Game>>,
     #[account(mut)]
     pub player: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -445,7 +445,7 @@ pub struct RefundExpiredGame<'info> {
         seeds = [b"room".as_ref(), &[room_id]],
         bump = game.bump
     )]
-    pub game: Account<'info, Game>,
+    pub game: Box<Account<'info, Game>>,
 }
 
 #[derive(Accounts)]
@@ -456,7 +456,7 @@ pub struct AdvanceRound<'info> {
         seeds = [b"room".as_ref(), &[room_id]],
         bump = game.bump
     )]
-    pub game: Account<'info, Game>,
+    pub game: Box<Account<'info, Game>>,
 }
 
 #[derive(Accounts)]
@@ -467,7 +467,7 @@ pub struct SecureGain<'info> {
         seeds = [b"room".as_ref(), &[room_id]],
         bump = game.bump
     )]
-    pub game: Account<'info, Game>,
+    pub game: Box<Account<'info, Game>>,
     #[account(mut)]
     pub player: Signer<'info>,
 }
