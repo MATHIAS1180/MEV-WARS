@@ -54,16 +54,16 @@ const SQUARES = Array.from({ length: 30 }, (_, i) => ({
 
 export default function MiningBlock({ playerCount, isSpinning, countdown }: Props) {
   const isActive = isSpinning || countdown !== null;
-  const [performanceMode, setPerformanceMode] = useState(false);
+  const [performanceMode, setPerformanceMode] = useState(true);
 
   useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
 
     const updatePerformanceMode = () => {
       const nav = navigator as Navigator & { deviceMemory?: number };
-      const lowCpu = (nav.hardwareConcurrency ?? 8) <= 4;
-      const lowMemory = (nav.deviceMemory ?? 8) <= 4;
-      const smallViewport = window.innerWidth < 1024;
+      const lowCpu = (nav.hardwareConcurrency ?? 8) <= 8;
+      const lowMemory = (nav.deviceMemory ?? 8) <= 8;
+      const smallViewport = window.innerWidth < 1536;
       setPerformanceMode(media.matches || lowCpu || lowMemory || smallViewport);
     };
 
@@ -187,7 +187,7 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
         </defs>
 
         {/* Main block with shadow and depth */}
-        <g filter="url(#shadow)">
+        <g filter={performanceMode ? undefined : "url(#shadow)"}>
           {/* Outer glow ring */}
           <rect
             x="60" y="60" width="480" height="480"

@@ -12,13 +12,14 @@ import MiningBlock from "@/components/MiningBlock";
 import ResultOverlay from "@/components/ResultOverlay";
 import CountdownTimer from "@/components/CountdownTimer";
 import GameCard from "@/components/GameCard";
-import HowItWorks from "@/components/HowItWorks";
-import WhyDifferent from "@/components/WhyDifferent";
-import ProvablyFair from "@/components/ProvablyFair";
-import FAQ from "@/components/FAQ";
-import LiveActivity from "@/components/LiveActivity";
-import Footer from "@/components/Footer";
 import { ROOMS } from "@/config/constants";
+
+const HowItWorks = dynamic(() => import("@/components/HowItWorks"));
+const WhyDifferent = dynamic(() => import("@/components/WhyDifferent"));
+const ProvablyFair = dynamic(() => import("@/components/ProvablyFair"));
+const FAQ = dynamic(() => import("@/components/FAQ"));
+const LiveActivity = dynamic(() => import("@/components/LiveActivity"));
+const Footer = dynamic(() => import("@/components/Footer"));
 
 const getRoomIcon = (iconName: string) => {
   switch (iconName) {
@@ -50,6 +51,7 @@ export default function Home() {
 
   // Dynamic viewport sizing
   const [viewportSize, setViewportSize] = useState({ width: 1280, height: 720 });
+  const [performanceMode, setPerformanceMode] = useState(false);
   
   useEffect(() => {
     const updateSize = () => {
@@ -62,6 +64,27 @@ export default function Home() {
     updateSize();
     window.addEventListener('resize', updateSize);
     return () => window.removeEventListener('resize', updateSize);
+  }, []);
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    const updatePerfMode = () => {
+      const nav = navigator as Navigator & { deviceMemory?: number };
+      const lowCpu = (nav.hardwareConcurrency ?? 8) <= 6;
+      const lowMemory = (nav.deviceMemory ?? 8) <= 8;
+      const smallViewport = window.innerWidth < 1440;
+      setPerformanceMode(media.matches || lowCpu || lowMemory || smallViewport);
+    };
+
+    updatePerfMode();
+    window.addEventListener('resize', updatePerfMode);
+    media.addEventListener('change', updatePerfMode);
+
+    return () => {
+      window.removeEventListener('resize', updatePerfMode);
+      media.removeEventListener('change', updatePerfMode);
+    };
   }, []);
 
   // Calculate optimal mining block size based on viewport
@@ -353,13 +376,24 @@ export default function Home() {
     }
   };
 
+  const secondarySections = useMemo(() => (
+    <>
+      <HowItWorks />
+      <WhyDifferent />
+      <ProvablyFair />
+      <LiveActivity />
+      <FAQ />
+      <Footer />
+    </>
+  ), []);
+
   return (
     <main className="min-h-screen flex flex-col relative">
       {/* Background effects */}
       <div className="fixed inset-0 pointer-events-none z-[-3] overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[300px] sm:w-[400px] lg:w-[500px] h-[300px] sm:h-[400px] lg:h-[500px] bg-[#DC1FFF]/30 rounded-full blur-[100px] sm:blur-[120px] animate-blob" />
-        <div className="absolute top-[20%] right-[-10%] w-[400px] sm:w-[500px] lg:w-[600px] h-[400px] sm:h-[500px] lg:h-[600px] bg-[#00FFA3]/25 rounded-full blur-[120px] sm:blur-[140px] animate-blob animation-delay-2000" />
-        <div className="absolute bottom-[-20%] left-[20%] w-[400px] sm:w-[500px] lg:w-[600px] h-[400px] sm:h-[500px] lg:h-[600px] bg-[#03E1FF]/25 rounded-full blur-[130px] sm:blur-[150px] animate-blob animation-delay-4000" />
+        <div className={`absolute top-[-10%] left-[-10%] w-[300px] sm:w-[400px] lg:w-[500px] h-[300px] sm:h-[400px] lg:h-[500px] bg-[#DC1FFF]/30 rounded-full blur-[70px] sm:blur-[90px] ${performanceMode ? '' : 'animate-blob'}`} />
+        <div className={`absolute top-[20%] right-[-10%] w-[400px] sm:w-[500px] lg:w-[600px] h-[400px] sm:h-[500px] lg:h-[600px] bg-[#00FFA3]/25 rounded-full blur-[80px] sm:blur-[100px] ${performanceMode ? '' : 'animate-blob animation-delay-2000'}`} />
+        <div className={`absolute bottom-[-20%] left-[20%] w-[400px] sm:w-[500px] lg:w-[600px] h-[400px] sm:h-[500px] lg:h-[600px] bg-[#03E1FF]/25 rounded-full blur-[90px] sm:blur-[110px] ${performanceMode ? '' : 'animate-blob animation-delay-4000'}`} />
       </div>
       <div className="cyber-grid" />
       <div className="scanlines" />
@@ -769,23 +803,8 @@ export default function Home() {
             </div>
           </section>
 
-      {/* How It Works */}
-      <HowItWorks />
-
-      {/* Why Different */}
-      <WhyDifferent />
-
-      {/* Provably Fair */}
-      <ProvablyFair />
-
-      {/* Live Activity */}
-      <LiveActivity />
-
-      {/* FAQ */}
-      <FAQ />
-
-      {/* Footer */}
-      <Footer />
+      {/* Secondary sections are memoized to avoid rerendering every timer tick */}
+      {secondarySections}
 
       {/* Result Overlay */}
       <AnimatePresence>
