@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 declare_id!("3WoG4JYKGQWJBXVnXjfTB7cAQoQBpmKS84cjM1yMZ3S5");
 
-pub const MAX_PLAYERS: usize = 100;
+pub const MAX_PLAYERS: usize = 30;
 pub const TREASURY_PUBKEY: &str = "FC2km6B1ub8fBf4FdLFs1hbJjmLx6EJbdAzN9Ajnb8nt";
 pub const ROUND_EXPIRATION_SECONDS: i64 = 20;
 pub const GAME_STATE_MAX_SIZE: usize =

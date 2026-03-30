@@ -7,7 +7,7 @@ export const TREASURY_PUBKEY = new PublicKey("FC2km6B1ub8fBf4FdLFs1hbJjmLx6EJbdA
 
 // Game Configuration
 export const BLOCK_EXPIRATION_SECONDS = 20;
-export const MAX_PLAYERS = 100;
+export const MAX_PLAYERS = 30;
 export const HOUSE_FEE_PERCENT = 2; // 2% goes to treasury
 
 // Room Configurations (Source of Truth!)
