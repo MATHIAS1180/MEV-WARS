@@ -14,6 +14,27 @@ export interface GameResult {
   winnerAmount: number; // per-winner payout
 }
 
+export type GameState = 
+  | { waiting: {} }
+  | { inProgress: { round: number; survivors: string[] } }
+  | { finished: {} };
+
+// TypeScript interface for Game account state
+export interface GameStateData {
+  roomId: number;
+  entryFee: BN;
+  players: PublicKey[];
+  playerCount: number;
+  state: GameState | null; // Updated to handle new states
+  potAmount: BN;
+  resolveSlot: BN;
+  lastActivityTime: BN;
+  blockStartTime: BN;
+  currentRound: number;
+  survivors: PublicKey[];
+  bump: number;
+}
+
 export const BULLET_COLORS = [
   { name: "Violet", color: "#9945FF" },
   { name: "Solana", color: "#14F195" },
@@ -265,11 +286,33 @@ export function useGame(roomId: number) {
     return true;
   };
 
+  const secureGain = async (): Promise<boolean> => {
+    if (!program || !wallet.publicKey || !provider) throw new Error('Wallet not connected');
+
+    const [gamePda] = PublicKey.findProgramAddressSync(
+      [Buffer.from('room'), Buffer.from([roomId])], program.programId
+    );
+
+    const tx = await program.methods
+      .secureGain(roomId)
+      .accounts({
+        game: gamePda,
+        player: wallet.publicKey,
+      })
+      .transaction();
+
+    const signature = await provider.sendAndConfirm(tx);
+    console.log('secureGain TX confirmed:', signature);
+    fetchState();
+    return true;
+  };
+
   return {
     gameState,
     isLoading,
     isScanningLogs,
     joinGame,
+    secureGain,
     fetchState,
     gameResult,
     setGameResult,

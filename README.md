@@ -8,11 +8,10 @@ A decentralized casino game on Solana where players compete to capture blocks an
 
 ## 🎮 Game Mechanics
 
-- **Unlimited Players**: No cap on searchers per block
-- **1 Winner per 3 Players**: 6 players = 2 winners, 9 players = 3 winners
-- **95% Prize Pool**: Winners split 95% of the pot
-- **5% House Edge**: Sustainable casino economics
-- **30s Block Timer**: Automatic refund if <3 players
+- **Battle Royale Rounds**: Game progresses in rounds with eliminations every 10 seconds.
+- **1 Winner per Game**: The last survivor wins 98% of the pot.
+- **Eliminations**: 10% of survivors eliminated per round (min 1).
+- **Max 100 Players**: Minimum 2 players to start.
 - **Provably Fair**: PRNG via future block hash (unpredictable at deposit time)
 
 ## 🚀 Tech Stack

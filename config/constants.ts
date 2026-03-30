@@ -2,7 +2,7 @@
 import { PublicKey } from '@solana/web3.js';
 
 // Blockchain Configuration
-export const PROGRAM_ID = new PublicKey("2DKNipJx8QpQ1BzEScj3YoJ3CwpEbzyeEFVYvPbSsEtV");
+export const PROGRAM_ID = new PublicKey("4c3SJnsER1duCDa6PpgQN9U84fFR22hXc7FUR2q326TS");
 export const TREASURY_PUBKEY = new PublicKey("FC2km6B1ub8fBf4FdLFs1hbJjmLx6EJbdAzN9Ajnb8nt");
 
 // Game Configuration

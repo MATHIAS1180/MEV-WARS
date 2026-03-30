@@ -125,10 +125,10 @@ async function settleRoom(
     .slice(0, playerCount)
     .filter((p: PublicKey) => p.toString() !== PublicKey.default.toString());
 
-  console.log(`[crank] Room ${roomId} — settling ${playerCount} searchers...`);
+  console.log(`[crank] Room ${roomId} — advancing round for ${playerCount} searchers...`);
 
-  const settleTx = await program.methods
-    .settleWinner(roomId)
+  const advanceTx = await program.methods
+    .advanceRound(roomId)
     .accounts({ game: gamePda })
     .remainingAccounts([
       ...currentPlayers.map(p => ({ pubkey: p, isWritable: true, isSigner: false })),
@@ -137,20 +137,20 @@ async function settleRoom(
     .transaction();
 
   const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
-  settleTx.recentBlockhash = blockhash;
-  settleTx.feePayer = crankKeypair.publicKey;
+  advanceTx.recentBlockhash = blockhash;
+  advanceTx.feePayer = crankKeypair.publicKey;
 
-  const sim = await connection.simulateTransaction(settleTx, [crankKeypair]);
+  const sim = await connection.simulateTransaction(advanceTx, [crankKeypair]);
   if (sim.value.err) {
     console.error(`[crank] Room ${roomId} simulation failed:`, sim.value.err);
     console.error('[crank] Logs:', sim.value.logs?.slice(-5));
     return;
   }
 
-  settleTx.sign(crankKeypair);
-  const sig = await connection.sendRawTransaction(settleTx.serialize());
+  advanceTx.sign(crankKeypair);
+  const sig = await connection.sendRawTransaction(advanceTx.serialize());
   await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed');
-  console.log(`[crank] Room ${roomId} settled! TX: ${sig}`);
+  console.log(`[crank] Room ${roomId} round advanced! TX: ${sig}`);
 }
 
 // ─── Main loop ────────────────────────────────────────────────────────────────

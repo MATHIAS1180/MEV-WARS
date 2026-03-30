@@ -142,14 +142,14 @@ export async function POST(req: NextRequest) {
     }
 
     // Otherwise, settle winners (requires >=3 players)
-    if (playerCount < 3) {
-      return NextResponse.json({ error: 'Not enough players', detail: 'Need at least 3 players to settle' }, { status: 400 });
+    if (playerCount < 2) {
+      return NextResponse.json({ error: 'Not enough players', detail: 'Need at least 2 players to start' }, { status: 400 });
     }
 
-    console.log(`[crank] Calling settle_winner for ${playerCount} searchers...`);
+    console.log(`[crank] Calling advance_round for ${playerCount} searchers...`);
 
-    const settleTx = await program.methods
-      .settleWinner(roomId)
+    const advanceTx = await program.methods
+      .advanceRound(roomId)
       .accounts({ game: gamePda })
       .remainingAccounts([
         ...currentPlayers.map(p => ({ pubkey: p, isWritable: true, isSigner: false })),
@@ -158,11 +158,11 @@ export async function POST(req: NextRequest) {
       .transaction();
 
     const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
-    settleTx.recentBlockhash = blockhash;
-    settleTx.feePayer = crankKeypair.publicKey;
+    advanceTx.recentBlockhash = blockhash;
+    advanceTx.feePayer = crankKeypair.publicKey;
 
     // Simulate first
-    const sim = await connection.simulateTransaction(settleTx, [crankKeypair]);
+    const sim = await connection.simulateTransaction(advanceTx, [crankKeypair]);
     if (sim.value.err) {
       console.error('[crank] simulation failed:', sim.value.err, sim.value.logs);
       
@@ -180,24 +180,24 @@ export async function POST(req: NextRequest) {
       }
       
       return NextResponse.json({
-        error: 'settle_winner simulation failed',
+        error: 'advance_round simulation failed',
         detail: sim.value.err,
         logs: sim.value.logs,
       }, { status: 400 });
     }
 
-    settleTx.sign(crankKeypair);
-    const finalSig = await connection.sendRawTransaction(settleTx.serialize());
+    advanceTx.sign(crankKeypair);
+    const finalSig = await connection.sendRawTransaction(advanceTx.serialize());
     const confirmation = await connection.confirmTransaction(
       { signature: finalSig, blockhash, lastValidBlockHeight }, 'confirmed'
     );
 
     if (confirmation.value.err) {
-      throw new Error(`settle_winner TX failed: ${JSON.stringify(confirmation.value.err)}`);
+      throw new Error(`advance_round TX failed: ${JSON.stringify(confirmation.value.err)}`);
     }
 
-    console.log('[crank] settle_winner confirmed:', finalSig);
-    return NextResponse.json({ success: true, signature: finalSig, action: 'settle' });
+    console.log('[crank] advance_round confirmed:', finalSig);
+    return NextResponse.json({ success: true, signature: finalSig, action: 'advance' });
 
   } catch (error: any) {
     console.error('[crank] Error:', error);

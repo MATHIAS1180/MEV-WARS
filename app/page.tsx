@@ -34,12 +34,12 @@ const WalletMultiButton = dynamic(
   { ssr: false }
 );
 
-const BLOCK_EXPIRATION_SECONDS = 30;
+const ROUND_EXPIRATION_SECONDS = 20;
 
 export default function Home() {
   const { connected, publicKey } = useWallet();
   const [roomId, setRoomId] = useState<number>(101);
-  const { gameState, fetchState, joinGame, gameResult, setGameResult } = useGame(roomId);
+  const { gameState, fetchState, joinGame, secureGain, gameResult, setGameResult } = useGame(roomId);
 
   // Dynamic viewport sizing
   const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
@@ -82,8 +82,12 @@ export default function Home() {
   const miningBlockSize = getMiningBlockSize();
 
   const activeRoom = useMemo(() => ROOMS.find(r => r.id === roomId)!, [roomId]);
-  const isWaiting = !gameState || (typeof gameState.state === 'object' && 'waiting' in gameState.state);
+  const isWaiting = !gameState || (gameState.state && 'waiting' in gameState.state);
+  const isInProgress = gameState && gameState.state && 'inProgress' in gameState.state;
+  const currentRound = gameState?.currentRound ?? 0;
+  const survivors = gameState?.survivors ? gameState.survivors.filter((p: PublicKey) => p.toString() !== PublicKey.default.toString()) : [];
   const potAmount = gameState?.potAmount ? (gameState.potAmount.toNumber() / 1e9) : 0;
+  const multiplier = currentRound > 0 ? currentRound + 1 : 1; // Example multiplier
 
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
@@ -276,7 +280,7 @@ export default function Home() {
       const iv = setInterval(() => {
         const blockStart = gameState.blockStartTime ? Number(gameState.blockStartTime.toString()) : gameState.lastActivityTime ? Number(gameState.lastActivityTime.toString()) : Date.now() / 1000;
         const elapsed = Math.floor(Date.now() / 1000) - blockStart;
-        const r = BLOCK_EXPIRATION_SECONDS - elapsed;
+        const r = ROUND_EXPIRATION_SECONDS - elapsed;
         const remaining = r > 0 ? r : 0;
         setTimeRemaining(remaining);
         
@@ -304,6 +308,20 @@ export default function Home() {
       setTxPending(true);
       const txPromise = joinGame(activeRoom.lamports);
       toast.promise(txPromise, { loading: 'Submitting transaction...', success: 'Entered round successfully!', error: (e: any) => `Failed: ${e.message}` });
+      await txPromise;
+    } catch (e) {
+      // Error already handled by toast
+    } finally {
+      setTxPending(false);
+    }
+  };
+
+  const handleSecureGain = async () => {
+    if (!publicKey) return;
+    try {
+      setTxPending(true);
+      const txPromise = secureGain();
+      toast.promise(txPromise, { loading: 'Securing gain...', success: 'Gain secured! You received 2x your entry.', error: (e: any) => `Failed: ${e.message}` });
       await txPromise;
     } catch (e) {
       // Error already handled by toast
@@ -417,13 +435,20 @@ export default function Home() {
               <div className="glass-card p-2.5 sm:p-4 text-center">
                 <p className="text-[0.6rem] sm:text-[0.65rem] text-zinc-400 uppercase font-bold tracking-wider mb-1">Pool</p>
                 <p className="text-lg sm:text-xl lg:text-2xl font-black text-white">{potAmount.toFixed(3)}</p>
-                <p className="text-[0.6rem] sm:text-xs text-zinc-500">SOL</p>
+                <p className="text-[0.6rem] sm:text-xs text-zinc-500">SOL x{multiplier}</p>
+              </div>
+              
+              {/* Round */}
+              <div className="glass-card p-2.5 sm:p-4 text-center">
+                <p className="text-[0.6rem] sm:text-[0.65rem] text-zinc-400 uppercase font-bold tracking-wider mb-1">Round</p>
+                <p className="text-lg sm:text-xl lg:text-2xl font-black text-white">{currentRound || '-'}</p>
+                <p className="text-[0.6rem] sm:text-xs text-zinc-500">Active</p>
               </div>
               
               {/* Players */}
               <div className="glass-card p-2.5 sm:p-4 text-center">
                 <p className="text-[0.6rem] sm:text-[0.65rem] text-zinc-400 uppercase font-bold tracking-wider mb-1">Players</p>
-                <p className="text-lg sm:text-xl lg:text-2xl font-black text-white">{actualPlayerCount}</p>
+                <p className="text-lg sm:text-xl lg:text-2xl font-black text-white">{isInProgress ? survivors.length : actualPlayerCount}</p>
                 <p className="text-[0.6rem] sm:text-xs text-zinc-500">{Math.max(1, Math.floor(actualPlayerCount / 3))} winners</p>
               </div>
               
@@ -676,6 +701,24 @@ export default function Home() {
                         </span>
                       ) : (
                         `Enter Round ÔÇö ${activeRoom.label}`
+                      )}
+                    </button>
+                  )}
+
+                  {/* Secure Gain Button */}
+                  {isInProgress && currentRound >= 1 && survivors.some((s: PublicKey) => s.toString() === publicKey?.toString()) && (
+                    <button
+                      onClick={handleSecureGain}
+                      disabled={txPending}
+                      className="w-full mt-3 py-2 sm:py-3 px-3 sm:px-4 bg-gradient-to-r from-[#FF6B9D] to-[#DC1FFF] text-white font-black uppercase text-xs sm:text-sm rounded-xl shadow-[0_0_30px_rgba(255,107,157,0.4)] hover:shadow-[0_0_50px_rgba(255,107,157,0.6)] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {txPending ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <Loader2 className="animate-spin w-4 h-4" />
+                          <span>Securing...</span>
+                        </span>
+                      ) : (
+                        `Secure 2x Gain & Exit`
                       )}
                     </button>
                   )}
