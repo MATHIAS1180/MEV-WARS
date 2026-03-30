@@ -17,7 +17,7 @@ L'ensemble du cycle de développement — audit, corrections, déploiement et in
 | Paramètre | Valeur |
 |---|---|
 | **Network** | Solana Devnet |
-| **Program ID** | `HCN6ddARh6UvdMgZWeMXBtUSxPvrLCoTjgo3t48oiAi4` |
+| **Program ID** | `CwSeMKEj7gZ9E1p7tkszuJkwzN2u8gHbD4wMXQuVQrNV` |
 | **Treasury** | `FC2km6B1ub8fBf4FdLFs1hbJjmLx6EJbdAzN9Ajnb8nt` |
 | **Méthode de déploiement** | SolPG (beta.solpg.io) |
 | **Repository** | `MATHIAS1180/MEV-WARS` — branch `main` |
