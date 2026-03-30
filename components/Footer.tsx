@@ -17,7 +17,7 @@ export default function Footer() {
               className="h-10 w-auto mb-4 filter drop-shadow-[0_0_12px_rgba(153,69,255,0.6)]" 
             />
             <p className="text-zinc-400 text-sm leading-relaxed">
-              Provably fair Solana casino game. 1 in 3 players wins. Fully on-chain.
+              Provably fair Solana casino game. Minimum 2 players, one final winner. Fully on-chain.
             </p>
           </div>
 

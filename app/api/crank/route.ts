@@ -1,25 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Connection, Keypair, PublicKey, Transaction } from '@solana/web3.js';
-import { Program, AnchorProvider, BN } from '@coral-xyz/anchor';
+import { Program, AnchorProvider } from '@coral-xyz/anchor';
 import bs58 from 'bs58';
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { IDL } from '../../../utils/anchor';
-import { PROGRAM_ID, TREASURY_PUBKEY } from '../../../config/constants';
+import { BLOCK_EXPIRATION_SECONDS, PROGRAM_ID, TREASURY_PUBKEY } from '../../../config/constants';
 
 // Rate limiting: 10 requests per 60 seconds per IP
-const ratelimit = new Ratelimit({
-  redis: Redis.fromEnv(),
-  limiter: Ratelimit.slidingWindow(10, "60 s"),
-  analytics: true,
-  prefix: "mev-wars-crank",
-});
+const hasUpstashEnv = !!process.env.UPSTASH_REDIS_REST_URL && !!process.env.UPSTASH_REDIS_REST_TOKEN;
+
+const ratelimit = hasUpstashEnv
+  ? new Ratelimit({
+      redis: Redis.fromEnv(),
+      limiter: Ratelimit.slidingWindow(10, "60 s"),
+      analytics: true,
+      prefix: "mev-wars-crank",
+    })
+  : null;
 
 export async function POST(req: NextRequest) {
   try {
     // Rate limiting check
     const clientIp = req.ip || req.headers.get('x-forwarded-for') || 'unknown';
-    const { success, limit, reset, remaining } = await ratelimit.limit(clientIp);
+    const rate = ratelimit
+      ? await ratelimit.limit(clientIp)
+      : { success: true, limit: 0, reset: 0, remaining: 0 };
+
+    const { success, limit, reset, remaining } = rate;
 
     if (!success) {
       return NextResponse.json(
@@ -101,10 +109,10 @@ export async function POST(req: NextRequest) {
     // Check if timer expired (30 seconds)
     const now = Math.floor(Date.now() / 1000);
     const elapsed = now - blockStartTime;
-    const timerExpired = elapsed >= 30;
+    const timerExpired = elapsed >= BLOCK_EXPIRATION_SECONDS;
 
-    // If timer expired and <3 players, refund
-    if (timerExpired && playerCount < 3) {
+    // If timer expired and <2 players, refund
+    if (timerExpired && playerCount < 2) {
       console.log(`[crank] Calling refund_expired_game for ${playerCount} searchers...`);
 
       const refundTx = await program.methods
@@ -141,7 +149,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, signature: finalSig, action: 'refund' });
     }
 
-    // Otherwise, settle winners (requires >=3 players)
+    // Otherwise, settle round progression (requires >=2 players)
     if (playerCount < 2) {
       return NextResponse.json({ error: 'Not enough players', detail: 'Need at least 2 players to start' }, { status: 400 });
     }

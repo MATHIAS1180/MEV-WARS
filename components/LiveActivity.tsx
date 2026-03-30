@@ -3,15 +3,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Trophy, UserPlus, RefreshCw, ExternalLink } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useLiveActivity } from "@/hooks/useLiveActivity";
+import { PROGRAM_ID } from "@/config/constants";
 
 const ROOM_LABELS: Record<number, string> = {
   101: "0.01 SOL",
   102: "0.1 SOL",
   103: "1.0 SOL",
 };
-
-// Program ID for Solana Explorer links
-const PROGRAM_ID = "BqVHWpwUDgMik5gbTciFfozadpxGw5ukMwjW62HYvEpf";
 
 export default function LiveActivity() {
   const { activities, isLoadingHistory } = useLiveActivity();
@@ -53,7 +51,7 @@ export default function LiveActivity() {
               {activities.length} event{activities.length !== 1 ? 's' : ''}
             </span>
             <a
-              href={`https://explorer.solana.com/address/${PROGRAM_ID}?cluster=devnet`}
+              href={`https://explorer.solana.com/address/${PROGRAM_ID.toString()}?cluster=devnet`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00FFA3]/30 rounded-lg transition-all text-xs font-bold uppercase tracking-wider text-zinc-400 hover:text-[#00FFA3]"

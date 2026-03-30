@@ -266,8 +266,8 @@ export default function MiningBlockEnhanced({ playerCount, isSpinning, countdown
         </defs>
 
         {/* Data stream lines connecting occupied blocks */}
-        <g id="dataStreams" opacity={playerCount >= 3 ? 1 : 0} style={{ transition: 'opacity 0.5s' }}>
-          {playerCount >= 3 && dataStreamLines.map(({ from, to, id: streamId }) => {
+        <g id="dataStreams" opacity={playerCount >= 2 ? 1 : 0} style={{ transition: 'opacity 0.5s' }}>
+          {playerCount >= 2 && dataStreamLines.map(({ from, to, id: streamId }) => {
             const squareSize = 60;
             const spacingX = 76;
             const spacingY = 76;

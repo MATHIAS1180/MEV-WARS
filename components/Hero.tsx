@@ -25,7 +25,7 @@ export default function Hero() {
           transition={{ delay: 0.1 }}
           className="text-lg sm:text-xl text-zinc-300 font-medium max-w-3xl mx-auto mb-8"
         >
-          Join a round. 1 in 3 players wins. Fully on-chain. Instant payouts.
+          Join a round. Minimum 2 players, one final winner. Fully on-chain. Instant payouts.
         </motion.p>
 
         {/* Social Proof Bar */}

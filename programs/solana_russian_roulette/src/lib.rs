@@ -3,11 +3,16 @@ use anchor_lang::system_program;
 use anchor_lang::solana_program::hash::hash;
 use std::str::FromStr;
 
-declare_id!("4c3SJnsER1duCDa6PpgQN9U84fFR22hXc7FUR2q326TS");
+declare_id!("2JNhd8ePoxBHtaQnLesv4ofb18Ft4XcrXK2Y5BHjxP63");
 
 pub const MAX_PLAYERS: usize = 100;
 pub const TREASURY_PUBKEY: &str = "FC2km6B1ub8fBf4FdLFs1hbJjmLx6EJbdAzN9Ajnb8nt";
 pub const ROUND_EXPIRATION_SECONDS: i64 = 20;
+pub const GAME_STATE_MAX_SIZE: usize =
+    1 +                    // enum discriminant
+    1 +                    // round (u8) for InProgress
+    4 +                    // vec length prefix
+    (32 * MAX_PLAYERS);    // survivors vec max content
 
 #[program]
 pub mod solana_russian_roulette {
@@ -41,6 +46,7 @@ pub mod solana_russian_roulette {
         require!(game.state == GameState::Waiting, ErrorCode::GameNotInWaitingState);
 
         let current_player_count = game.player_count as usize;
+        require!(current_player_count < MAX_PLAYERS, ErrorCode::RoomFull);
 
         for i in 0..current_player_count {
             require!(game.players[i] != player.key(), ErrorCode::PlayerAlreadyJoined);
@@ -96,7 +102,7 @@ pub mod solana_russian_roulette {
         require!(game.player_count > 0, ErrorCode::GameEmpty);
         require!(game.player_count < 2, ErrorCode::TooManyPlayers);
 
-        // Check if 10 seconds have passed since first player joined
+        // Check if expiration time has passed since first player joined
         let elapsed = clock.unix_timestamp - game.block_start_time;
         require!(elapsed >= ROUND_EXPIRATION_SECONDS, ErrorCode::TimerNotExpired);
 
@@ -151,11 +157,48 @@ pub mod solana_russian_roulette {
 
                 // Calculate eliminations: 10% of survivors, min 1
                 let eliminations = std::cmp::max(1, survivor_count / 10);
-                let remaining = survivor_count - eliminations;
 
-                if remaining <= 1 {
-                    // Last round: only one survivor
-                    let winner = survivors[0];
+                // Eliminate players using on-chain randomness
+                let mut seed_data = Vec::new();
+                seed_data.extend_from_slice(&clock.slot.to_le_bytes());
+                seed_data.extend_from_slice(&clock.unix_timestamp.to_le_bytes());
+                seed_data.extend_from_slice(&[round]);
+                for s in &survivors {
+                    seed_data.extend_from_slice(s.as_ref());
+                }
+
+                let mut available_indices: Vec<usize> = (0..survivor_count).collect();
+                let mut eliminated = Vec::new();
+
+                for _ in 0..eliminations {
+                    let random_hash = hash(&seed_data).to_bytes();
+                    let mut rand_slice = [0u8; 8];
+                    rand_slice.copy_from_slice(&random_hash[0..8]);
+                    let rand_val = u64::from_le_bytes(rand_slice);
+
+                    let idx = (rand_val % available_indices.len() as u64) as usize;
+                    eliminated.push(survivors[available_indices[idx]]);
+                    available_indices.remove(idx);
+
+                    // Reseed for next elimination
+                    seed_data.extend_from_slice(&[eliminated.len() as u8]);
+                }
+
+                // New survivors after elimination
+                let new_survivors: Vec<Pubkey> = available_indices.iter().map(|&i| survivors[i]).collect();
+
+                // Emit elimination events
+                for elim in &eliminated {
+                    emit!(PlayerEliminatedEvent {
+                        game: game.key(),
+                        player: *elim,
+                        round,
+                    });
+                }
+
+                if new_survivors.len() <= 1 {
+                    // Last survivor wins
+                    let winner = new_survivors[0];
                     let treasury_key = Pubkey::from_str(TREASURY_PUBKEY).unwrap();
                     let treasury_account = ctx.remaining_accounts
                         .iter()
@@ -200,62 +243,24 @@ pub mod solana_russian_roulette {
                         game.survivors[i] = Pubkey::default();
                     }
                 } else {
-                    // Eliminate players
-                    let mut seed_data = Vec::new();
-                    seed_data.extend_from_slice(&clock.slot.to_le_bytes());
-                    seed_data.extend_from_slice(&clock.unix_timestamp.to_le_bytes());
-                    seed_data.extend_from_slice(&[*round as u8]);
-                    for s in &survivors {
-                        seed_data.extend_from_slice(s.as_ref());
-                    }
-
-                    let mut available_indices: Vec<usize> = (0..survivor_count).collect();
-                    let mut eliminated = Vec::new();
-
-                    for _ in 0..eliminations {
-                        let random_hash = hash(&seed_data).to_bytes();
-                        let mut rand_slice = [0u8; 8];
-                        rand_slice.copy_from_slice(&random_hash[0..8]);
-                        let rand_val = u64::from_le_bytes(rand_slice);
-
-                        let idx = (rand_val % available_indices.len() as u64) as usize;
-                        eliminated.push(survivors[available_indices[idx]]);
-                        available_indices.remove(idx);
-
-                        // Reseed for next elimination
-                        seed_data.extend_from_slice(&[eliminated.len() as u8]);
-                    }
-
-                    // New survivors
-                    let new_survivors: Vec<Pubkey> = available_indices.iter().map(|&i| survivors[i]).collect();
-
-                    // Emit events
-                    for elim in &eliminated {
-                        emit!(PlayerEliminatedEvent {
-                            game: game.key(),
-                            player: *elim,
-                            round: *round,
-                        });
-                    }
-
                     for surv in &new_survivors {
                         emit!(SurvivorEvent {
                             game: game.key(),
                             player: *surv,
-                            round: *round + 1,
+                            round: round + 1,
                         });
                     }
 
                     emit!(RoundAdvancedEvent {
                         game: game.key(),
-                        round: *round + 1,
+                        round: round + 1,
                         survivors_count: new_survivors.len() as u8,
                         eliminated_count: eliminated.len() as u8,
                     });
 
                     // Update game state
-                    game.state = GameState::InProgress { round: *round + 1, survivors: new_survivors.clone() };
-                    game.current_round = *round + 1;
+                    game.state = GameState::InProgress { round: round + 1, survivors: new_survivors.clone() };
+                    game.current_round = round + 1;
                     for i in 0..MAX_PLAYERS {
                         game.survivors[i] = if i < new_survivors.len() { new_survivors[i] } else { Pubkey::default() };
                     }
@@ -280,8 +285,8 @@ pub mod solana_russian_roulette {
 
         match current_state {
             GameState::InProgress { round, survivors } => {
-                require!(*round >= 1, ErrorCode::CannotSecureBeforeRound1); // At least one round passed
-                let multiplier = *round as u64; // Round 1 = x1, but since after round, it's round+1? Wait, adjust
+                require!(round >= 1, ErrorCode::CannotSecureBeforeRound1); // At least one round passed
+                let multiplier = round as u64; // Round 1 = x1, but since after round, it's round+1? Wait, adjust
                 // Actually, multiplier = current_round, and since round starts at 1, after round 1, multiplier=2
                 require!(multiplier >= 2, ErrorCode::MultiplierTooLow);
 
@@ -305,7 +310,7 @@ pub mod solana_russian_roulette {
                     game: game.key(),
                     player: player.key(),
                     amount: secure_amount,
-                    round: *round,
+                    round,
                 });
 
                 if new_survivors.len() <= 1 {
@@ -358,7 +363,7 @@ pub mod solana_russian_roulette {
                     }
                 } else {
                     // Update survivors
-                    game.state = GameState::InProgress { round: *round, survivors: new_survivors.clone() };
+                    game.state = GameState::InProgress { round, survivors: new_survivors.clone() };
                     for i in 0..MAX_PLAYERS {
                         game.survivors[i] = if i < new_survivors.len() { new_survivors[i] } else { Pubkey::default() };
                     }
@@ -496,11 +501,12 @@ pub struct Game {
 
 impl Game {
     pub const MAX_SIZE: usize =
+        8 +                    // account discriminator
         1 +                    // room_id
         8 +                    // entry_fee
         (32 * MAX_PLAYERS) +   // players
         1 +                    // player_count
-        1 +                    // state (enum discriminant)
+        GAME_STATE_MAX_SIZE +  // state (largest variant)
         8 +                    // pot_amount
         8 +                    // resolve_slot
         8 +                    // last_activity_time
@@ -595,7 +601,7 @@ pub enum ErrorCode {
     InvalidTreasury,
     #[msg("Game is empty.")]
     GameEmpty,
-    #[msg("Timer has not expired yet. Wait 10 seconds.")]
+    #[msg("Timer has not expired yet. Wait 20 seconds.")]
     TimerNotExpired,
     #[msg("Too many players for refund. Game must have less than 2 players.")]
     TooManyPlayers,
@@ -617,4 +623,6 @@ pub enum ErrorCode {
     Unauthorized,
     #[msg("Insufficient funds in treasury.")]
     InsufficientFunds,
+    #[msg("Room is full.")]
+    RoomFull,
 }

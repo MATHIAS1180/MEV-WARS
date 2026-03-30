@@ -26,8 +26,8 @@ export default function GameCard({
   txPending,
   myPlayerIndex,
 }: GameCardProps) {
-  const winnerCount = Math.max(1, Math.floor(playerCount / 3));
-  const winChance = playerCount >= 3 ? ((winnerCount / playerCount) * 100).toFixed(1) : "33.3";
+  const winnerCount = playerCount >= 2 ? 1 : 0;
+  const winChance = playerCount >= 2 ? (100 / playerCount).toFixed(1) : "50.0";
 
   return (
     <motion.div
@@ -54,7 +54,7 @@ export default function GameCard({
         {/* Countdown Timer (if active) */}
         {timeRemaining !== null && timeRemaining > 0 && playerCount > 0 && (
           <div className="mb-4 lg:mb-6">
-            <CountdownTimer secondsLeft={timeRemaining} totalSeconds={30} />
+            <CountdownTimer secondsLeft={timeRemaining} totalSeconds={20} />
           </div>
         )}
 
@@ -90,7 +90,7 @@ export default function GameCard({
             <p className="text-4xl sm:text-5xl font-black text-center text-transparent bg-clip-text bg-gradient-to-r from-[#00FFA3] via-[#03E1FF] to-[#DC1FFF]">
               {winChance}%
             </p>
-            <p className="text-[0.625rem] sm:text-xs text-center text-zinc-500 mt-1.5 sm:mt-2 font-bold">1 winner per 3 players</p>
+            <p className="text-[0.625rem] sm:text-xs text-center text-zinc-500 mt-1.5 sm:mt-2 font-bold">single final winner</p>
           </div>
         </div>
 

@@ -8,9 +8,9 @@ export default function FAQ() {
 
   const faqs = [
     {
-      question: "How does the 1 in 3 system work?",
+      question: "How does winner selection work now?",
       answer:
-        "For every 3 players that join a round, 1 winner is selected on-chain. If 6 players join, there are 2 winners. If 9 players join, there are 3 winners. The 95% prize pool is split equally among all winners.",
+        "A round starts from 2 players. The contract advances rounds on-chain and eliminates players until one final survivor remains. That final survivor receives the pot minus the house fee.",
     },
     {
       question: "Is this game really fair?",
@@ -33,9 +33,9 @@ export default function FAQ() {
         "MEV Wars is a competitive on-chain casino game built on Solana. It's inspired by MEV (Maximal Extractable Value) concepts but designed as a fair PvP game where players compete for prize pools with transparent, verifiable outcomes.",
     },
     {
-      question: "What happens if less than 3 players join?",
+      question: "What happens if less than 2 players join?",
       answer:
-        "If the 30-second timer expires and there are fewer than 3 players, all deposits are automatically refunded 100%. No one loses their stake.",
+        "If the round timer expires and there are fewer than 2 players, all deposits are automatically refunded 100%. No one loses their stake.",
     },
   ];
 

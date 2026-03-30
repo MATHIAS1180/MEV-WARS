@@ -16,12 +16,12 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: "MEV Wars - Best Solana Casino with Provably Fair On-Chain Gameplay",
-  description: "Play MEV Wars, a provably fair Solana casino game. 1 in 3 players wins. Fast, transparent and fully on-chain.",
+  description: "Play MEV Wars, a provably fair Solana casino game. Minimum 2 players, one final winner. Fast, transparent and fully on-chain.",
   keywords: ["solana casino", "crypto casino", "provably fair casino", "on-chain game", "web3 gambling", "mev wars", "blockchain casino"],
   metadataBase: new URL('https://mev-wars-casino.vercel.app'),
   openGraph: {
     title: "MEV Wars - Provably Fair Solana Casino",
-    description: "Play MEV Wars, a provably fair Solana casino game. 1 in 3 players wins.",
+    description: "Play MEV Wars, a provably fair Solana casino game. Minimum 2 players, one final winner.",
     url: 'https://mev-wars-casino.vercel.app',
     siteName: 'MEV Wars',
     locale: 'en_US',
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: "MEV Wars - Provably Fair Solana Casino",
-    description: "Play MEV Wars, a provably fair Solana casino game. 1 in 3 players wins.",
+    description: "Play MEV Wars, a provably fair Solana casino game. Minimum 2 players, one final winner.",
   },
   robots: {
     index: true,

@@ -7,17 +7,17 @@ export default function HowItWorks() {
     {
       icon: <Users className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-[#DC1FFF]" />,
       title: "Players Join",
-      description: "Players join the round by depositing their stake. Every 3 players creates 1 winner slot.",
+      description: "Players join the round by depositing their stake. A round starts from 2 players.",
     },
     {
       icon: <Timer className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-[#03E1FF]" />,
       title: "Round Runs",
-      description: "30-second timer starts. Round resolves when timer expires or player count reaches a multiple of 3.",
+      description: "20-second timer runs for each round phase. The crank advances or settles when the timer expires.",
     },
     {
       icon: <Trophy className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-[#00FFA3]" />,
       title: "Winners Selected",
-      description: "1 winner per 3 players selected on-chain. Winners split 95% of the pool. Instant payout.",
+      description: "Eliminations happen on-chain until one final survivor remains. Instant payout to the winner.",
     },
   ];
 
@@ -76,9 +76,9 @@ export default function HowItWorks() {
         <div className="inline-block glass-card px-6 sm:px-8 py-4 sm:py-6">
           <p className="text-zinc-400 text-xs sm:text-sm uppercase tracking-wider mb-2">Your Win Chance</p>
           <p className="text-4xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#00FFA3] to-[#03E1FF]">
-            33.3%
+            50.0%
           </p>
-          <p className="text-zinc-500 text-[10px] sm:text-xs mt-2">1 winner per 3 players</p>
+          <p className="text-zinc-500 text-[10px] sm:text-xs mt-2">base case: 2 players, 1 winner</p>
         </div>
       </motion.div>
     </section>

@@ -23,6 +23,7 @@ export function useLiveActivity() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const activitiesRef = useRef<Activity[]>([]);
   const processedSignatures = useRef<Set<string>>(new Set());
+  const previousPlayerCountsRef = useRef<Record<number, number>>({});
 
   const addActivity = useCallback((activity: Activity) => {
     setActivities((prev) => {
@@ -153,7 +154,7 @@ export function useLiveActivity() {
           try {
             const decoded = program.coder.accounts.decode('Game', accountInfo.data);
             const currentPlayerCount = decoded.playerCount || 0;
-            const prevPlayerCount = (decoded as any)._prevPlayerCount || 0;
+            const prevPlayerCount = previousPlayerCountsRef.current[roomId] ?? 0;
 
             // Player joined
             if (currentPlayerCount > prevPlayerCount && currentPlayerCount > 0) {
@@ -176,8 +177,8 @@ export function useLiveActivity() {
               }
             }
 
-            // Game resolved (players went to 0 from 3+)
-            if (prevPlayerCount >= 3 && currentPlayerCount === 0) {
+            // Game resolved (players went to 0 from 2+)
+            if (prevPlayerCount >= 2 && currentPlayerCount === 0) {
               // Fetch recent transactions to get winner info
               try {
                 const signatures = await connection.getSignaturesForAddress(gamePda, { limit: 5 });
@@ -229,7 +230,7 @@ export function useLiveActivity() {
             }
 
             // Store player count for next comparison
-            (decoded as any)._prevPlayerCount = currentPlayerCount;
+            previousPlayerCountsRef.current[roomId] = currentPlayerCount;
           } catch (err) {
             console.error('Error decoding game state:', err);
           }

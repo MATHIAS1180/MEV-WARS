@@ -37,7 +37,7 @@ export default function CurrentPlayersPanel({ players = [], activeRound, myPubli
         <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
           {normalized.map((player, idx) => {
             const isMe = myPublicKey && player === myPublicKey;
-            const status = idx === 0 ? "Next" : idx < 3 ? "In" : "Waiting";
+            const status = idx === 0 ? "Next" : idx < 2 ? "In" : "Waiting";
             return (
               <div key={`${player}-${idx}`} className={`flex items-center justify-between gap-2 p-2 rounded-lg ${isMe ? "bg-[#00FFA3]/20" : "bg-white/5"}`}>
                 <div className="flex items-center gap-2">

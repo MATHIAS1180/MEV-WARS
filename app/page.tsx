@@ -134,7 +134,7 @@ export default function Home() {
   const prevMyIndexRef = useRef<number | null>(null);
   useEffect(() => {
     if (myPlayerIndex !== null && myPlayerIndex !== prevMyIndexRef.current) {
-      toast.info(`Entered round ÔÇö Position #${myPlayerIndex + 1}`);
+      toast.info(`Entered round - Position #${myPlayerIndex + 1}`);
     }
     prevMyIndexRef.current = myPlayerIndex;
   }, [myPlayerIndex]);
@@ -236,7 +236,7 @@ export default function Home() {
   const prevPlayerCountRef = useRef<number>(0);
   useEffect(() => {
     const pc = gameState?.playerCount ?? 0;
-    if (prevPlayerCountRef.current >= 3 && pc === 0) setIsProcessingResult(true);
+    if (prevPlayerCountRef.current >= 2 && pc === 0) setIsProcessingResult(true);
     prevPlayerCountRef.current = pc;
   }, [gameState?.playerCount, txPending, triggerCrank]);
 
@@ -249,7 +249,7 @@ export default function Home() {
   useEffect(() => {
     const prev = prevPlayerCountForRefundRef.current;
     const current = actualPlayerCount;
-    if (prev > 0 && prev < 3 && current === 0 && wasInGameRef.current) {
+    if (prev > 0 && prev < 2 && current === 0 && wasInGameRef.current) {
       toast.success('Round expired: Not enough players. Your funds have been refunded.', { duration: 5000 });
       setIsSpinning(false);
       setCountdown(null);
@@ -271,8 +271,8 @@ export default function Home() {
   
   useEffect(() => {
     if (gameState && isWaiting && actualPlayerCount > 0) {
-      // Notify when timer starts (3+ players)
-      if (actualPlayerCount >= 3 && !hasNotifiedTimerStartRef.current) {
+      // Notify when timer starts (2+ players)
+      if (actualPlayerCount >= 2 && !hasNotifiedTimerStartRef.current) {
         toast.success('Round starting! Timer activated', { duration: 3000 });
         hasNotifiedTimerStartRef.current = true;
       }
@@ -285,10 +285,10 @@ export default function Home() {
         setTimeRemaining(remaining);
         
         // Warning notifications
-        if (remaining === 10 && actualPlayerCount < 3) {
-          toast.warning('10 seconds left! Need 3 players minimum', { duration: 3000 });
+        if (remaining === 10 && actualPlayerCount < 2) {
+          toast.warning('10 seconds left! Need 2 players minimum', { duration: 3000 });
         }
-        if (remaining === 5 && actualPlayerCount >= 3) {
+        if (remaining === 5 && actualPlayerCount >= 2) {
           toast.info('5 seconds until round ends!', { duration: 2000 });
         }
         
@@ -388,7 +388,7 @@ export default function Home() {
             transition={{ delay: 0.1 }}
             className="text-base sm:text-lg md:text-xl lg:text-2xl text-zinc-300 font-medium max-w-3xl mx-auto mb-8 sm:mb-10 px-4 leading-relaxed"
           >
-            Join a round. <span className="text-[#00FFA3] font-bold">1 in 3 players wins.</span> Fully on-chain. Instant payouts.
+            Join a round. <span className="text-[#00FFA3] font-bold">Minimum 2 players, 1 final winner.</span> Fully on-chain. Instant payouts.
           </motion.p>
 
           {/* Social Proof Bar */}
@@ -449,14 +449,14 @@ export default function Home() {
               <div className="glass-card p-2.5 sm:p-4 text-center">
                 <p className="text-[0.6rem] sm:text-[0.65rem] text-zinc-400 uppercase font-bold tracking-wider mb-1">Players</p>
                 <p className="text-lg sm:text-xl lg:text-2xl font-black text-white">{isInProgress ? survivors.length : actualPlayerCount}</p>
-                <p className="text-[0.6rem] sm:text-xs text-zinc-500">{Math.max(1, Math.floor(actualPlayerCount / 3))} winners</p>
+                <p className="text-[0.6rem] sm:text-xs text-zinc-500">1 winner</p>
               </div>
               
               {/* Win Chance */}
               <div className="glass-card p-2.5 sm:p-4 text-center bg-gradient-to-br from-[#00FFA3]/5 to-[#DC1FFF]/5 border-[#00FFA3]/30">
                 <p className="text-[0.6rem] sm:text-[0.65rem] text-zinc-400 uppercase font-bold tracking-wider mb-1">Win Chance</p>
                 <p className="text-lg sm:text-xl lg:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF]">
-                  {actualPlayerCount >= 3 ? ((Math.max(1, Math.floor(actualPlayerCount / 3)) / actualPlayerCount) * 100).toFixed(1) : "33.3"}%
+                  {actualPlayerCount >= 2 ? (100 / actualPlayerCount).toFixed(1) : "50.0"}%
                 </p>
                 <p className="text-[0.6rem] sm:text-xs text-zinc-500">to win</p>
               </div>
@@ -478,7 +478,7 @@ export default function Home() {
                       transition={{ duration: 0.3 }}
                       className="absolute -top-20 sm:-top-24 left-1/2 -translate-x-1/2 z-30"
                     >
-                      <CountdownTimer secondsLeft={timeRemaining} totalSeconds={30} />
+                      <CountdownTimer secondsLeft={timeRemaining} totalSeconds={ROUND_EXPIRATION_SECONDS} />
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -663,7 +663,7 @@ export default function Home() {
                           <span>{room.label}</span>
                         </span>
                         {roomId === room.id && (
-                          <span className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-white/20 flex items-center justify-center text-xs">Ô£ô</span>
+                          <span className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-white/20 flex items-center justify-center text-xs">✓</span>
                         )}
                       </button>
                     ))}
@@ -700,7 +700,7 @@ export default function Home() {
                           <span>Processing...</span>
                         </span>
                       ) : (
-                        `Enter Round ÔÇö ${activeRoom.label}`
+                        `Enter Round - ${activeRoom.label}`
                       )}
                     </button>
                   )}

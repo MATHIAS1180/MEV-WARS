@@ -203,6 +203,7 @@ export const IDL: Idl = {
     { code: 6013, name: "PlayerNotSurvivor", msg: "Player is not a survivor." },
     { code: 6014, name: "InsufficientPot", msg: "Insufficient pot for secure." },
     { code: 6015, name: "Unauthorized", msg: "Unauthorized. Only admin can perform this action." },
-    { code: 6016, name: "InsufficientFunds", msg: "Insufficient funds in treasury." }
+    { code: 6016, name: "InsufficientFunds", msg: "Insufficient funds in treasury." },
+    { code: 6017, name: "RoomFull", msg: "Room is full." }
   ]
 };

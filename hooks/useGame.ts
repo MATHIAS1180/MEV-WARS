@@ -169,15 +169,9 @@ export function useGame(roomId: number) {
         setGameState(decoded);
 
         // Game just settled (player count dropped to 0)
-        if (prev >= 3 && decoded.playerCount === 0 && !gameResultRef.current) {
+        if (prev >= 2 && decoded.playerCount === 0 && !gameResultRef.current) {
           console.log('[useGame] Game settled detected! prev:', prev, 'current:', decoded.playerCount);
           setIsScanningLogs(true);
-
-          // Calculate number of winners (1 per 3 players)
-          const numWinners = Math.floor(prev / 3);
-          const totalPot = decoded.potAmount?.toNumber() || 0;
-          const rewardPool = totalPot * 0.95;
-          const perWinner = rewardPool / numWinners;
 
           // Get all players who were in the game
           const allPlayers = (decoded.players as any[])
@@ -187,9 +181,6 @@ export function useGame(roomId: number) {
 
           console.log('[useGame] Waiting for blockchain result:', {
             players: prev,
-            numWinners,
-            totalPot,
-            perWinner,
             allPlayers
           });
 

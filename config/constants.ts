@@ -2,13 +2,13 @@
 import { PublicKey } from '@solana/web3.js';
 
 // Blockchain Configuration
-export const PROGRAM_ID = new PublicKey("4c3SJnsER1duCDa6PpgQN9U84fFR22hXc7FUR2q326TS");
+export const PROGRAM_ID = new PublicKey("2JNhd8ePoxBHtaQnLesv4ofb18Ft4XcrXK2Y5BHjxP63");
 export const TREASURY_PUBKEY = new PublicKey("FC2km6B1ub8fBf4FdLFs1hbJjmLx6EJbdAzN9Ajnb8nt");
 
 // Game Configuration
-export const BLOCK_EXPIRATION_SECONDS = 30;
-export const MAX_PLAYERS = 30;
-export const HOUSE_FEE_PERCENT = 5; // 5% goes to treasury
+export const BLOCK_EXPIRATION_SECONDS = 20;
+export const MAX_PLAYERS = 100;
+export const HOUSE_FEE_PERCENT = 2; // 2% goes to treasury
 
 // Room Configurations (Source of Truth!)
 export const ROOMS = [

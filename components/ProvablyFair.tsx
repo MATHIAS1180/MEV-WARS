@@ -65,16 +65,16 @@ export default function ProvablyFair() {
             <li className="flex items-start gap-3">
               <span className="text-[#DC1FFF] mt-1">→</span>
               <span className="text-sm leading-relaxed">
-                <strong>1 winner per 3 players</strong> (e.g., 6 players = 2 winners)
+                <strong>Minimum 2 players</strong> required to start a round
               </span>
             </li>
             <li className="flex items-start gap-3">
               <span className="text-[#DC1FFF] mt-1">→</span>
-              <span className="text-sm leading-relaxed">95% prize pool distributed to winners, 5% house edge</span>
+              <span className="text-sm leading-relaxed">Single final winner receives the remaining pot, 2% house edge</span>
             </li>
             <li className="flex items-start gap-3">
               <span className="text-[#DC1FFF] mt-1">→</span>
-              <span className="text-sm leading-relaxed">30s timer: if &lt;3 players, 100% refund</span>
+              <span className="text-sm leading-relaxed">20s timer: if &lt;2 players, 100% refund</span>
             </li>
             <li className="flex items-start gap-3">
               <span className="text-[#DC1FFF] mt-1">→</span>

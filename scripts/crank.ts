@@ -1,9 +1,8 @@
 /**
  * scripts/crank.ts
  *
- * Surveille les rooms MEV Wars et déclenche settle_winner automatiquement quand :
- *   - Le timer de 30s est écoulé depuis le 1er searcher (block_start_time)
- *   - OU un multiple de 3 searchers est atteint
+ * Surveille les rooms MEV Wars et déclenche advance_round automatiquement quand :
+ *   - Le timer d'expiration est écoulé depuis le dernier round
  *
  * Usage:
  *   npx ts-node scripts/crank.ts
@@ -72,7 +71,7 @@ async function refundExpiredGame(
   const state: any = await program.account.game.fetch(gamePda);
   const playerCount: number = state.playerCount;
 
-  if (playerCount === 0 || playerCount >= 3) return;
+  if (playerCount === 0 || playerCount >= 2) return;
 
   const currentPlayers: PublicKey[] = (state.players as PublicKey[])
     .slice(0, playerCount)
@@ -197,23 +196,22 @@ async function main() {
 
         const elapsed = now - blockStart;
         const timerExpired = elapsed >= BLOCK_EXPIRATION_SECONDS;
-        const multipleOfThree = playerCount >= 3 && playerCount % 3 === 0;
 
         const cooldown = (lastCrankTime[roomId] ?? 0) + 10; // 10s cooldown
 
-        // Refund if timer expired and <3 players
-        if (timerExpired && playerCount < 3 && now > cooldown) {
+        // Refund if timer expired and <2 players
+        if (timerExpired && playerCount < 2 && now > cooldown) {
           console.log(`[crank] Room ${roomId} — trigger: timer expired with ${playerCount} searchers (refund)`);
           lastCrankTime[roomId] = now;
           await refundExpiredGame(program, connection, crankKeypair, roomId);
           continue;
         }
 
-        // Settle if timer expired OR multiple of 3 players (and >=3 players)
-        const shouldSettle = (timerExpired || multipleOfThree) && playerCount >= 3;
+        // Advance if timer expired and at least 2 players are in game
+        const shouldSettle = timerExpired && playerCount >= 2;
 
         if (shouldSettle && now > cooldown) {
-          const reason = timerExpired ? `timer expired (${elapsed}s)` : `${playerCount} searchers (multiple of 3)`;
+          const reason = `timer expired (${elapsed}s)`;
           console.log(`[crank] Room ${roomId} — trigger: ${reason}`);
           lastCrankTime[roomId] = now;
           await settleRoom(program, connection, crankKeypair, roomId);
