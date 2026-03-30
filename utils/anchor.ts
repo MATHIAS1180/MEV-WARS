@@ -84,7 +84,7 @@ export const IDL: Idl = {
         fields: [
           { name: "roomId", type: "u8" },
           { name: "entryFee", type: "u64" },
-          { name: "players", type: { array: ["publicKey", 100] } },
+          { name: "players", type: { array: ["publicKey", 30] } },
           { name: "playerCount", type: "u8" },
           { name: "state", type: { defined: "GameState" } },
           { name: "potAmount", type: "u64" },
@@ -92,7 +92,7 @@ export const IDL: Idl = {
           { name: "lastActivityTime", type: "i64" },
           { name: "blockStartTime", type: "i64" },
           { name: "currentRound", type: "u8" },
-          { name: "survivors", type: { array: ["publicKey", 100] } },
+          { name: "survivors", type: { array: ["publicKey", 30] } },
           { name: "bump", type: "u8" }
         ]
       }
