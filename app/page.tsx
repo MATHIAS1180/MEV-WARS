@@ -39,7 +39,7 @@ const ROUND_EXPIRATION_SECONDS = 20;
 export default function Home() {
   const { connected, publicKey } = useWallet();
   const [roomId, setRoomId] = useState<number>(101);
-  const { gameState, fetchState, joinGame, secureGain, gameResult, setGameResult } = useGame(roomId);
+  const { gameState, fetchState, joinGame, initializeRoom, crankRoom, secureGain, gameResult, setGameResult } = useGame(roomId);
 
   // Dynamic viewport sizing
   const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
@@ -215,30 +215,28 @@ export default function Home() {
   }, [roomId]);
 
   const lastCrankTimeRef = useRef(0);
-  const crankRetryCountRef = useRef(0);
   const triggerCrank = useCallback(async () => {
     if (Date.now() - lastCrankTimeRef.current < 10000) return;
+    if (!connected) return;
     lastCrankTimeRef.current = Date.now();
     try {
-      const res = await fetch('/api/crank', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roomId }) });
-      let data: any = {};
-      try { data = await res.json(); } catch { return; }
-      if (!res.ok && data.shouldRetry && crankRetryCountRef.current < 5) {
-        crankRetryCountRef.current++;
-        setTimeout(() => { lastCrankTimeRef.current = 0; triggerCrank(); }, 1000);
-      } else if (!res.ok && data.error?.includes('CRANK_PRIVATE_KEY')) {
-        toast.error('Crank not configured. Contact admin.');
+      const action = await crankRoom();
+      if (action === 'refund') {
+        toast.success('Round refunded on-chain');
+      } else {
+        toast.success('Round advanced on-chain');
       }
-      crankRetryCountRef.current = 0;
-    } catch { crankRetryCountRef.current = 0; }
-  }, [roomId]);
+    } catch {
+      // Silently ignore to avoid noisy toast spam during timer checks
+    }
+  }, [connected, crankRoom]);
 
   const prevPlayerCountRef = useRef<number>(0);
   useEffect(() => {
     const pc = gameState?.playerCount ?? 0;
     if (prevPlayerCountRef.current >= 2 && pc === 0) setIsProcessingResult(true);
     prevPlayerCountRef.current = pc;
-  }, [gameState?.playerCount, txPending, triggerCrank]);
+  }, [gameState?.playerCount, txPending]);
 
   const prevPlayerCountForRefundRef = useRef<number>(0);
   const wasInGameRef = useRef<boolean>(false);
@@ -299,6 +297,22 @@ export default function Home() {
     setTimeRemaining(null);
     hasNotifiedTimerStartRef.current = false;
   }, [gameState, isWaiting, actualPlayerCount, triggerCrank]);
+
+  const handleInitializeRoom = async () => {
+    if (!connected) return;
+    try {
+      setTxPending(true);
+      const txPromise = initializeRoom(activeRoom.lamports);
+      toast.promise(txPromise, {
+        loading: 'Initializing room...',
+        success: 'Room initialized!',
+        error: (e: any) => `Failed: ${e.message}`,
+      });
+      await txPromise;
+    } finally {
+      setTxPending(false);
+    }
+  };
 
   const handleJoin = async () => {
     if (!publicKey) return;
@@ -680,6 +694,21 @@ export default function Home() {
                       <p className="text-[0.65rem] sm:text-xs text-zinc-500 font-bold uppercase tracking-wider">Connect Your Wallet</p>
                       <p className="text-[0.6rem] sm:text-[0.65rem] text-zinc-600 mt-1">Use the button in the header</p>
                     </div>
+                  ) : !gameState ? (
+                    <button
+                      onClick={handleInitializeRoom}
+                      disabled={txPending}
+                      className="w-full py-3 sm:py-4 px-4 sm:px-6 bg-gradient-to-r from-[#F59E0B] to-[#FF6B9D] text-white font-black uppercase text-xs sm:text-sm rounded-xl shadow-[0_0_30px_rgba(245,158,11,0.4)] hover:shadow-[0_0_50px_rgba(245,158,11,0.6)] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {txPending ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <Loader2 className="animate-spin w-4 h-4 sm:w-5 sm:h-5" />
+                          <span>Initializing...</span>
+                        </span>
+                      ) : (
+                        `Initialize Room - ${activeRoom.label}`
+                      )}
+                    </button>
                   ) : myPlayerIndex !== null ? (
                     <div className="p-3 sm:p-4 bg-gradient-to-r from-[#00FFA3]/10 to-[#03E1FF]/10 border-2 border-[#00FFA3]/40 rounded-xl">
                       <div className="flex items-center justify-center gap-2 mb-1">

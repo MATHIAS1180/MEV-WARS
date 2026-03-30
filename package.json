@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "init:rooms": "tsx scripts/init-rooms.ts",
+    "init:rooms:secure": "bash scripts/init-rooms-secure.sh",
     "lighthouse": "node scripts/lighthouse-test.js",
     "lighthouse:prod": "TEST_URL=https://mev-wars-casino.vercel.app node scripts/lighthouse-test.js",
     "analyze": "ANALYZE=true next build",

@@ -2,7 +2,7 @@ import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { Program, AnchorProvider, setProvider, BN, EventParser, BorshCoder } from '@coral-xyz/anchor';
 import { PublicKey, SystemProgram } from '@solana/web3.js';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { PROGRAM_ID } from '../config/constants';
+import { BLOCK_EXPIRATION_SECONDS, PROGRAM_ID, TREASURY_PUBKEY } from '../config/constants';
 import { IDL } from '../utils/anchor';
 
 export interface GameResult {
@@ -276,6 +276,76 @@ export function useGame(roomId: number) {
     return true;
   };
 
+  const initializeRoom = async (entryFeeLamports: number): Promise<boolean> => {
+    if (!program || !wallet.publicKey) throw new Error('Wallet not connected');
+
+    const [gamePda] = PublicKey.findProgramAddressSync(
+      [Buffer.from('room'), Buffer.from([roomId])], program.programId
+    );
+
+    const info = await connection.getAccountInfo(gamePda);
+    if (info) return true;
+
+    const signature = await program.methods
+      .initializeGame(roomId, new BN(entryFeeLamports))
+      .accounts({
+        game: gamePda,
+        authority: wallet.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .rpc();
+
+    console.log('initializeGame TX confirmed:', signature);
+    await fetchState();
+    return true;
+  };
+
+  const crankRoom = async (): Promise<'refund' | 'advance'> => {
+    if (!program || !wallet.publicKey || !gameState) throw new Error('Wallet not connected or room not initialized');
+
+    const [gamePda] = PublicKey.findProgramAddressSync(
+      [Buffer.from('room'), Buffer.from([roomId])], program.programId
+    );
+
+    const playerCount = gameState.playerCount ?? 0;
+    if (playerCount === 0) throw new Error('Game is empty');
+
+    const currentPlayers: PublicKey[] = (gameState.players as PublicKey[])
+      .slice(0, playerCount)
+      .filter((p: PublicKey) => p.toString() !== PublicKey.default.toString());
+
+    const blockStartTime = gameState.blockStartTime ? Number(gameState.blockStartTime.toString()) : 0;
+    const elapsed = Math.floor(Date.now() / 1000) - blockStartTime;
+    const timerExpired = elapsed >= BLOCK_EXPIRATION_SECONDS;
+
+    if (timerExpired && playerCount < 2) {
+      const signature = await program.methods
+        .refundExpiredGame(roomId)
+        .accounts({ game: gamePda })
+        .remainingAccounts(currentPlayers.map((p) => ({ pubkey: p, isWritable: true, isSigner: false })))
+        .rpc();
+
+      console.log('refundExpiredGame TX confirmed:', signature);
+      await fetchState();
+      return 'refund';
+    }
+
+    if (playerCount < 2) throw new Error('Not enough players to advance round');
+
+    const signature = await program.methods
+      .advanceRound(roomId)
+      .accounts({ game: gamePda })
+      .remainingAccounts([
+        ...currentPlayers.map((p) => ({ pubkey: p, isWritable: true, isSigner: false })),
+        { pubkey: TREASURY_PUBKEY, isWritable: true, isSigner: false },
+      ])
+      .rpc();
+
+    console.log('advanceRound TX confirmed:', signature);
+    await fetchState();
+    return 'advance';
+  };
+
   const secureGain = async (): Promise<boolean> => {
     if (!program || !wallet.publicKey || !provider) throw new Error('Wallet not connected');
 
@@ -302,6 +372,8 @@ export function useGame(roomId: number) {
     isLoading,
     isScanningLogs,
     joinGame,
+    initializeRoom,
+    crankRoom,
     secureGain,
     fetchState,
     gameResult,
