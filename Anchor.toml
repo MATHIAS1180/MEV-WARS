@@ -5,10 +5,10 @@ seeds = false
 skip-lint = false
 
 [programs.devnet]
-solana_russian_roulette = "3WoG4JYKGQWJBXVnXjfTB7cAQoQBpmKS84cjM1yMZ3S5"
+solana_russian_roulette = "HCN6ddARh6UvdMgZWeMXBtUSxPvrLCoTjgo3t48oiAi4"
 
 [programs.localnet]
-solana_russian_roulette = "3WoG4JYKGQWJBXVnXjfTB7cAQoQBpmKS84cjM1yMZ3S5"
+solana_russian_roulette = "HCN6ddARh6UvdMgZWeMXBtUSxPvrLCoTjgo3t48oiAi4"
 
 [registry]
 url = "https://api.apr.dev"
