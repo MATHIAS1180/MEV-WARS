@@ -35,6 +35,56 @@ export interface GameStateData {
   bump: number;
 }
 
+type SnapshotState = 'waiting' | 'inProgress' | 'finished' | 'unknown';
+
+interface RoomStreamSnapshot {
+  roomId: number;
+  slot: number;
+  chainClockUnix: number | null;
+  fetchedAtMs: number;
+  game: {
+    roomId: number;
+    entryFee: string;
+    playerCount: number;
+    potAmount: string;
+    resolveSlot: string;
+    lastActivityTime: string;
+    blockStartTime: string;
+    currentRound: number;
+    players: string[];
+    survivors: string[];
+    state: SnapshotState;
+    bump: number;
+  } | null;
+  timerRemaining: number | null;
+}
+
+function mapSnapshotState(state: SnapshotState): GameState | null {
+  if (state === 'waiting') return { waiting: {} };
+  if (state === 'inProgress') return { inProgress: { round: 0, survivors: [] } };
+  if (state === 'finished') return { finished: {} };
+  return null;
+}
+
+function mapSnapshotToGameData(snapshot: RoomStreamSnapshot['game']): GameStateData | null {
+  if (!snapshot) return null;
+
+  return {
+    roomId: snapshot.roomId,
+    entryFee: new BN(snapshot.entryFee),
+    players: snapshot.players.map((p) => new PublicKey(p)),
+    playerCount: snapshot.playerCount,
+    state: mapSnapshotState(snapshot.state),
+    potAmount: new BN(snapshot.potAmount),
+    resolveSlot: new BN(snapshot.resolveSlot),
+    lastActivityTime: new BN(snapshot.lastActivityTime),
+    blockStartTime: new BN(snapshot.blockStartTime),
+    currentRound: snapshot.currentRound,
+    survivors: snapshot.survivors.map((p) => new PublicKey(p)),
+    bump: snapshot.bump,
+  };
+}
+
 export const BULLET_COLORS = [
   { name: "Violet", color: "#9945FF" },
   { name: "Solana", color: "#14F195" },
@@ -76,12 +126,11 @@ export function useGame(roomId: number) {
   const [isScanningLogs, setIsScanningLogs] = useState(false);
   const [gameResult, setGameResult] = useState<GameResult | null>(null);
   const [chainClockUnix, setChainClockUnix] = useState<number | null>(null);
-  const chainClockAnchorRef = useRef<{ unix: number; localMs: number } | null>(null);
+  const [serverTimerRemaining, setServerTimerRemaining] = useState<number | null>(null);
 
   const gameResultRef = useRef<GameResult | null>(null);
   const prevPlayerCountRef = useRef<number>(0);
   const prevInProgressRef = useRef<boolean>(false);
-  const pollInFlightRef = useRef<boolean>(false);
   const readOnlyWalletRef = useRef(Keypair.generate());
 
   const anchorWallet = useMemo(() => {
@@ -173,167 +222,141 @@ export function useGame(roomId: number) {
     finally { setIsLoading(false); }
   }, [program, connection, roomId]);
 
+  const scanForGameResult = useCallback(async (gamePda: PublicKey) => {
+    if (gameResultRef.current) return;
+
+    setIsScanningLogs(true);
+    let retries = 18;
+
+    const fetchResult = async () => {
+      if (gameResultRef.current) {
+        setIsScanningLogs(false);
+        return;
+      }
+
+      try {
+        const sigs = await connection.getSignaturesForAddress(gamePda, { limit: 40 });
+        let foundResult: GameResult | null = null;
+
+        for (const sig of sigs) {
+          const tx = await connection.getTransaction(sig.signature, {
+            maxSupportedTransactionVersion: 0,
+            commitment: 'confirmed',
+          });
+          if (!tx?.meta?.logMessages) continue;
+
+          const result = parseLogsForResult(tx.meta.logMessages);
+          if (result) {
+            foundResult = result;
+            break;
+          }
+        }
+
+        if (foundResult) {
+          setGameResult(foundResult);
+          setIsScanningLogs(false);
+          return;
+        }
+
+        if (retries-- > 0) {
+          setTimeout(fetchResult, 1000);
+        } else {
+          setIsScanningLogs(false);
+        }
+      } catch {
+        if (retries-- > 0) {
+          setTimeout(fetchResult, 1000);
+        } else {
+          setIsScanningLogs(false);
+        }
+      }
+    };
+
+    fetchResult();
+  }, [connection, parseLogsForResult]);
+
   useEffect(() => {
     setGameResult(null);
     setIsScanningLogs(false);
+    setServerTimerRemaining(null);
+    setChainClockUnix(null);
     prevPlayerCountRef.current = 0;
     prevInProgressRef.current = false;
+
     if (!program) { setGameState(null); return; }
+
     fetchState();
 
     const [gamePda] = PublicKey.findProgramAddressSync(
       [Buffer.from('room'), Buffer.from([roomId])], PROGRAM_ID
     );
 
-    const subId = connection.onAccountChange(gamePda, async (info) => {
-      try {
-        const decoded = program.coder.accounts.decode('Game', info.data);
-        const prev = prevPlayerCountRef.current;
-        const inProgressNow = !!(decoded.state && (decoded.state as any).inProgress);
-        const settledTransition = prevInProgressRef.current && !inProgressNow;
-        prevPlayerCountRef.current = decoded.playerCount;
-        prevInProgressRef.current = inProgressNow;
-        setGameState(decoded);
+    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+    let closed = false;
+    let es: EventSource | null = null;
 
-        // Game just settled (player count dropped to 0)
-        if ((prev >= 2 && decoded.playerCount === 0 || settledTransition) && !gameResultRef.current) {
-          console.log('[useGame] Game settled detected! prev:', prev, 'current:', decoded.playerCount);
-          setIsScanningLogs(true);
+    const connectStream = () => {
+      if (closed) return;
 
-          // Get all players who were in the game
-          const allPlayers = (decoded.players as any[])
-            .slice(0, prev)
-            .map((p: any) => p.toString())
-            .filter((p: string) => p !== PublicKey.default.toString());
+      es = new EventSource(`/api/stream/room?roomId=${roomId}`);
 
-          console.log('[useGame] Waiting for blockchain result:', {
-            players: prev,
-            allPlayers
-          });
+      es.addEventListener('snapshot', (event) => {
+        try {
+          const data = JSON.parse((event as MessageEvent).data) as RoomStreamSnapshot;
 
-          let retries = 18;
-          const fetchResult = async () => {
-            if (gameResultRef.current) {
-              console.log('[useGame] Result already found, stopping scan');
-              setIsScanningLogs(false);
-              return;
-            }
-            try {
-              console.log('[useGame] Fetching signatures, retry:', 10 - retries);
-              const sigs = await connection.getSignaturesForAddress(gamePda, { limit: 40 });
-              console.log('[useGame] Found', sigs.length, 'signatures');
-              let foundResult = null;
-              for (const sig of sigs) {
-                const tx = await connection.getTransaction(sig.signature, {
-                  maxSupportedTransactionVersion: 0,
-                  commitment: 'confirmed',
-                });
-                if (tx?.meta?.logMessages) {
-                  console.log('[useGame] Parsing logs for sig:', sig.signature.slice(0, 8));
-                  const result = parseLogsForResult(tx.meta.logMessages);
-                  if (result) {
-                    console.log('[useGame] Found real result!', result);
-                    foundResult = result;
-                    break;
-                  }
-                }
-              }
-              if (foundResult) {
-                setGameResult(foundResult);
-                setIsScanningLogs(false);
-              } else if (retries-- > 0) {
-                console.log('[useGame] No result yet, retrying in 1s...');
-                setTimeout(fetchResult, 1000);
-              } else {
-                console.log('[useGame] Max retries reached, no result found');
-                // Don't set any result - let user know settlement failed
-                setIsScanningLogs(false);
-                // Could show error toast here
-              }
-            } catch (e) {
-              console.error('[useGame] Error fetching result:', e);
-              if (retries-- > 0) setTimeout(fetchResult, 1000);
-              else {
-                console.log('[useGame] Using no result after errors');
-                setIsScanningLogs(false);
-                // Could show error toast here
-              }
-            }
-          };
+          setChainClockUnix((prev) => (prev === data.chainClockUnix ? prev : data.chainClockUnix));
+          setServerTimerRemaining((prev) => (prev === data.timerRemaining ? prev : data.timerRemaining));
 
-          // Start fetching real result immediately (no mock!)
-          fetchResult();
+          const decoded = mapSnapshotToGameData(data.game) as any;
+          if (!decoded) {
+            setGameState(null);
+            return;
+          }
+
+          const prev = prevPlayerCountRef.current;
+          const inProgressNow = !!(decoded.state && (decoded.state as any).inProgress);
+          const settledTransition = prevInProgressRef.current && !inProgressNow;
+          prevPlayerCountRef.current = decoded.playerCount;
+          prevInProgressRef.current = inProgressNow;
+          setGameState(decoded);
+
+          if (((prev >= 2 && decoded.playerCount === 0) || settledTransition) && !gameResultRef.current) {
+            scanForGameResult(gamePda);
+          }
+        } catch (e) {
+          console.error('[useGame] Failed to parse stream snapshot:', e);
         }
-      } catch (e) { console.error('Failed to decode', e); }
-    }, 'confirmed');
+      });
 
-    // Ultra-live polling for near-real-time sync across players and spectators.
-    const pollId = setInterval(() => {
-      if (pollInFlightRef.current) return;
-      pollInFlightRef.current = true;
-      fetchState()
-        .catch(() => {})
-        .finally(() => {
-          pollInFlightRef.current = false;
-        });
-    }, 800);
+      es.addEventListener('error', () => {
+        if (es) {
+          es.close();
+          es = null;
+        }
+
+        if (closed) return;
+
+        reconnectTimeout = setTimeout(() => {
+          reconnectTimeout = null;
+          connectStream();
+        }, 1000);
+      });
+    };
+
+    connectStream();
 
     return () => {
-      clearInterval(pollId);
-      connection.removeAccountChangeListener(subId).catch(console.error);
-    };
-  }, [program, connection, roomId, parseLogsForResult, fetchState]);
-
-  useEffect(() => {
-    let cancelled = false;
-    let inFlight = false;
-
-    const readChainUnix = async (): Promise<number | null> => {
-      const slot = await connection.getSlot('confirmed');
-      for (let offset = 0; offset <= 6; offset += 1) {
-        const t = await connection.getBlockTime(slot - offset);
-        if (typeof t === 'number' && t > 0) return t;
+      closed = true;
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+        reconnectTimeout = null;
       }
-      return null;
-    };
-
-    const syncChainClock = async () => {
-      if (inFlight) return;
-      inFlight = true;
-      try {
-        const chainUnix = await readChainUnix();
-        if (!cancelled && typeof chainUnix === 'number' && chainUnix > 0) {
-          chainClockAnchorRef.current = {
-            unix: chainUnix,
-            localMs: Date.now(),
-          };
-          setChainClockUnix(chainUnix);
-        }
-      } catch {
-        // Ignore transient RPC clock sync errors.
-      } finally {
-        inFlight = false;
+      if (es) {
+        es.close();
+        es = null;
       }
     };
-
-    const tickLocalChainClock = () => {
-      const anchor = chainClockAnchorRef.current;
-      if (!anchor || cancelled) return;
-      const elapsed = Math.max(0, Math.floor((Date.now() - anchor.localMs) / 1000));
-      const next = anchor.unix + elapsed;
-      setChainClockUnix((prev) => (prev === next ? prev : next));
-    };
-
-    syncChainClock();
-    const syncIntervalId = setInterval(syncChainClock, 1000);
-    const tickIntervalId = setInterval(tickLocalChainClock, 250);
-
-    return () => {
-      cancelled = true;
-      clearInterval(syncIntervalId);
-      clearInterval(tickIntervalId);
-    };
-  }, [connection]);
+  }, [program, roomId, connection, parseLogsForResult, fetchState, scanForGameResult]);
 
   const joinGame = async (entryFeeLamports: number): Promise<boolean> => {
     if (!program || !wallet.publicKey || !provider) throw new Error('Wallet not connected');
@@ -442,6 +465,7 @@ export function useGame(roomId: number) {
     isLoading,
     isScanningLogs,
     chainClockUnix,
+    serverTimerRemaining,
     joinGame,
     initializeRoom,
     crankRoom,

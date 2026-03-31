@@ -47,11 +47,6 @@ const ROUND_EXPIRATION_SECONDS = BLOCK_EXPIRATION_SECONDS;
 const OVERLAY_AUTO_CLOSE_MS = 5000;
 const RESULT_CLEANUP_DELAY_MS = OVERLAY_AUTO_CLOSE_MS + 200;
 
-const normalizeUnixTimestamp = (raw: number | null): number | null => {
-  if (raw === null || !Number.isFinite(raw) || raw <= 0) return null;
-  return raw > 1e12 ? Math.floor(raw / 1000) : Math.floor(raw);
-};
-
 interface RoundOverlayState {
   type: 'win' | 'lose' | 'survive';
   title: string;
@@ -65,7 +60,7 @@ interface RoundOverlayState {
 export default function Home() {
   const { connected, publicKey } = useWallet();
   const [roomId, setRoomId] = useState<number>(101);
-  const { gameState, fetchState, joinGame, initializeRoom, crankRoom, secureGain, gameResult, setGameResult, chainClockUnix } = useGame(roomId);
+  const { gameState, fetchState, joinGame, initializeRoom, crankRoom, secureGain, gameResult, setGameResult, serverTimerRemaining } = useGame(roomId);
 
   // Dynamic viewport sizing
   const [viewportSize, setViewportSize] = useState({ width: 1280, height: 720 });
@@ -548,12 +543,6 @@ export default function Home() {
   const warnedTenSecondsRef = useRef<boolean>(false);
   const warnedFiveSecondsRef = useRef<boolean>(false);
   const lastComputedRemainingRef = useRef<number | null>(null);
-  const blockStartUnix = useMemo(() => {
-    if (!gameState?.blockStartTime) return null;
-    return normalizeUnixTimestamp(Number(gameState.blockStartTime.toString()));
-  }, [gameState?.blockStartTime]);
-
-  const effectiveStartUnix = blockStartUnix;
 
   useEffect(() => {
     const aliveCount = isInProgress ? survivors.length : actualPlayerCount;
@@ -574,7 +563,7 @@ export default function Home() {
   
   useEffect(() => {
     const isRoundActive = (isWaiting || isInProgress) && actualPlayerCount > 0;
-    if (!isRoundActive || effectiveStartUnix === null || chainClockUnix === null) {
+    if (!isRoundActive) {
       setTimeRemaining(null);
       lastComputedRemainingRef.current = null;
       hasNotifiedTimerStartRef.current = false;
@@ -583,20 +572,21 @@ export default function Home() {
       return;
     }
 
-    const elapsed = Math.max(0, chainClockUnix - effectiveStartUnix);
-    const nextRemaining = Math.max(0, ROUND_EXPIRATION_SECONDS - elapsed);
+    if (serverTimerRemaining === null) {
+      return;
+    }
+
+    const nextRemaining = Math.max(0, serverTimerRemaining);
     const previousRemaining = lastComputedRemainingRef.current;
     lastComputedRemainingRef.current = nextRemaining;
 
     setTimeRemaining((prev) => (prev === nextRemaining ? prev : nextRemaining));
 
-    // Notify when timer starts (2+ players joining, only during waiting phase)
     if (isWaiting && actualPlayerCount >= 2 && !hasNotifiedTimerStartRef.current) {
       toast.success('Round starting! Timer activated', { duration: 3000 });
       hasNotifiedTimerStartRef.current = true;
     }
 
-    // Warning notifications (only relevant during waiting phase)
     if (isWaiting && nextRemaining <= 10 && actualPlayerCount < 2 && !warnedTenSecondsRef.current) {
       warnedTenSecondsRef.current = true;
       toast.warning('10 seconds left! Need 2 players minimum', { duration: 3000 });
@@ -609,19 +599,13 @@ export default function Home() {
     if (nextRemaining === 0 && previousRemaining !== 0) {
       triggerCrank();
     }
-  }, [effectiveStartUnix, isWaiting, isInProgress, actualPlayerCount, triggerCrank, chainClockUnix]);
+  }, [serverTimerRemaining, isWaiting, isInProgress, actualPlayerCount, triggerCrank]);
 
   const displayTimerSeconds = useMemo(() => {
     const isRoundActive = (isWaiting || isInProgress) && actualPlayerCount > 0;
     if (!isRoundActive) return null;
-    if (effectiveStartUnix === null || chainClockUnix === null) return null;
-    if (timeRemaining === null) {
-      const elapsed = chainClockUnix - effectiveStartUnix;
-      const remaining = ROUND_EXPIRATION_SECONDS - elapsed;
-      return remaining > 0 ? remaining : 0;
-    }
     return timeRemaining;
-  }, [timeRemaining, effectiveStartUnix, chainClockUnix, isWaiting, isInProgress, actualPlayerCount]);
+  }, [timeRemaining, isWaiting, isInProgress, actualPlayerCount]);
 
   const hasJoinedCurrentGame = myPlayerIndex !== null;
   const isSpectatingLiveGame = connected && isInProgress && !hasJoinedCurrentGame;
