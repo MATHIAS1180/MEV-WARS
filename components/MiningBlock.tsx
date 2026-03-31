@@ -236,9 +236,11 @@ export default function MiningBlock({ playerCount, isSpinning, countdown, active
         {/* 30 squares in a 5x6 grid - optimized for mobile */}
         <g id="squares">
           {SQUARES.map(({ id, row, col, color }) => {
+            const isJoined = id < playerCount;
             const isPlayerActive = activeSlotIndexes
               ? activeSlotIndexes.includes(id)
               : id < playerCount;
+            const isEliminated = isJoined && !isPlayerActive;
             const squareSize = 56;
             const spacingX = 72;
             const spacingY = 72;
@@ -299,16 +301,50 @@ export default function MiningBlock({ playerCount, isSpinning, countdown, active
                   width={squareSize}
                   height={squareSize}
                   rx="7"
-                  fill={isPlayerActive ? color : "rgba(40,40,60,0.4)"}
-                  stroke={isPlayerActive ? "#9945FF" : "rgba(60,60,80,0.3)"}
+                  fill={
+                    isPlayerActive
+                      ? color
+                      : isEliminated
+                        ? "rgba(120,120,135,0.35)"
+                        : "rgba(40,40,60,0.4)"
+                  }
+                  stroke={
+                    isPlayerActive
+                      ? "#9945FF"
+                      : isEliminated
+                        ? "rgba(170,170,185,0.45)"
+                        : "rgba(60,60,80,0.3)"
+                  }
                   strokeWidth={isPlayerActive ? "2" : "1"}
-                  opacity={isPlayerActive ? "1" : "0.3"}
-                  filter={performanceMode ? undefined : (isPlayerActive ? "url(#glow)" : "url(#innerShadow)")}
+                  opacity={isPlayerActive ? "1" : isEliminated ? "0.7" : "0.3"}
+                  filter={
+                    performanceMode
+                      ? undefined
+                      : isPlayerActive
+                        ? "url(#glow)"
+                        : "url(#innerShadow)"
+                  }
                 >
                   {isPlayerActive && isActive && !performanceMode && (
                     <animate attributeName="stroke" values="#9945FF;#00D1FF;#9945FF" dur="2s" repeatCount="indefinite"/>
                   )}
+                  {isEliminated && !performanceMode && (
+                    <animate attributeName="opacity" values="0.7;0.5;0.7" dur="2.2s" repeatCount="indefinite"/>
+                  )}
                 </rect>
+
+                {/* Eliminated overlay for better readability */}
+                {isEliminated && (
+                  <rect
+                    x={x - squareSize / 2}
+                    y={y - squareSize / 2}
+                    width={squareSize}
+                    height={squareSize}
+                    rx="7"
+                    fill="rgba(12,12,20,0.35)"
+                    style={{ filter: "blur(0.4px)" }}
+                  />
+                )}
 
                 {/* Top highlight for depth - adjusted */}
                 {isPlayerActive && (
@@ -339,6 +375,20 @@ export default function MiningBlock({ playerCount, isSpinning, countdown, active
                   <text x={x} y={y + squareSize/2 - 6} textAnchor="middle" 
                     fill="white" fontSize="8" fontWeight="bold" opacity="0.6">
                     #{id + 1}
+                  </text>
+                )}
+
+                {isEliminated && (
+                  <text
+                    x={x}
+                    y={y + 4}
+                    textAnchor="middle"
+                    fill="rgba(255,255,255,0.55)"
+                    fontSize="9"
+                    fontWeight="bold"
+                    opacity="0.85"
+                  >
+                    OUT
                   </text>
                 )}
               </g>
