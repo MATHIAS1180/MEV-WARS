@@ -213,8 +213,39 @@ export default function Home() {
     const survivorsNow = (gameState?.survivors ?? [])
       .filter((p: PublicKey) => p.toString() !== PublicKey.default.toString())
       .map((p: PublicKey) => p.toString());
+    const participantsNow = (gameState?.players ?? [])
+      .slice(0, gameState?.playerCount ?? 0)
+      .filter((p: PublicKey) => p.toString() !== PublicKey.default.toString())
+      .map((p: PublicKey) => p.toString());
 
     const prev = prevRoundSnapshotRef.current;
+
+    // First crank transitions Waiting -> InProgress and can already resolve round 1.
+    // In this case we compare against participants instead of previous survivors.
+    if (inProgressNow && !prev.inProgress && roundNow >= 2) {
+      const wasInRoundOne = participantsNow.includes(myKey);
+      const aliveNow = survivorsNow.includes(myKey);
+
+      if (wasInRoundOne && aliveNow) {
+        setShowResult({
+          type: 'survive',
+          title: 'ROUND 1 SURVIVED',
+          msg: 'You survived round 1. Get ready for the next draw.',
+          isFinal: false,
+          actionLabel: 'Next Round',
+        });
+      }
+
+      if (wasInRoundOne && !aliveNow) {
+        setShowResult({
+          type: 'lose',
+          title: 'DEFEAT',
+          msg: `You were eliminated in round 1. Bet lost: ${activeRoom.label}.`,
+          isFinal: true,
+          actionLabel: 'Close',
+        });
+      }
+    }
 
     if (inProgressNow && prev.inProgress && roundNow > prev.round) {
       const wasAlive = prev.survivors.includes(myKey);
