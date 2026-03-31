@@ -533,6 +533,7 @@ export default function Home() {
   }, [actualPlayerCount, stableFetch, setGameResult]);
 
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+  const [localTimerStartMs, setLocalTimerStartMs] = useState<number | null>(null);
   const hasNotifiedTimerStartRef = useRef<boolean>(false);
   const warnedTenSecondsRef = useRef<boolean>(false);
   const warnedFiveSecondsRef = useRef<boolean>(false);
@@ -542,6 +543,31 @@ export default function Home() {
     if (gameState.lastActivityTime) return Number(gameState.lastActivityTime.toString());
     return null;
   }, [gameState?.blockStartTime, gameState?.lastActivityTime, gameState]);
+
+  useEffect(() => {
+    const isRoundActive = (isWaiting || isInProgress) && actualPlayerCount > 0;
+
+    if (!isRoundActive) {
+      setLocalTimerStartMs(null);
+      return;
+    }
+
+    // Fallback start point when RPC timestamp fields are late/missing.
+    if (blockStartUnix === null && localTimerStartMs === null) {
+      setLocalTimerStartMs(Date.now());
+    }
+
+    // Trust on-chain timestamp as soon as it is available.
+    if (blockStartUnix !== null && localTimerStartMs !== null) {
+      setLocalTimerStartMs(null);
+    }
+  }, [blockStartUnix, localTimerStartMs, isWaiting, isInProgress, actualPlayerCount]);
+
+  const effectiveStartUnix = useMemo(() => {
+    if (blockStartUnix !== null) return blockStartUnix;
+    if (localTimerStartMs !== null) return Math.floor(localTimerStartMs / 1000);
+    return null;
+  }, [blockStartUnix, localTimerStartMs]);
 
   useEffect(() => {
     const canAnimatePreCrank = isWaiting && actualPlayerCount >= 2;
@@ -566,7 +592,7 @@ export default function Home() {
   }, [timeRemaining, isWaiting, actualPlayerCount]);
   
   useEffect(() => {
-    if (blockStartUnix !== null && (isWaiting || isInProgress) && actualPlayerCount > 0) {
+    if (effectiveStartUnix !== null && (isWaiting || isInProgress) && actualPlayerCount > 0) {
       // Notify when timer starts (2+ players joining, only during waiting phase)
       if (isWaiting && actualPlayerCount >= 2 && !hasNotifiedTimerStartRef.current) {
         toast.success('Round starting! Timer activated', { duration: 3000 });
@@ -574,7 +600,7 @@ export default function Home() {
       }
       
       const iv = setInterval(() => {
-        const elapsed = Math.floor(Date.now() / 1000) - blockStartUnix;
+        const elapsed = Math.floor(Date.now() / 1000) - effectiveStartUnix;
         const r = ROUND_EXPIRATION_SECONDS - elapsed;
         const remaining = r > 0 ? r : 0;
         setTimeRemaining(remaining);
@@ -597,7 +623,7 @@ export default function Home() {
     hasNotifiedTimerStartRef.current = false;
     warnedTenSecondsRef.current = false;
     warnedFiveSecondsRef.current = false;
-  }, [blockStartUnix, isWaiting, isInProgress, actualPlayerCount, triggerCrank]);
+  }, [effectiveStartUnix, isWaiting, isInProgress, actualPlayerCount, triggerCrank]);
 
   const handleInitializeRoom = async () => {
     if (!connected) return;
