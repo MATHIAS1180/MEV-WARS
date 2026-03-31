@@ -42,6 +42,7 @@ interface Props {
   isSpinning: boolean;
   rotation: number;
   countdown: number | null;
+  activeSlotIndexes?: number[];
 }
 
 // 30 squares arranged in a 5x6 grid
@@ -52,7 +53,7 @@ const SQUARES = Array.from({ length: 30 }, (_, i) => ({
   color: SOLANA_COLORS[i],
 }));
 
-export default function MiningBlock({ playerCount, isSpinning, countdown }: Props) {
+export default function MiningBlock({ playerCount, isSpinning, countdown, activeSlotIndexes }: Props) {
   const isActive = isSpinning || countdown !== null;
   const [performanceMode, setPerformanceMode] = useState(true);
   
@@ -235,7 +236,9 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
         {/* 30 squares in a 5x6 grid - optimized for mobile */}
         <g id="squares">
           {SQUARES.map(({ id, row, col, color }) => {
-            const isPlayerActive = id < playerCount;
+            const isPlayerActive = activeSlotIndexes
+              ? activeSlotIndexes.includes(id)
+              : id < playerCount;
             const squareSize = 56;
             const spacingX = 72;
             const spacingY = 72;

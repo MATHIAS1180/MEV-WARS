@@ -159,6 +159,30 @@ export default function Home() {
 
   const displayPlayerIndex = myPlayerIndex !== null ? myPlayerIndex : myPlayerIndexRef.current;
 
+  const isCurrentPlayerAlive = useMemo(() => {
+    if (!publicKey || myPlayerIndex === null) return false;
+    if (!isInProgress) return true;
+    return survivors.some((s: PublicKey) => s.toString() === publicKey.toString());
+  }, [publicKey, myPlayerIndex, isInProgress, survivors]);
+
+  const activeSlotIndexes = useMemo(() => {
+    if (!gameState?.players) return [] as number[];
+    const players = (gameState.players as PublicKey[]).slice(0, actualPlayerCount);
+
+    if (isInProgress) {
+      const survivorSet = new Set(survivors.map((p: PublicKey) => p.toString()));
+      return players
+        .map((p: PublicKey, idx: number) => ({ key: p.toString(), idx }))
+        .filter(({ key }) => key !== PublicKey.default.toString() && survivorSet.has(key))
+        .map(({ idx }) => idx);
+    }
+
+    return players
+      .map((p: PublicKey, idx: number) => ({ key: p.toString(), idx }))
+      .filter(({ key }) => key !== PublicKey.default.toString())
+      .map(({ idx }) => idx);
+  }, [gameState?.players, actualPlayerCount, isInProgress, survivors]);
+
   const fetchStateRef = useRef(fetchState);
   useEffect(() => { fetchStateRef.current = fetchState; }, [fetchState]);
   const stableFetch = useCallback(() => fetchStateRef.current(), []);
@@ -353,6 +377,47 @@ export default function Home() {
     const timeout = setTimeout(() => setShowResult(null), 5000);
     return () => clearTimeout(timeout);
   }, [showResult]);
+
+  const finalFallbackShownRef = useRef(false);
+  useEffect(() => {
+    if (!publicKey) return;
+
+    const myKey = publicKey.toString();
+    const prev = prevRoundSnapshotRef.current;
+    const inProgressNow = !!(gameState?.state && 'inProgress' in gameState.state);
+    const playerCountNow = gameState?.playerCount ?? 0;
+
+    // Fallback for final card in case winner log parsing misses on slow RPC.
+    if (
+      prev.inProgress &&
+      !inProgressNow &&
+      playerCountNow === 0 &&
+      !gameResult &&
+      !showResult &&
+      !finalFallbackShownRef.current
+    ) {
+      const wasParticipant = lastPlayersRef.current.includes(myKey);
+      if (!wasParticipant) return;
+
+      const survivedUntilEnd = prev.survivors.includes(myKey);
+
+      setShowResult({
+        type: survivedUntilEnd ? 'win' : 'lose',
+        title: survivedUntilEnd ? 'VICTORY' : 'DEFEAT',
+        msg: survivedUntilEnd
+          ? 'Game finished. You survived the final round.'
+          : `Game finished. Your bet (${activeRoom.label}) was lost.`,
+        isFinal: true,
+        actionLabel: 'Close',
+      });
+
+      finalFallbackShownRef.current = true;
+    }
+
+    if (inProgressNow) {
+      finalFallbackShownRef.current = false;
+    }
+  }, [gameState?.state, gameState?.playerCount, publicKey, gameResult, showResult, activeRoom.label]);
 
   useEffect(() => {
     setShowResult(null); setIsSpinning(false); setCountdown(null);
@@ -811,7 +876,8 @@ export default function Home() {
                         playerCount={actualPlayerCount} 
                         isSpinning={isSpinning} 
                         rotation={rotation} 
-                        countdown={countdown} 
+                        countdown={countdown}
+                        activeSlotIndexes={activeSlotIndexes}
                       />
                     </div>
                   </div>
@@ -858,13 +924,20 @@ export default function Home() {
                       <p className="text-[0.65rem] sm:text-xs text-zinc-500 font-bold uppercase tracking-wider">Connect Your Wallet</p>
                       <p className="text-[0.6rem] sm:text-[0.65rem] text-zinc-600 mt-1">Use the button in the header</p>
                     </div>
-                  ) : myPlayerIndex !== null ? (
+                  ) : myPlayerIndex !== null && isCurrentPlayerAlive ? (
                     <div className="p-3 sm:p-4 bg-gradient-to-r from-[#00FFA3]/10 to-[#03E1FF]/10 border-2 border-[#00FFA3]/40 rounded-xl">
                       <div className="flex items-center justify-center gap-2 mb-1">
                         <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-[#00FFA3]" />
                         <p className="text-base sm:text-lg font-black text-[#00FFA3]">You&apos;re In!</p>
                       </div>
                       <p className="text-center text-xs sm:text-sm text-zinc-400">Position #{(displayPlayerIndex ?? myPlayerIndex) + 1}</p>
+                    </div>
+                  ) : myPlayerIndex !== null && isInProgress && !isCurrentPlayerAlive ? (
+                    <div className="p-3 sm:p-4 bg-gradient-to-r from-[#FF5B5B]/10 to-[#FF6B9D]/10 border-2 border-[#FF5B5B]/40 rounded-xl">
+                      <div className="flex items-center justify-center gap-2 mb-1">
+                        <p className="text-base sm:text-lg font-black text-[#FF5B5B]">Eliminated</p>
+                      </div>
+                      <p className="text-center text-xs sm:text-sm text-zinc-400">Wait for the next game to join again</p>
                     </div>
                   ) : (
                     <button
@@ -884,7 +957,7 @@ export default function Home() {
                   )}
 
                   {/* Secure Gain Button - only available from round 2 (multiplier >= 2) */}
-                  {isInProgress && currentRound >= 2 && survivors.some((s: PublicKey) => s.toString() === publicKey?.toString()) && (
+                  {isInProgress && currentRound >= 2 && isCurrentPlayerAlive && (
                     <button
                       onClick={handleSecureGain}
                       disabled={txPending}
