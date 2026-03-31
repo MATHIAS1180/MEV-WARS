@@ -224,7 +224,7 @@ export default function Home() {
         setShowResult({
           type: 'survive',
           title: `ROUND ${prev.round} SURVIVED`,
-          msg: `Tu as survécu au round ${prev.round}. Prépare-toi pour le prochain tirage.`,
+          msg: `You survived round ${prev.round}. Get ready for the next draw.`,
           isFinal: false,
           actionLabel: 'Next Round',
         });
@@ -233,10 +233,10 @@ export default function Home() {
       if (wasAlive && !aliveNow) {
         setShowResult({
           type: 'lose',
-          title: 'DÉFAITE',
-          msg: `Tu as été éliminé au round ${prev.round}. Mise perdue: ${activeRoom.label}.`,
+          title: 'DEFEAT',
+          msg: `You were eliminated in round ${prev.round}. Bet lost: ${activeRoom.label}.`,
           isFinal: true,
-          actionLabel: 'Quitter',
+          actionLabel: 'Close',
         });
       }
     }
@@ -282,20 +282,20 @@ export default function Home() {
 
             setShowResult({
               type: 'win',
-              title: 'VICTOIRE',
-              msg: `Tu as gagné la partie. Le payout a été envoyé sur ton wallet.`,
+              title: 'VICTORY',
+              msg: `You won the game. Payout has been sent to your wallet.`,
               amount: parseFloat(winAmt),
               multiplier: multiplierValue,
               isFinal: true,
-              actionLabel: 'Quitter',
+              actionLabel: 'Close',
             });
           } else if (wasInGame && !isWinner) {
             setShowResult({
               type: 'lose',
-              title: 'DÉFAITE',
-              msg: `Partie terminée. Ta mise (${activeRoom.label}) est perdue sur ce round.`,
+              title: 'DEFEAT',
+              msg: `Game finished. Your bet (${activeRoom.label}) was lost this round.`,
               isFinal: true,
-              actionLabel: 'Quitter',
+              actionLabel: 'Close',
             });
           }
           setGameResult(null);

@@ -1,5 +1,6 @@
 "use client";
 import { motion } from "framer-motion";
+import { useCallback } from "react";
 import { Trophy, Skull, Sparkles, ShieldCheck, ArrowRight, LogOut } from "lucide-react";
 
 interface ResultOverlayProps {
@@ -28,8 +29,38 @@ export default function ResultOverlay({
   const isWin = type === "win";
   const isSurvive = type === "survive";
 
-  const resolvedTitle = title ?? (isWin ? "VICTOIRE" : isSurvive ? "SURVÉCU" : "DÉFAITE");
-  const resolvedActionLabel = actionLabel ?? (isFinal ? "Quitter" : "Next Round");
+  const resolvedTitle = title ?? (isWin ? "VICTORY" : isSurvive ? "SURVIVED" : "DEFEAT");
+  const resolvedActionLabel = actionLabel ?? (isFinal ? "Close" : "Next Round");
+
+  const playCloseSound = useCallback(() => {
+    if (typeof window === "undefined") return;
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(620, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.11);
+
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.08, ctx.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.14);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.15);
+
+    setTimeout(() => ctx.close().catch(() => {}), 220);
+  }, []);
+
+  const handleForcedClose = useCallback(() => {
+    playCloseSound();
+    onClose();
+  }, [onClose, playCloseSound]);
 
   return (
     <motion.div
@@ -58,28 +89,26 @@ export default function ResultOverlay({
           }`}
         />
 
-        <div className="relative overflow-hidden bg-gradient-to-br from-black/90 via-black/95 to-black border-2 border-white/10 rounded-3xl p-6 sm:p-10 text-center shadow-2xl h-full">
-          <div className="pointer-events-none absolute -top-10 -left-10 w-56 h-56 rounded-full blur-3xl bg-white/5" />
-          <div className="pointer-events-none absolute -bottom-14 -right-12 w-72 h-72 rounded-full blur-3xl bg-white/5" />
+        <div className="relative overflow-hidden bg-gradient-to-b from-black/92 to-black/98 border border-white/15 rounded-3xl p-6 sm:p-10 text-center shadow-2xl h-full">
 
           <motion.div
             initial={{ scale: 0, rotate: -180 }}
             animate={{ scale: 1, rotate: 0 }}
             transition={{ delay: 0.2, type: "spring", damping: 15 }}
-            className={`w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-7 rounded-full flex items-center justify-center border-4 ${
+            className={`w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-6 rounded-full flex items-center justify-center border-2 ${
               isWin
-                ? "bg-gradient-to-br from-[#00FFA3]/20 to-[#03E1FF]/20 border-[#00FFA3]/50"
+                ? "bg-[#00FFA3]/10 border-[#00FFA3]/40"
                 : isSurvive
-                  ? "bg-gradient-to-br from-[#03E1FF]/20 to-[#9945FF]/20 border-[#03E1FF]/50"
-                  : "bg-gradient-to-br from-[#FF5B5B]/20 to-[#FF6B9D]/20 border-[#FF5B5B]/50"
+                  ? "bg-[#03E1FF]/10 border-[#03E1FF]/40"
+                  : "bg-[#FF5B5B]/10 border-[#FF5B5B]/40"
             }`}
           >
             {isWin ? (
-              <Trophy className="w-11 h-11 text-[#00FFA3]" />
+              <Trophy className="w-9 h-9 text-[#00FFA3]" />
             ) : isSurvive ? (
-              <ShieldCheck className="w-11 h-11 text-[#03E1FF]" />
+              <ShieldCheck className="w-9 h-9 text-[#03E1FF]" />
             ) : (
-              <Skull className="w-11 h-11 text-[#FF5B5B]" />
+              <Skull className="w-9 h-9 text-[#FF5B5B]" />
             )}
           </motion.div>
 
@@ -87,7 +116,7 @@ export default function ResultOverlay({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className={`text-5xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tight mb-4 ${
+            className={`text-4xl sm:text-5xl lg:text-6xl font-black uppercase tracking-tight mb-4 ${
               isWin
                 ? "text-transparent bg-clip-text bg-gradient-to-r from-[#00FFA3] to-[#03E1FF]"
                 : isSurvive
@@ -102,7 +131,7 @@ export default function ResultOverlay({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
-            className="text-zinc-300 text-base sm:text-xl mb-8 leading-relaxed max-w-3xl mx-auto"
+            className="text-zinc-300 text-sm sm:text-lg mb-8 leading-relaxed max-w-3xl mx-auto"
           >
             {message}
           </motion.p>
@@ -112,20 +141,20 @@ export default function ResultOverlay({
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.5 }}
-              className="mb-6 p-7 sm:p-10 bg-gradient-to-br from-[#00FFA3]/10 to-[#03E1FF]/10 border border-[#00FFA3]/30 rounded-2xl max-w-3xl mx-auto"
+              className="mb-6 p-6 sm:p-8 bg-gradient-to-br from-[#00FFA3]/8 to-[#03E1FF]/8 border border-[#00FFA3]/25 rounded-2xl max-w-3xl mx-auto"
             >
               <div className="flex items-center justify-center gap-2 mb-3">
                 <Sparkles className="w-5 h-5 text-[#00FFA3]" />
                 <span className="text-xs sm:text-sm text-zinc-400 uppercase font-black tracking-widest">
-                  GAIN FINAL
+                  FINAL PAYOUT
                 </span>
                 <Sparkles className="w-5 h-5 text-[#00FFA3]" />
               </div>
-              <p className="text-5xl sm:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#00FFA3] to-[#03E1FF]">
+              <p className="text-4xl sm:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#00FFA3] to-[#03E1FF]">
                 +{amount} SOL
               </p>
               {multiplier ? (
-                <p className="text-2xl sm:text-4xl font-black text-white mt-4">
+                <p className="text-xl sm:text-3xl font-black text-white mt-4">
                   x{multiplier.toFixed(2)}
                 </p>
               ) : null}
@@ -139,18 +168,18 @@ export default function ResultOverlay({
             className="mt-8 max-w-md mx-auto"
           >
             <button
-              onClick={onClose}
+              onClick={handleForcedClose}
               className={`w-full py-4 px-6 font-black uppercase tracking-wider rounded-xl transition-all duration-200 active:scale-95 flex items-center justify-center gap-2 ${
                 isFinal
                   ? "bg-gradient-to-r from-zinc-700 to-zinc-500 text-white hover:brightness-110"
-                  : "bg-gradient-to-r from-[#00FFA3] to-[#03E1FF] text-black shadow-[0_0_30px_rgba(0,255,163,0.4)] hover:shadow-[0_0_50px_rgba(0,255,163,0.6)] hover:scale-105"
+                  : "bg-gradient-to-r from-[#00FFA3] to-[#03E1FF] text-black shadow-[0_0_24px_rgba(0,255,163,0.35)] hover:brightness-110"
               }`}
             >
               {isFinal ? <LogOut className="w-5 h-5" /> : <ArrowRight className="w-5 h-5" />}
               <span>{resolvedActionLabel}</span>
             </button>
             <p className="text-xs text-zinc-500 mt-3 uppercase tracking-widest">
-              Fermeture automatique dans {autoCloseInSeconds}s
+              Auto closes in {autoCloseInSeconds}s
             </p>
           </motion.div>
         </div>
