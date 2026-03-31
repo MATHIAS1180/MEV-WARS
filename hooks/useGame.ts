@@ -79,6 +79,7 @@ export function useGame(roomId: number) {
   const gameResultRef = useRef<GameResult | null>(null);
   const prevPlayerCountRef = useRef<number>(0);
   const prevInProgressRef = useRef<boolean>(false);
+  const pollInFlightRef = useRef<boolean>(false);
 
   useEffect(() => { gameResultRef.current = gameResult; }, [gameResult]);
 
@@ -244,10 +245,16 @@ export function useGame(roomId: number) {
       } catch (e) { console.error('Failed to decode', e); }
     }, 'processed');
 
-    // Polling fallback to keep spectators synced when websocket packets are delayed.
+    // Ultra-live polling for near-real-time sync across players and spectators.
     const pollId = setInterval(() => {
-      fetchState().catch(() => {});
-    }, 1200);
+      if (pollInFlightRef.current) return;
+      pollInFlightRef.current = true;
+      fetchState()
+        .catch(() => {})
+        .finally(() => {
+          pollInFlightRef.current = false;
+        });
+    }, 700);
 
     return () => {
       clearInterval(pollId);
