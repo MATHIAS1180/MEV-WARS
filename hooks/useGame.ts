@@ -268,7 +268,7 @@ export function useGame(roomId: number) {
         .finally(() => {
           pollInFlightRef.current = false;
         });
-    }, 700);
+    }, 800);
 
     return () => {
       clearInterval(pollId);

@@ -221,6 +221,7 @@ export default function Home() {
   }, [actualPlayerCount, myPlayerIndex]);
 
   const gameResultProcessedRef = useRef<string | null>(null);
+  const eliminatedThisGameRef = useRef<boolean>(false);
 
   const prevRoundSnapshotRef = useRef<{ round: number; survivors: string[]; inProgress: boolean }>({
     round: 0,
@@ -254,7 +255,7 @@ export default function Home() {
       const wasInRoundOne = participantsNow.includes(myKey);
       const aliveNow = survivorsNow.includes(myKey);
 
-      if (wasInRoundOne && aliveNow) {
+      if (wasInRoundOne && aliveNow && !eliminatedThisGameRef.current) {
         setShowResult({
           type: 'survive',
           title: 'ROUND 1 SURVIVED',
@@ -265,13 +266,8 @@ export default function Home() {
       }
 
       if (wasInRoundOne && !aliveNow) {
-        setShowResult({
-          type: 'lose',
-          title: 'DEFEAT',
-          msg: `You were eliminated in round 1. Bet lost: ${activeRoom.label}.`,
-          isFinal: true,
-          actionLabel: 'Close',
-        });
+        eliminatedThisGameRef.current = true;
+        setShowResult(null);
       }
     }
 
@@ -279,7 +275,7 @@ export default function Home() {
       const wasAlive = prev.survivors.includes(myKey);
       const aliveNow = survivorsNow.includes(myKey);
 
-      if (wasAlive && aliveNow) {
+      if (wasAlive && aliveNow && !eliminatedThisGameRef.current) {
         setShowResult({
           type: 'survive',
           title: `ROUND ${prev.round} SURVIVED`,
@@ -290,13 +286,8 @@ export default function Home() {
       }
 
       if (wasAlive && !aliveNow) {
-        setShowResult({
-          type: 'lose',
-          title: 'DEFEAT',
-          msg: `You were eliminated in round ${prev.round}. Bet lost: ${activeRoom.label}.`,
-          isFinal: true,
-          actionLabel: 'Close',
-        });
+        eliminatedThisGameRef.current = true;
+        setShowResult(null);
       }
     }
 
@@ -316,72 +307,47 @@ export default function Home() {
   
   useEffect(() => {
     if (!gameResult) return;
-    
+
     const resultKey = `${gameResult.winner || gameResult.winners?.[0]}-${gameResult.winnerAmount}-${Date.now()}`;
     if (gameResultProcessedRef.current === resultKey) return;
     gameResultProcessedRef.current = resultKey;
-    
-    const frozenPlayers = [...lastPlayersRef.current];
-    const frozenResult = { ...gameResult };
-    setIsSpinning(false);
-    setCountdown(3);
-    let count = 3;
-    let timeoutId: NodeJS.Timeout;
-    const intId = setInterval(() => {
-      count -= 1;
-      setCountdown(count);
-      if (count <= 0) {
-        clearInterval(intId);
-        setCountdown(null);
-        setRotation(360 * 3);
-        setIsSpinning(true);
-        timeoutId = setTimeout(() => {
-          setIsSpinning(false);
-          const myKey = publicKey?.toString() ?? '';
-          const wasInGame = frozenPlayers.includes(myKey);
-          const isWinner = frozenResult.winners?.includes(myKey) || frozenResult.winner === myKey;
-          const winAmt = (frozenResult.winnerAmount / 1e9).toFixed(4);
-          if (wasInGame && isWinner) {
-            const multiplierValue = activeRoom.lamports > 0
-              ? frozenResult.winnerAmount / activeRoom.lamports
-              : undefined;
 
-            setShowResult({
-              type: 'win',
-              title: 'VICTORY',
-              msg: `You won the game. Payout has been sent to your wallet.`,
-              amount: parseFloat(winAmt),
-              multiplier: multiplierValue,
-              isFinal: true,
-              actionLabel: 'Close',
-            });
-          } else if (wasInGame && !isWinner) {
-            setShowResult({
-              type: 'lose',
-              title: 'DEFEAT',
-              msg: `Game finished. Your bet (${activeRoom.label}) was lost this round.`,
-              isFinal: true,
-              actionLabel: 'Close',
-            });
-          }
-          setGameResult(null);
-          lastPlayersRef.current = [];
-          gameResultProcessedRef.current = null;
-          setTimeout(() => {
-            setShowResult(null);
-            setRotation(0);
-            setIsProcessingResult(false);
-            myPlayerIndexRef.current = null;
-            stableFetch();
-          }, 5000);
-        }, 2500);
-      }
-    }, 1000);
-    return () => {
-      clearInterval(intId);
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [gameResult, publicKey, setGameResult, stableFetch, activeRoom.lamports, activeRoom.label]);
+    const frozenPlayers = [...lastPlayersRef.current];
+    const myKey = publicKey?.toString() ?? '';
+    const wasInGame = frozenPlayers.includes(myKey);
+    const isWinner = gameResult.winners?.includes(myKey) || gameResult.winner === myKey;
+    const winAmt = (gameResult.winnerAmount / 1e9).toFixed(4);
+
+    setIsSpinning(false);
+    setCountdown(null);
+
+    if (wasInGame && isWinner && !eliminatedThisGameRef.current) {
+      const multiplierValue = activeRoom.lamports > 0
+        ? gameResult.winnerAmount / activeRoom.lamports
+        : undefined;
+
+      setShowResult({
+        type: 'win',
+        title: 'VICTORY',
+        msg: 'You won the game. Payout has been sent to your wallet.',
+        amount: parseFloat(winAmt),
+        multiplier: multiplierValue,
+        isFinal: true,
+        actionLabel: 'Close',
+      });
+    }
+
+    setGameResult(null);
+    lastPlayersRef.current = [];
+    gameResultProcessedRef.current = null;
+    setTimeout(() => {
+      setShowResult(null);
+      setRotation(0);
+      setIsProcessingResult(false);
+      myPlayerIndexRef.current = null;
+      stableFetch();
+    }, 3500);
+  }, [gameResult, publicKey, setGameResult, stableFetch, activeRoom.lamports]);
 
   useEffect(() => {
     if (!showResult) return;
@@ -410,6 +376,11 @@ export default function Home() {
       const wasParticipant = lastPlayersRef.current.includes(myKey);
       if (!wasParticipant) return;
 
+      if (eliminatedThisGameRef.current) {
+        finalFallbackShownRef.current = true;
+        return;
+      }
+
       const survivedUntilEnd = lastInProgress.survivors.includes(myKey);
 
       setShowResult({
@@ -428,6 +399,9 @@ export default function Home() {
     if (inProgressNow) {
       finalFallbackShownRef.current = false;
     }
+    if (!inProgressNow && playerCountNow === 0) {
+      eliminatedThisGameRef.current = false;
+    }
   }, [gameState?.state, gameState?.playerCount, publicKey, gameResult, showResult, activeRoom.label]);
 
   useEffect(() => {
@@ -435,6 +409,7 @@ export default function Home() {
     setTxPending(false); setIsProcessingResult(false);
     lastPlayersRef.current = [];
     gameResultProcessedRef.current = null;
+    eliminatedThisGameRef.current = false;
   }, [roomId]);
 
   const lastCrankTimeRef = useRef(0);
@@ -739,13 +714,13 @@ export default function Home() {
                     }}
                   >
                     <AnimatePresence>
-                      {timeRemaining !== null && timeRemaining > 0 && actualPlayerCount > 0 && countdown === null && (
+                      {timeRemaining !== null && timeRemaining > 0 && countdown === null && (
                         <motion.div
                           initial={{ opacity: 0, scale: 0.88 }}
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.88 }}
                           transition={{ duration: 0.25 }}
-                          className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none"
+                          className="absolute inset-0 z-[80] flex items-center justify-center pointer-events-none"
                         >
                           <CountdownTimer secondsLeft={timeRemaining} totalSeconds={ROUND_EXPIRATION_SECONDS} />
                         </motion.div>
