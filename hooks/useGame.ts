@@ -2,7 +2,7 @@ import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { Program, AnchorProvider, setProvider, BN, EventParser, BorshCoder } from '@coral-xyz/anchor';
 import { PublicKey, SystemProgram } from '@solana/web3.js';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { BLOCK_EXPIRATION_SECONDS, PROGRAM_ID, TREASURY_PUBKEY } from '../config/constants';
+import { PROGRAM_ID } from '../config/constants';
 import { IDL } from '../utils/anchor';
 
 export interface GameResult {
@@ -301,49 +301,31 @@ export function useGame(roomId: number) {
   };
 
   const crankRoom = async (): Promise<'refund' | 'advance'> => {
-    if (!program || !wallet.publicKey || !gameState) throw new Error('Wallet not connected or room not initialized');
+    if (!gameState) throw new Error('Room not initialized');
 
-    const [gamePda] = PublicKey.findProgramAddressSync(
-      [Buffer.from('room'), Buffer.from([roomId])], program.programId
-    );
+    const response = await fetch('/api/crank', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ roomId }),
+    });
 
-    const playerCount = gameState.playerCount ?? 0;
-    if (playerCount === 0) throw new Error('Game is empty');
+    const payload = await response.json().catch(() => null);
 
-    const currentPlayers: PublicKey[] = (gameState.players as PublicKey[])
-      .slice(0, playerCount)
-      .filter((p: PublicKey) => p.toString() !== PublicKey.default.toString());
-
-    const blockStartTime = gameState.blockStartTime ? Number(gameState.blockStartTime.toString()) : 0;
-    const elapsed = Math.floor(Date.now() / 1000) - blockStartTime;
-    const timerExpired = elapsed >= BLOCK_EXPIRATION_SECONDS;
-
-    if (timerExpired && playerCount < 2) {
-      const signature = await program.methods
-        .refundExpiredGame(roomId)
-        .accounts({ game: gamePda })
-        .remainingAccounts(currentPlayers.map((p) => ({ pubkey: p, isWritable: true, isSigner: false })))
-        .rpc();
-
-      console.log('refundExpiredGame TX confirmed:', signature);
-      await fetchState();
-      return 'refund';
+    if (!response.ok) {
+      const errorMessage = payload?.error || 'Failed to crank room';
+      throw new Error(errorMessage);
     }
 
-    if (playerCount < 2) throw new Error('Not enough players to advance round');
+    const action = payload?.action;
+    if (action !== 'refund' && action !== 'advance') {
+      throw new Error('Invalid crank response');
+    }
 
-    const signature = await program.methods
-      .advanceRound(roomId)
-      .accounts({ game: gamePda })
-      .remainingAccounts([
-        ...currentPlayers.map((p) => ({ pubkey: p, isWritable: true, isSigner: false })),
-        { pubkey: TREASURY_PUBKEY, isWritable: true, isSigner: false },
-      ])
-      .rpc();
-
-    console.log('advanceRound TX confirmed:', signature);
+    console.log('crankRoom TX confirmed:', payload?.signature, 'action:', action);
     await fetchState();
-    return 'advance';
+    return action;
   };
 
   const secureGain = async (): Promise<boolean> => {

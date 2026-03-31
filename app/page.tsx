@@ -249,7 +249,6 @@ export default function Home() {
   const lastCrankTimeRef = useRef(0);
   const triggerCrank = useCallback(async () => {
     if (Date.now() - lastCrankTimeRef.current < 10000) return;
-    if (!connected) return;
     lastCrankTimeRef.current = Date.now();
     try {
       const action = await crankRoom();
@@ -261,7 +260,7 @@ export default function Home() {
     } catch {
       // Silently ignore to avoid noisy toast spam during timer checks
     }
-  }, [connected, crankRoom]);
+  }, [crankRoom]);
 
   const prevPlayerCountRef = useRef<number>(0);
   useEffect(() => {
