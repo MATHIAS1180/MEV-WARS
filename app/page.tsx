@@ -13,7 +13,7 @@ import MiningBlock from "@/components/MiningBlock";
 import ResultOverlay from "@/components/ResultOverlay";
 import CountdownTimer from "@/components/CountdownTimer";
 import GameCard from "@/components/GameCard";
-import { ROOMS } from "@/config/constants";
+import { BLOCK_EXPIRATION_SECONDS, ROOMS } from "@/config/constants";
 
 const HowItWorks = dynamic(() => import("@/components/HowItWorks"));
 const WhyDifferent = dynamic(() => import("@/components/WhyDifferent"));
@@ -43,7 +43,7 @@ const WalletMultiButton = dynamic(
   }
 );
 
-const ROUND_EXPIRATION_SECONDS = 20;
+const ROUND_EXPIRATION_SECONDS = BLOCK_EXPIRATION_SECONDS;
 const OVERLAY_AUTO_CLOSE_MS = 5000;
 const RESULT_CLEANUP_DELAY_MS = OVERLAY_AUTO_CLOSE_MS + 200;
 
@@ -549,18 +549,9 @@ export default function Home() {
   const warnedTenSecondsRef = useRef<boolean>(false);
   const warnedFiveSecondsRef = useRef<boolean>(false);
   const blockStartUnix = useMemo(() => {
-    const blockStart = gameState?.blockStartTime
-      ? normalizeUnixTimestamp(Number(gameState.blockStartTime.toString()))
-      : null;
-    const lastActivity = gameState?.lastActivityTime
-      ? normalizeUnixTimestamp(Number(gameState.lastActivityTime.toString()))
-      : null;
-
-    // Use the freshest chain timestamp to keep each round timer in sync.
-    if (blockStart === null) return lastActivity;
-    if (lastActivity === null) return blockStart;
-    return Math.max(blockStart, lastActivity);
-  }, [gameState?.blockStartTime, gameState?.lastActivityTime]);
+    if (!gameState?.blockStartTime) return null;
+    return normalizeUnixTimestamp(Number(gameState.blockStartTime.toString()));
+  }, [gameState?.blockStartTime]);
 
   useEffect(() => {
     const isRoundActive = (isWaiting || isInProgress) && actualPlayerCount > 0;
@@ -589,25 +580,19 @@ export default function Home() {
 
   useEffect(() => {
     const aliveCount = isInProgress ? survivors.length : actualPlayerCount;
-    const canAnimatePreCrank = (isWaiting || isInProgress) && aliveCount >= 2;
+    const canResolveRound = (isWaiting || isInProgress) && aliveCount >= 2;
 
     if (timeRemaining === null) {
       setCountdown(null);
       return;
     }
 
-    if (canAnimatePreCrank && timeRemaining > 0 && timeRemaining <= 5) {
-      setCountdown(timeRemaining);
-      return;
-    }
-
-    if (canAnimatePreCrank && timeRemaining === 0) {
-      setCountdown(null);
-      setIsSpinning(true);
-      return;
-    }
-
+    // Keep the center timer animation style consistent for all 20 seconds.
     setCountdown(null);
+
+    if (canResolveRound && timeRemaining === 0) {
+      setIsSpinning(true);
+    }
   }, [timeRemaining, isWaiting, isInProgress, actualPlayerCount, survivors.length]);
   
   useEffect(() => {
@@ -659,6 +644,24 @@ export default function Home() {
     }
     return timeRemaining;
   }, [timeRemaining, effectiveStartUnix, isWaiting, isInProgress, actualPlayerCount]);
+
+  const hasJoinedCurrentGame = myPlayerIndex !== null;
+  const isSpectatingLiveGame = connected && isInProgress && !hasJoinedCurrentGame;
+
+  useEffect(() => {
+    // When a game fully ends/reset on-chain, restore arena UI to baseline.
+    if (actualPlayerCount !== 0) return;
+    if (isInProgress) return;
+
+    setIsSpinning(false);
+    setCountdown(null);
+    setTimeRemaining(null);
+    setLocalTimerStartMs(null);
+    setRotation(0);
+    hasNotifiedTimerStartRef.current = false;
+    warnedTenSecondsRef.current = false;
+    warnedFiveSecondsRef.current = false;
+  }, [actualPlayerCount, isInProgress]);
 
   const handleInitializeRoom = async () => {
     if (!connected) return;
@@ -1082,7 +1085,7 @@ export default function Home() {
                       <p className="text-[0.65rem] sm:text-xs text-zinc-500 font-bold uppercase tracking-wider">Connect Your Wallet</p>
                       <p className="text-[0.6rem] sm:text-[0.65rem] text-zinc-600 mt-1">Use the button in the header</p>
                     </div>
-                  ) : myPlayerIndex !== null && isCurrentPlayerAlive ? (
+                  ) : hasJoinedCurrentGame && isCurrentPlayerAlive ? (
                     <div className="p-3 sm:p-4 bg-gradient-to-r from-[#00FFA3]/10 to-[#03E1FF]/10 border-2 border-[#00FFA3]/40 rounded-xl">
                       <div className="flex items-center justify-center gap-2 mb-1">
                         <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-[#00FFA3]" />
@@ -1090,17 +1093,25 @@ export default function Home() {
                       </div>
                       <p className="text-center text-xs sm:text-sm text-zinc-400">Position #{(displayPlayerIndex ?? myPlayerIndex) + 1}</p>
                     </div>
-                  ) : myPlayerIndex !== null && isInProgress && !isCurrentPlayerAlive ? (
+                  ) : hasJoinedCurrentGame && isInProgress && !isCurrentPlayerAlive ? (
                     <div className="p-3 sm:p-4 bg-gradient-to-r from-[#FF5B5B]/10 to-[#FF6B9D]/10 border-2 border-[#FF5B5B]/40 rounded-xl">
                       <div className="flex items-center justify-center gap-2 mb-1">
                         <p className="text-base sm:text-lg font-black text-[#FF5B5B]">Eliminated</p>
                       </div>
-                      <p className="text-center text-xs sm:text-sm text-zinc-400">Wait for the next game to join again</p>
+                      <p className="text-center text-xs sm:text-sm text-zinc-400">Position #{(displayPlayerIndex ?? myPlayerIndex) + 1} • Wait for next game</p>
+                    </div>
+                  ) : isSpectatingLiveGame ? (
+                    <div className="p-3 sm:p-4 bg-gradient-to-r from-white/5 to-white/10 border border-white/15 rounded-xl">
+                      <div className="flex items-center justify-center gap-2 mb-1">
+                        <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-zinc-300" />
+                        <p className="text-base sm:text-lg font-black text-zinc-100">Game In Progress</p>
+                      </div>
+                      <p className="text-center text-xs sm:text-sm text-zinc-400">Wait for round end to enter the next game</p>
                     </div>
                   ) : (
                     <button
                       onClick={handleJoin}
-                      disabled={txPending}
+                      disabled={txPending || isInProgress}
                       className="w-full py-3 sm:py-4 px-4 sm:px-6 bg-gradient-to-r from-[#00FFA3] to-[#03E1FF] text-black font-black uppercase text-xs sm:text-sm rounded-xl shadow-[0_0_30px_rgba(0,255,163,0.4)] hover:shadow-[0_0_50px_rgba(0,255,163,0.6)] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {txPending ? (
@@ -1108,6 +1119,8 @@ export default function Home() {
                           <Loader2 className="animate-spin w-4 h-4 sm:w-5 sm:h-5" />
                           <span>Processing...</span>
                         </span>
+                      ) : isInProgress ? (
+                        'Round In Progress'
                       ) : (
                         `Enter Round - ${activeRoom.label}`
                       )}
