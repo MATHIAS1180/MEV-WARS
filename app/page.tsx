@@ -43,6 +43,8 @@ const WalletMultiButton = dynamic(
 );
 
 const ROUND_EXPIRATION_SECONDS = 20;
+const OVERLAY_AUTO_CLOSE_MS = 5000;
+const RESULT_CLEANUP_DELAY_MS = OVERLAY_AUTO_CLOSE_MS + 200;
 
 interface RoundOverlayState {
   type: 'win' | 'lose' | 'survive';
@@ -136,6 +138,7 @@ export default function Home() {
   const [txPending, setTxPending] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [showResult, setShowResult] = useState<RoundOverlayState | null>(null);
+  const [overlayCloseAtMs, setOverlayCloseAtMs] = useState<number | null>(null);
   const [isProcessingResult, setIsProcessingResult] = useState(false);
 
   const actualPlayerCount = gameState?.playerCount ?? 0;
@@ -222,6 +225,8 @@ export default function Home() {
 
   const gameResultProcessedRef = useRef<string | null>(null);
   const eliminatedThisGameRef = useRef<boolean>(false);
+  const resultCleanupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const overlayAutoCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const prevRoundSnapshotRef = useRef<{ round: number; survivors: string[]; inProgress: boolean }>({
     round: 0,
@@ -254,6 +259,7 @@ export default function Home() {
     if (inProgressNow && !prev.inProgress && roundNow >= 2) {
       const wasInRoundOne = participantsNow.includes(myKey);
       const aliveNow = survivorsNow.includes(myKey);
+      setIsSpinning(false);
 
       if (wasInRoundOne && aliveNow && !eliminatedThisGameRef.current) {
         setShowResult({
@@ -267,13 +273,20 @@ export default function Home() {
 
       if (wasInRoundOne && !aliveNow) {
         eliminatedThisGameRef.current = true;
-        setShowResult(null);
+        setShowResult({
+          type: 'lose',
+          title: 'ROUND 1 ELIMINATED',
+          msg: 'You were eliminated on round 1. You can watch the rest of the game.',
+          isFinal: false,
+          actionLabel: 'Continue Watching',
+        });
       }
     }
 
     if (inProgressNow && prev.inProgress && roundNow > prev.round) {
       const wasAlive = prev.survivors.includes(myKey);
       const aliveNow = survivorsNow.includes(myKey);
+      setIsSpinning(false);
 
       if (wasAlive && aliveNow && !eliminatedThisGameRef.current) {
         setShowResult({
@@ -287,7 +300,13 @@ export default function Home() {
 
       if (wasAlive && !aliveNow) {
         eliminatedThisGameRef.current = true;
-        setShowResult(null);
+        setShowResult({
+          type: 'lose',
+          title: `ROUND ${prev.round} ELIMINATED`,
+          msg: `You were eliminated on round ${prev.round}. You can watch the rest of the game.`,
+          isFinal: false,
+          actionLabel: 'Continue Watching',
+        });
       }
     }
 
@@ -308,7 +327,9 @@ export default function Home() {
   useEffect(() => {
     if (!gameResult) return;
 
-    const resultKey = `${gameResult.winner || gameResult.winners?.[0]}-${gameResult.winnerAmount}-${Date.now()}`;
+    const primaryWinner = gameResult.winners?.[0] || gameResult.winner || 'none';
+    const participantsFingerprint = [...lastPlayersRef.current].sort().join('|');
+    const resultKey = `${participantsFingerprint}-${primaryWinner}-${gameResult.winnerAmount}-${gameResult.totalPot}`;
     if (gameResultProcessedRef.current === resultKey) return;
     gameResultProcessedRef.current = resultKey;
 
@@ -335,25 +356,73 @@ export default function Home() {
         isFinal: true,
         actionLabel: 'Close',
       });
+    } else if (wasInGame) {
+      setShowResult({
+        type: 'lose',
+        title: 'DEFEAT',
+        msg: `Game finished. Your bet (${activeRoom.label}) was lost.`,
+        isFinal: true,
+        actionLabel: 'Close',
+      });
     }
 
     setGameResult(null);
     lastPlayersRef.current = [];
-    gameResultProcessedRef.current = null;
-    setTimeout(() => {
+
+    if (resultCleanupTimeoutRef.current) {
+      clearTimeout(resultCleanupTimeoutRef.current);
+    }
+    resultCleanupTimeoutRef.current = setTimeout(() => {
       setShowResult(null);
+      setOverlayCloseAtMs(null);
       setRotation(0);
       setIsProcessingResult(false);
       myPlayerIndexRef.current = null;
       stableFetch();
-    }, 3500);
-  }, [gameResult, publicKey, setGameResult, stableFetch, activeRoom.lamports]);
+      resultCleanupTimeoutRef.current = null;
+    }, RESULT_CLEANUP_DELAY_MS);
+  }, [gameResult, publicKey, setGameResult, stableFetch, activeRoom.lamports, activeRoom.label]);
 
   useEffect(() => {
-    if (!showResult) return;
-    const timeout = setTimeout(() => setShowResult(null), 5000);
-    return () => clearTimeout(timeout);
+    if (overlayAutoCloseTimeoutRef.current) {
+      clearTimeout(overlayAutoCloseTimeoutRef.current);
+      overlayAutoCloseTimeoutRef.current = null;
+    }
+
+    if (!showResult) {
+      setOverlayCloseAtMs(null);
+      return;
+    }
+
+    const closeAt = Date.now() + OVERLAY_AUTO_CLOSE_MS;
+    setOverlayCloseAtMs(closeAt);
+
+    overlayAutoCloseTimeoutRef.current = setTimeout(() => {
+      setShowResult(null);
+      setOverlayCloseAtMs(null);
+      overlayAutoCloseTimeoutRef.current = null;
+    }, OVERLAY_AUTO_CLOSE_MS);
+
+    return () => {
+      if (overlayAutoCloseTimeoutRef.current) {
+        clearTimeout(overlayAutoCloseTimeoutRef.current);
+        overlayAutoCloseTimeoutRef.current = null;
+      }
+    };
   }, [showResult]);
+
+  useEffect(() => {
+    return () => {
+      if (resultCleanupTimeoutRef.current) {
+        clearTimeout(resultCleanupTimeoutRef.current);
+        resultCleanupTimeoutRef.current = null;
+      }
+      if (overlayAutoCloseTimeoutRef.current) {
+        clearTimeout(overlayAutoCloseTimeoutRef.current);
+        overlayAutoCloseTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   const finalFallbackShownRef = useRef(false);
   useEffect(() => {
@@ -406,6 +475,7 @@ export default function Home() {
 
   useEffect(() => {
     setShowResult(null); setIsSpinning(false); setCountdown(null);
+    setOverlayCloseAtMs(null);
     setTxPending(false); setIsProcessingResult(false);
     lastPlayersRef.current = [];
     gameResultProcessedRef.current = null;
@@ -450,6 +520,7 @@ export default function Home() {
       setCountdown(null);
       setTxPending(false);
       setShowResult(null);
+      setOverlayCloseAtMs(null);
       setGameResult(null);
       setIsProcessingResult(false);
       myPlayerIndexRef.current = null;
@@ -463,12 +534,36 @@ export default function Home() {
 
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const hasNotifiedTimerStartRef = useRef<boolean>(false);
+  const warnedTenSecondsRef = useRef<boolean>(false);
+  const warnedFiveSecondsRef = useRef<boolean>(false);
   const blockStartUnix = useMemo(() => {
     if (!gameState) return null;
     if (gameState.blockStartTime) return Number(gameState.blockStartTime.toString());
     if (gameState.lastActivityTime) return Number(gameState.lastActivityTime.toString());
     return null;
   }, [gameState?.blockStartTime, gameState?.lastActivityTime, gameState]);
+
+  useEffect(() => {
+    const canAnimatePreCrank = isWaiting && actualPlayerCount >= 2;
+
+    if (timeRemaining === null) {
+      setCountdown(null);
+      return;
+    }
+
+    if (canAnimatePreCrank && timeRemaining > 0 && timeRemaining <= 5) {
+      setCountdown(timeRemaining);
+      return;
+    }
+
+    if (canAnimatePreCrank && timeRemaining === 0) {
+      setCountdown(null);
+      setIsSpinning(true);
+      return;
+    }
+
+    setCountdown(null);
+  }, [timeRemaining, isWaiting, actualPlayerCount]);
   
   useEffect(() => {
     if (blockStartUnix !== null && (isWaiting || isInProgress) && actualPlayerCount > 0) {
@@ -485,10 +580,12 @@ export default function Home() {
         setTimeRemaining(remaining);
         
         // Warning notifications (only relevant during waiting phase)
-        if (isWaiting && remaining === 10 && actualPlayerCount < 2) {
+        if (isWaiting && remaining === 10 && actualPlayerCount < 2 && !warnedTenSecondsRef.current) {
+          warnedTenSecondsRef.current = true;
           toast.warning('10 seconds left! Need 2 players minimum', { duration: 3000 });
         }
-        if (remaining === 5 && actualPlayerCount >= 2) {
+        if (remaining === 5 && actualPlayerCount >= 2 && !warnedFiveSecondsRef.current) {
+          warnedFiveSecondsRef.current = true;
           toast.info('5 seconds until round ends!', { duration: 2000 });
         }
         
@@ -498,6 +595,8 @@ export default function Home() {
     }
     setTimeRemaining(null);
     hasNotifiedTimerStartRef.current = false;
+    warnedTenSecondsRef.current = false;
+    warnedFiveSecondsRef.current = false;
   }, [blockStartUnix, isWaiting, isInProgress, actualPlayerCount, triggerCrank]);
 
   const handleInitializeRoom = async () => {
@@ -987,8 +1086,12 @@ export default function Home() {
             multiplier={showResult.multiplier}
             isFinal={showResult.isFinal}
             actionLabel={showResult.actionLabel}
-            autoCloseInSeconds={5}
-            onClose={() => setShowResult(null)}
+            autoCloseInSeconds={OVERLAY_AUTO_CLOSE_MS / 1000}
+            autoCloseAtMs={overlayCloseAtMs ?? undefined}
+            onClose={() => {
+              setShowResult(null);
+              setOverlayCloseAtMs(null);
+            }}
           />
         )}
       </AnimatePresence>

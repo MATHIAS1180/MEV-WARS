@@ -1,6 +1,6 @@
 "use client";
 import { motion } from "framer-motion";
-import { useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Trophy, Skull, Sparkles, ShieldCheck, ArrowRight, LogOut } from "lucide-react";
 
 interface ResultOverlayProps {
@@ -11,6 +11,7 @@ interface ResultOverlayProps {
   multiplier?: number;
   actionLabel?: string;
   autoCloseInSeconds?: number;
+  autoCloseAtMs?: number;
   isFinal?: boolean;
   onClose: () => void;
 }
@@ -23,6 +24,7 @@ export default function ResultOverlay({
   multiplier,
   actionLabel,
   autoCloseInSeconds = 5,
+  autoCloseAtMs,
   isFinal = false,
   onClose,
 }: ResultOverlayProps) {
@@ -31,6 +33,24 @@ export default function ResultOverlay({
 
   const resolvedTitle = title ?? (isWin ? "VICTORY" : isSurvive ? "SURVIVED" : "DEFEAT");
   const resolvedActionLabel = actionLabel ?? (isFinal ? "Close" : "Next Round");
+  const [remainingSeconds, setRemainingSeconds] = useState<number>(autoCloseInSeconds);
+
+  const fallbackCloseAtMs = useMemo(
+    () => Date.now() + autoCloseInSeconds * 1000,
+    [autoCloseInSeconds]
+  );
+  const effectiveCloseAtMs = autoCloseAtMs ?? fallbackCloseAtMs;
+
+  useEffect(() => {
+    const updateRemaining = () => {
+      const msLeft = Math.max(0, effectiveCloseAtMs - Date.now());
+      setRemainingSeconds(Math.max(0, Math.ceil(msLeft / 1000)));
+    };
+
+    updateRemaining();
+    const interval = setInterval(updateRemaining, 250);
+    return () => clearInterval(interval);
+  }, [effectiveCloseAtMs]);
 
   const playCloseSound = useCallback(() => {
     if (typeof window === "undefined") return;
@@ -179,7 +199,7 @@ export default function ResultOverlay({
               <span>{resolvedActionLabel}</span>
             </button>
             <p className="text-xs text-zinc-500 mt-3 uppercase tracking-widest">
-              Auto closes in {autoCloseInSeconds}s
+              Auto closes in {remainingSeconds}s
             </p>
           </motion.div>
         </div>
