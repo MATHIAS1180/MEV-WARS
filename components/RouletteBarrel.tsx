@@ -26,13 +26,14 @@ export default function RouletteBarrel({ playerCount, isSpinning, rotation }: Ro
   return (
     <div className="relative w-full max-w-[400px] aspect-square mx-auto">
       {/* Glow Effect */}
-      <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#DC1FFF]/30 via-transparent to-[#00FFA3]/30 blur-3xl animate-pulse" />
+      <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#DC1FFF]/30 via-transparent to-[#00FFA3]/30 blur-3xl animate-pulse" style={{ willChange: "filter", transform: "translateZ(0)" }} />
 
       {/* Main Barrel */}
       <motion.div
         animate={{ rotate: rotation }}
         transition={{ duration: isSpinning ? 5 : 0, ease: [0.25, 0.1, 0.25, 1] }}
         className="relative w-full h-full"
+        style={{ willChange: "transform", transform: "translateZ(0)" }}
       >
         {/* Outer Ring */}
         <div className="absolute inset-0 rounded-full border-4 border-white/10 bg-gradient-radial from-black/60 via-black/80 to-black/95 shadow-[0_0_100px_rgba(220,31,255,0.4)]">
@@ -51,9 +52,11 @@ export default function RouletteBarrel({ playerCount, isSpinning, rotation }: Ro
                   scale: slot.isActive ? 1 : 0.5,
                   opacity: slot.isActive ? 1 : 0.3,
                 }}
-                transition={{ delay: slot.id * 0.015, duration: 0.3 }}
+                transition={{ delay: slot.id * 0.01, duration: 0.2 }}
                 className="absolute w-[10%] h-[10%] rounded-full"
                 style={{
+                  willChange: "transform, opacity",
+                  transform: "translateZ(0)",
                   left: `${x}%`,
                   top: `${y}%`,
                   transform: "translate(-50%, -50%)",

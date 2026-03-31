@@ -57,7 +57,7 @@ export function useLiveActivity() {
         );
 
         try {
-          const signatures = await connection.getSignaturesForAddress(gamePda, { limit: 10 });
+          const signatures = await connection.getSignaturesForAddress(gamePda, { limit: 30 });
 
           for (const sig of signatures) {
             if (processedSignatures.current.has(sig.signature)) continue;
@@ -147,6 +147,56 @@ export function useLiveActivity() {
         PROGRAM_ID
       );
 
+      // Real-time polling for faster event detection (every 3 seconds)
+      const pollIntervalId = setInterval(async () => {
+        try {
+          const signatures = await connection.getSignaturesForAddress(gamePda, { limit: 30 });
+          for (const sig of signatures) {
+            if (processedSignatures.current.has(sig.signature)) continue;
+            processedSignatures.current.add(sig.signature);
+            
+            const tx = await connection.getTransaction(sig.signature, {
+              maxSupportedTransactionVersion: 0,
+              commitment: 'confirmed',
+            });
+            
+            if (tx?.meta?.logMessages && tx.blockTime) {
+              const parser = new EventParser(PROGRAM_ID, new BorshCoder(IDL as any));
+              const timestamp = tx.blockTime * 1000;
+              
+              for (const event of parser.parseLogs(tx.meta.logMessages)) {
+                if (event.name === 'WinnerExtractedEvent') {
+                  const data = event.data as any;
+                  const winner = data.winner.toString();
+                  const amount = data.amount.toNumber() / 1e9;
+                  addActivity({
+                    id: `win-${roomId}-${winner}-${timestamp}`,
+                    type: 'win',
+                    address: formatAddress(winner),
+                    amount: parseFloat(amount.toFixed(4)),
+                    roomId,
+                    timestamp,
+                  });
+                }
+                if (event.name === 'GameRefundedEvent') {
+                  addActivity({
+                    id: `refund-${roomId}-${timestamp}`,
+                    type: 'refund',
+                    address: 'All players',
+                    roomId,
+                    timestamp,
+                  });
+                }
+              }
+            }
+          }
+        } catch (err) {
+          console.error(`Poll error room ${roomId}:`, err);
+        }
+      }, 3000); // Poll every 3 seconds
+      
+      subscriptions.push(pollIntervalId as any);
+
       // Listen for account changes
       const subId = connection.onAccountChange(
         gamePda,
@@ -191,6 +241,9 @@ export function useLiveActivity() {
                     maxSupportedTransactionVersion: 0,
                     commitment: 'confirmed',
                   });
+                  
+                  // Cache bust: skip if already 2 min old (avoid stale data)
+                  if (tx?.blockTime && Date.now() / 1000 - tx.blockTime > 120) continue;
 
                   if (tx?.meta?.logMessages) {
                     const parser = new EventParser(PROGRAM_ID, new BorshCoder(IDL as any));

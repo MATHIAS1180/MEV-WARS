@@ -1,6 +1,6 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import styles from './MiningBlock.module.css';
 
 // Solana official colors - one for each of the 30 squares
@@ -55,6 +55,9 @@ const SQUARES = Array.from({ length: 30 }, (_, i) => ({
 export default function MiningBlock({ playerCount, isSpinning, countdown }: Props) {
   const isActive = isSpinning || countdown !== null;
   const [performanceMode, setPerformanceMode] = useState(true);
+  
+  // Memoize slots to prevent re-renders
+  const memoizedSquares = useMemo(() => SQUARES, []);
 
   useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -92,20 +95,23 @@ export default function MiningBlock({ playerCount, isSpinning, countdown }: Prop
           : `radial-gradient(ellipse, ${PURPLE_DINO}20 0%, ${OCEAN_BLUE}15 40%, transparent 75%)`,
         filter: performanceMode ? "blur(36px)" : "blur(60px)",
         transition: "background 1s ease",
+        willChange: "background",
+        transform: "translate3d(0, 0, 0)",
       }} />
 
       {/* Countdown rings */}
       <AnimatePresence>
         {countdown !== null && countdown > 0 && (
-          <div key={`rings-${countdown}`} className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            {[...Array(performanceMode ? 1 : 3)].map((_, i) => {
+          <div key={`rings-${countdown}`} className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ willChange: "contents" }}>
+            {[...Array(performanceMode ? 1 : 2)].map((_, i) => {
               const rc = countdown === 1 ? "#FF6B9D" : countdown === 2 ? "#FFB84D" : SURGE_GREEN;
               return (
                 <motion.div key={i} className="absolute"
                   initial={{ scale: 0.4, opacity: 1 }}
                   animate={{ scale: 2.5, opacity: 0 }}
-                  transition={{ duration: 1.0, delay: i * 0.2, ease: [0.22, 1, 0.36, 1] }}>
-                  <div className="w-[450px] h-[450px] rounded-full border-2" style={{ borderColor: rc }} />
+                  transition={{ duration: 0.8, delay: i * 0.1, ease: [0.22, 1, 0.36, 1] }}
+                  style={{ willChange: "transform, opacity" }}>
+                  <div className="w-[450px] h-[450px] rounded-full border-2" style={{ borderColor: rc, transform: "translate3d(0, 0, 0)" }} />
                 </motion.div>
               );
             })}
