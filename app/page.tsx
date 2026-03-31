@@ -227,6 +227,10 @@ export default function Home() {
     survivors: [],
     inProgress: false,
   });
+  const lastInProgressSnapshotRef = useRef<{ round: number; survivors: string[] }>({
+    round: 0,
+    survivors: [],
+  });
 
   useEffect(() => {
     if (!publicKey) return;
@@ -301,6 +305,13 @@ export default function Home() {
       survivors: survivorsNow,
       inProgress: inProgressNow,
     };
+
+    if (inProgressNow) {
+      lastInProgressSnapshotRef.current = {
+        round: roundNow,
+        survivors: survivorsNow,
+      };
+    }
   }, [gameState?.state, gameState?.currentRound, gameState?.survivors, publicKey, activeRoom.label]);
   
   useEffect(() => {
@@ -383,15 +394,15 @@ export default function Home() {
     if (!publicKey) return;
 
     const myKey = publicKey.toString();
-    const prev = prevRoundSnapshotRef.current;
     const inProgressNow = !!(gameState?.state && 'inProgress' in gameState.state);
     const playerCountNow = gameState?.playerCount ?? 0;
+    const lastInProgress = lastInProgressSnapshotRef.current;
 
     // Fallback for final card in case winner log parsing misses on slow RPC.
     if (
-      prev.inProgress &&
       !inProgressNow &&
       playerCountNow === 0 &&
+      lastInProgress.round > 0 &&
       !gameResult &&
       !showResult &&
       !finalFallbackShownRef.current
@@ -399,7 +410,7 @@ export default function Home() {
       const wasParticipant = lastPlayersRef.current.includes(myKey);
       if (!wasParticipant) return;
 
-      const survivedUntilEnd = prev.survivors.includes(myKey);
+      const survivedUntilEnd = lastInProgress.survivors.includes(myKey);
 
       setShowResult({
         type: survivedUntilEnd ? 'win' : 'lose',

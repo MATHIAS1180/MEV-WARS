@@ -78,6 +78,7 @@ export function useGame(roomId: number) {
 
   const gameResultRef = useRef<GameResult | null>(null);
   const prevPlayerCountRef = useRef<number>(0);
+  const prevInProgressRef = useRef<boolean>(false);
 
   useEffect(() => { gameResultRef.current = gameResult; }, [gameResult]);
 
@@ -165,11 +166,14 @@ export function useGame(roomId: number) {
       try {
         const decoded = program.coder.accounts.decode('Game', info.data);
         const prev = prevPlayerCountRef.current;
+        const inProgressNow = !!(decoded.state && (decoded.state as any).inProgress);
+        const settledTransition = prevInProgressRef.current && !inProgressNow;
         prevPlayerCountRef.current = decoded.playerCount;
+        prevInProgressRef.current = inProgressNow;
         setGameState(decoded);
 
         // Game just settled (player count dropped to 0)
-        if (prev >= 2 && decoded.playerCount === 0 && !gameResultRef.current) {
+        if ((prev >= 2 && decoded.playerCount === 0 || settledTransition) && !gameResultRef.current) {
           console.log('[useGame] Game settled detected! prev:', prev, 'current:', decoded.playerCount);
           setIsScanningLogs(true);
 
@@ -184,7 +188,7 @@ export function useGame(roomId: number) {
             allPlayers
           });
 
-          let retries = 10;
+          let retries = 18;
           const fetchResult = async () => {
             if (gameResultRef.current) {
               console.log('[useGame] Result already found, stopping scan');
@@ -193,7 +197,7 @@ export function useGame(roomId: number) {
             }
             try {
               console.log('[useGame] Fetching signatures, retry:', 10 - retries);
-              const sigs = await connection.getSignaturesForAddress(gamePda, { limit: 15 });
+              const sigs = await connection.getSignaturesForAddress(gamePda, { limit: 40 });
               console.log('[useGame] Found', sigs.length, 'signatures');
               let foundResult = null;
               for (const sig of sigs) {
@@ -215,8 +219,8 @@ export function useGame(roomId: number) {
                 setGameResult(foundResult);
                 setIsScanningLogs(false);
               } else if (retries-- > 0) {
-                console.log('[useGame] No result yet, retrying in 2s...');
-                setTimeout(fetchResult, 2000);
+                console.log('[useGame] No result yet, retrying in 1s...');
+                setTimeout(fetchResult, 1000);
               } else {
                 console.log('[useGame] Max retries reached, no result found');
                 // Don't set any result - let user know settlement failed
@@ -225,7 +229,7 @@ export function useGame(roomId: number) {
               }
             } catch (e) {
               console.error('[useGame] Error fetching result:', e);
-              if (retries-- > 0) setTimeout(fetchResult, 2000);
+              if (retries-- > 0) setTimeout(fetchResult, 1000);
               else {
                 console.log('[useGame] Using no result after errors');
                 setIsScanningLogs(false);
@@ -238,9 +242,15 @@ export function useGame(roomId: number) {
           fetchResult();
         }
       } catch (e) { console.error('Failed to decode', e); }
-    }, 'confirmed');
+    }, 'processed');
+
+    // Polling fallback to keep spectators synced when websocket packets are delayed.
+    const pollId = setInterval(() => {
+      fetchState().catch(() => {});
+    }, 1200);
 
     return () => {
+      clearInterval(pollId);
       connection.removeAccountChangeListener(subId).catch(console.error);
     };
   }, [program, connection, roomId, parseLogsForResult, fetchState]);
