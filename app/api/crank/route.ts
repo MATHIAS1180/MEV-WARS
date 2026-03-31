@@ -106,9 +106,14 @@ export async function POST(req: NextRequest) {
       .slice(0, playerCount)
       .filter((p: PublicKey) => p.toString() !== PublicKey.default.toString());
 
-    // Check if timer expired (30 seconds)
-    const now = Math.floor(Date.now() / 1000);
-    const elapsed = now - blockStartTime;
+    // Use Solana chain time (from current slot) to avoid server clock drift.
+    const nowSlot = await connection.getSlot('confirmed');
+    const nowBlockTime = await connection.getBlockTime(nowSlot);
+    if (typeof nowBlockTime !== 'number' || nowBlockTime <= 0) {
+      return NextResponse.json({ error: 'Unable to read chain time from RPC' }, { status: 503 });
+    }
+
+    const elapsed = nowBlockTime - blockStartTime;
     const timerExpired = elapsed >= BLOCK_EXPIRATION_SECONDS;
 
     // If timer expired and <2 players, refund

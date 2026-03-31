@@ -65,7 +65,7 @@ interface RoundOverlayState {
 export default function Home() {
   const { connected, publicKey } = useWallet();
   const [roomId, setRoomId] = useState<number>(101);
-  const { gameState, fetchState, joinGame, initializeRoom, crankRoom, secureGain, gameResult, setGameResult } = useGame(roomId);
+  const { gameState, fetchState, joinGame, initializeRoom, crankRoom, secureGain, gameResult, setGameResult, chainClockUnix } = useGame(roomId);
 
   // Dynamic viewport sizing
   const [viewportSize, setViewportSize] = useState({ width: 1280, height: 720 });
@@ -544,7 +544,7 @@ export default function Home() {
   }, [actualPlayerCount, stableFetch, setGameResult]);
 
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
-  const [localTimerStartMs, setLocalTimerStartMs] = useState<number | null>(null);
+  const chainClockAnchorRef = useRef<{ chainUnix: number; localMs: number } | null>(null);
   const hasNotifiedTimerStartRef = useRef<boolean>(false);
   const warnedTenSecondsRef = useRef<boolean>(false);
   const warnedFiveSecondsRef = useRef<boolean>(false);
@@ -554,29 +554,14 @@ export default function Home() {
   }, [gameState?.blockStartTime]);
 
   useEffect(() => {
-    const isRoundActive = (isWaiting || isInProgress) && actualPlayerCount > 0;
+    if (chainClockUnix === null) return;
+    chainClockAnchorRef.current = {
+      chainUnix: chainClockUnix,
+      localMs: Date.now(),
+    };
+  }, [chainClockUnix]);
 
-    if (!isRoundActive) {
-      setLocalTimerStartMs(null);
-      return;
-    }
-
-    // Fallback start point when RPC timestamp fields are late/missing.
-    if (blockStartUnix === null && localTimerStartMs === null) {
-      setLocalTimerStartMs(Date.now());
-    }
-
-    // Trust on-chain timestamp as soon as it is available.
-    if (blockStartUnix !== null && localTimerStartMs !== null) {
-      setLocalTimerStartMs(null);
-    }
-  }, [blockStartUnix, localTimerStartMs, isWaiting, isInProgress, actualPlayerCount]);
-
-  const effectiveStartUnix = useMemo(() => {
-    if (blockStartUnix !== null) return blockStartUnix;
-    if (localTimerStartMs !== null) return Math.floor(localTimerStartMs / 1000);
-    return null;
-  }, [blockStartUnix, localTimerStartMs]);
+  const effectiveStartUnix = blockStartUnix;
 
   useEffect(() => {
     const aliveCount = isInProgress ? survivors.length : actualPlayerCount;
@@ -604,7 +589,14 @@ export default function Home() {
       }
 
       const tick = () => {
-        const elapsed = Math.floor(Date.now() / 1000) - effectiveStartUnix;
+        const anchor = chainClockAnchorRef.current;
+        if (!anchor) {
+          setTimeRemaining(null);
+          return;
+        }
+
+        const nowUnix = anchor.chainUnix + Math.max(0, Math.floor((Date.now() - anchor.localMs) / 1000));
+        const elapsed = nowUnix - effectiveStartUnix;
         const r = ROUND_EXPIRATION_SECONDS - elapsed;
         const remaining = r > 0 ? r : 0;
         setTimeRemaining(remaining);
@@ -622,28 +614,28 @@ export default function Home() {
         if (remaining === 0) triggerCrank();
       };
 
-      // Run immediately so UI never stays frozen at fallback value.
+      // Run immediately so UI aligns to current on-chain clock without first-second lag.
       tick();
-      const iv = setInterval(tick, 1000);
+      const iv = setInterval(tick, 250);
       return () => clearInterval(iv);
     }
     setTimeRemaining(null);
     hasNotifiedTimerStartRef.current = false;
     warnedTenSecondsRef.current = false;
     warnedFiveSecondsRef.current = false;
-  }, [effectiveStartUnix, isWaiting, isInProgress, actualPlayerCount, triggerCrank]);
+  }, [effectiveStartUnix, isWaiting, isInProgress, actualPlayerCount, triggerCrank, chainClockUnix]);
 
   const displayTimerSeconds = useMemo(() => {
     const isRoundActive = (isWaiting || isInProgress) && actualPlayerCount > 0;
     if (!isRoundActive) return null;
+    if (effectiveStartUnix === null || chainClockUnix === null) return null;
     if (timeRemaining === null) {
-      if (effectiveStartUnix === null) return ROUND_EXPIRATION_SECONDS;
-      const elapsed = Math.floor(Date.now() / 1000) - effectiveStartUnix;
+      const elapsed = chainClockUnix - effectiveStartUnix;
       const remaining = ROUND_EXPIRATION_SECONDS - elapsed;
       return remaining > 0 ? remaining : 0;
     }
     return timeRemaining;
-  }, [timeRemaining, effectiveStartUnix, isWaiting, isInProgress, actualPlayerCount]);
+  }, [timeRemaining, effectiveStartUnix, chainClockUnix, isWaiting, isInProgress, actualPlayerCount]);
 
   const hasJoinedCurrentGame = myPlayerIndex !== null;
   const isSpectatingLiveGame = connected && isInProgress && !hasJoinedCurrentGame;
@@ -656,7 +648,6 @@ export default function Home() {
     setIsSpinning(false);
     setCountdown(null);
     setTimeRemaining(null);
-    setLocalTimerStartMs(null);
     setRotation(0);
     hasNotifiedTimerStartRef.current = false;
     warnedTenSecondsRef.current = false;

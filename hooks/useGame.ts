@@ -75,6 +75,7 @@ export function useGame(roomId: number) {
   const [isLoading, setIsLoading] = useState(false);
   const [isScanningLogs, setIsScanningLogs] = useState(false);
   const [gameResult, setGameResult] = useState<GameResult | null>(null);
+  const [chainClockUnix, setChainClockUnix] = useState<number | null>(null);
 
   const gameResultRef = useRef<GameResult | null>(null);
   const prevPlayerCountRef = useRef<number>(0);
@@ -282,6 +283,35 @@ export function useGame(roomId: number) {
     };
   }, [program, connection, roomId, parseLogsForResult, fetchState]);
 
+  useEffect(() => {
+    let cancelled = false;
+    let inFlight = false;
+
+    const syncChainClock = async () => {
+      if (inFlight) return;
+      inFlight = true;
+      try {
+        const slot = await connection.getSlot('processed');
+        const blockTime = await connection.getBlockTime(slot);
+        if (!cancelled && typeof blockTime === 'number' && blockTime > 0) {
+          setChainClockUnix(blockTime);
+        }
+      } catch {
+        // Ignore transient RPC clock sync errors.
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    syncChainClock();
+    const intervalId = setInterval(syncChainClock, 1500);
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [connection]);
+
   const joinGame = async (entryFeeLamports: number): Promise<boolean> => {
     if (!program || !wallet.publicKey || !provider) throw new Error('Wallet not connected');
 
@@ -388,6 +418,7 @@ export function useGame(roomId: number) {
     gameState,
     isLoading,
     isScanningLogs,
+    chainClockUnix,
     joinGame,
     initializeRoom,
     crankRoom,

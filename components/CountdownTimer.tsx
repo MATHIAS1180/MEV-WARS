@@ -18,8 +18,6 @@ export default function CountdownTimer({ secondsLeft, totalSeconds = 30 }: Count
     if (secondsLeft > 8) return '#FFB547';  // Orange
     return '#FF5B5B'; // Red
   }, [secondsLeft]);
-  
-  const isPulsing = secondsLeft <= 5 && secondsLeft > 0;
 
   return (
     <div className="relative w-[140px] h-[140px] mx-auto">
@@ -53,11 +51,7 @@ export default function CountdownTimer({ secondsLeft, totalSeconds = 30 }: Count
       </svg>
       
       {/* Centered countdown number */}
-      <div 
-        className={`absolute inset-0 flex flex-col items-center justify-center ${
-          isPulsing ? 'animate-pulse-scale' : ''
-        }`}
-      >
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span 
           className="font-mono text-4xl font-bold leading-none"
           style={{ 
@@ -69,16 +63,6 @@ export default function CountdownTimer({ secondsLeft, totalSeconds = 30 }: Count
         </span>
         <span className="text-[11px] text-zinc-500 mt-1">secondes</span>
       </div>
-
-      <style jsx>{`
-        @keyframes pulse-scale {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.08); }
-        }
-        .animate-pulse-scale {
-          animation: pulse-scale 0.5s ease-in-out infinite;
-        }
-      `}</style>
     </div>
   );
 }
