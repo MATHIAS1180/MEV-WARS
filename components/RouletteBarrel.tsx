@@ -56,10 +56,9 @@ export default function RouletteBarrel({ playerCount, isSpinning, rotation }: Ro
                 className="absolute w-[10%] h-[10%] rounded-full"
                 style={{
                   willChange: "transform, opacity",
-                  transform: "translateZ(0)",
+                  transform: "translate(-50%, -50%) translateZ(0)",
                   left: `${x}%`,
                   top: `${y}%`,
-                  transform: "translate(-50%, -50%)",
                   backgroundColor: slot.isActive ? slot.color : "rgba(255,255,255,0.05)",
                   boxShadow: slot.isActive ? `0 0 20px ${slot.color}` : "none",
                   border: `2px solid ${slot.isActive ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.1)"}`,
