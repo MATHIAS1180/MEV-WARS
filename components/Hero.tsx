@@ -1,5 +1,6 @@
 "use client";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import { ShieldCheck, Zap, Clock } from "lucide-react";
 
 export default function Hero() {
@@ -39,7 +40,10 @@ export default function Hero() {
             { icon: <ShieldCheck className="w-5 h-5" />, text: "100% On-chain" },
             { icon: <Zap className="w-5 h-5" />, text: "Provably Fair" },
             { icon: <Clock className="w-5 h-5" />, text: "Instant Payouts" },
-            { icon: <img src="/solana-logo.svg" alt="Solana" className="w-5 h-5" />, text: "Built on Solana" },
+            {
+              icon: <Image src="/solana-logo.svg" alt="Solana" width={20} height={20} className="w-5 h-5" />,
+              text: "Built on Solana"
+            },
           ].map((item, i) => (
             <div key={i} className="flex items-center gap-2 text-[#00FFA3]">
               {item.icon}

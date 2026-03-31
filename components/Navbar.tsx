@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -19,7 +20,13 @@ export default function Navbar() {
             animate={{ opacity: 1 }}
             className="flex items-center gap-3 cursor-pointer"
           >
-            <img src="/images/trigger-logo.png" alt="Trigger" className="h-8 w-auto brightness-150" />
+            <Image
+              src="/images/trigger-logo.png"
+              alt="Trigger"
+              width={128}
+              height={32}
+              className="h-8 w-auto brightness-150"
+            />
             <span className="text-[12px] font-bold uppercase tracking-[0.3em] text-white">Trigger</span>
           </motion.div>
 
