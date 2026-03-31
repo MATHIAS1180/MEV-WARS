@@ -76,6 +76,7 @@ export function useGame(roomId: number) {
   const [isScanningLogs, setIsScanningLogs] = useState(false);
   const [gameResult, setGameResult] = useState<GameResult | null>(null);
   const [chainClockUnix, setChainClockUnix] = useState<number | null>(null);
+  const chainClockAnchorRef = useRef<{ unix: number; localMs: number } | null>(null);
 
   const gameResultRef = useRef<GameResult | null>(null);
   const prevPlayerCountRef = useRef<number>(0);
@@ -287,14 +288,26 @@ export function useGame(roomId: number) {
     let cancelled = false;
     let inFlight = false;
 
+    const readChainUnix = async (): Promise<number | null> => {
+      const slot = await connection.getSlot('confirmed');
+      for (let offset = 0; offset <= 6; offset += 1) {
+        const t = await connection.getBlockTime(slot - offset);
+        if (typeof t === 'number' && t > 0) return t;
+      }
+      return null;
+    };
+
     const syncChainClock = async () => {
       if (inFlight) return;
       inFlight = true;
       try {
-        const slot = await connection.getSlot('processed');
-        const blockTime = await connection.getBlockTime(slot);
-        if (!cancelled && typeof blockTime === 'number' && blockTime > 0) {
-          setChainClockUnix(blockTime);
+        const chainUnix = await readChainUnix();
+        if (!cancelled && typeof chainUnix === 'number' && chainUnix > 0) {
+          chainClockAnchorRef.current = {
+            unix: chainUnix,
+            localMs: Date.now(),
+          };
+          setChainClockUnix(chainUnix);
         }
       } catch {
         // Ignore transient RPC clock sync errors.
@@ -303,12 +316,22 @@ export function useGame(roomId: number) {
       }
     };
 
+    const tickLocalChainClock = () => {
+      const anchor = chainClockAnchorRef.current;
+      if (!anchor || cancelled) return;
+      const elapsed = Math.max(0, Math.floor((Date.now() - anchor.localMs) / 1000));
+      const next = anchor.unix + elapsed;
+      setChainClockUnix((prev) => (prev === next ? prev : next));
+    };
+
     syncChainClock();
-    const intervalId = setInterval(syncChainClock, 1500);
+    const syncIntervalId = setInterval(syncChainClock, 1000);
+    const tickIntervalId = setInterval(tickLocalChainClock, 250);
 
     return () => {
       cancelled = true;
-      clearInterval(intervalId);
+      clearInterval(syncIntervalId);
+      clearInterval(tickIntervalId);
     };
   }, [connection]);
 

@@ -544,22 +544,14 @@ export default function Home() {
   }, [actualPlayerCount, stableFetch, setGameResult]);
 
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
-  const chainClockAnchorRef = useRef<{ chainUnix: number; localMs: number } | null>(null);
   const hasNotifiedTimerStartRef = useRef<boolean>(false);
   const warnedTenSecondsRef = useRef<boolean>(false);
   const warnedFiveSecondsRef = useRef<boolean>(false);
+  const lastComputedRemainingRef = useRef<number | null>(null);
   const blockStartUnix = useMemo(() => {
     if (!gameState?.blockStartTime) return null;
     return normalizeUnixTimestamp(Number(gameState.blockStartTime.toString()));
   }, [gameState?.blockStartTime]);
-
-  useEffect(() => {
-    if (chainClockUnix === null) return;
-    chainClockAnchorRef.current = {
-      chainUnix: chainClockUnix,
-      localMs: Date.now(),
-    };
-  }, [chainClockUnix]);
 
   const effectiveStartUnix = blockStartUnix;
 
@@ -581,48 +573,42 @@ export default function Home() {
   }, [timeRemaining, isWaiting, isInProgress, actualPlayerCount, survivors.length]);
   
   useEffect(() => {
-    if (effectiveStartUnix !== null && (isWaiting || isInProgress) && actualPlayerCount > 0) {
-      // Notify when timer starts (2+ players joining, only during waiting phase)
-      if (isWaiting && actualPlayerCount >= 2 && !hasNotifiedTimerStartRef.current) {
-        toast.success('Round starting! Timer activated', { duration: 3000 });
-        hasNotifiedTimerStartRef.current = true;
-      }
-
-      const tick = () => {
-        const anchor = chainClockAnchorRef.current;
-        if (!anchor) {
-          setTimeRemaining(null);
-          return;
-        }
-
-        const nowUnix = anchor.chainUnix + Math.max(0, Math.floor((Date.now() - anchor.localMs) / 1000));
-        const elapsed = nowUnix - effectiveStartUnix;
-        const r = ROUND_EXPIRATION_SECONDS - elapsed;
-        const remaining = r > 0 ? r : 0;
-        setTimeRemaining(remaining);
-        
-        // Warning notifications (only relevant during waiting phase)
-        if (isWaiting && remaining === 10 && actualPlayerCount < 2 && !warnedTenSecondsRef.current) {
-          warnedTenSecondsRef.current = true;
-          toast.warning('10 seconds left! Need 2 players minimum', { duration: 3000 });
-        }
-        if (remaining === 5 && actualPlayerCount >= 2 && !warnedFiveSecondsRef.current) {
-          warnedFiveSecondsRef.current = true;
-          toast.info('5 seconds until round ends!', { duration: 2000 });
-        }
-        
-        if (remaining === 0) triggerCrank();
-      };
-
-      // Run immediately so UI aligns to current on-chain clock without first-second lag.
-      tick();
-      const iv = setInterval(tick, 250);
-      return () => clearInterval(iv);
+    const isRoundActive = (isWaiting || isInProgress) && actualPlayerCount > 0;
+    if (!isRoundActive || effectiveStartUnix === null || chainClockUnix === null) {
+      setTimeRemaining(null);
+      lastComputedRemainingRef.current = null;
+      hasNotifiedTimerStartRef.current = false;
+      warnedTenSecondsRef.current = false;
+      warnedFiveSecondsRef.current = false;
+      return;
     }
-    setTimeRemaining(null);
-    hasNotifiedTimerStartRef.current = false;
-    warnedTenSecondsRef.current = false;
-    warnedFiveSecondsRef.current = false;
+
+    const elapsed = Math.max(0, chainClockUnix - effectiveStartUnix);
+    const nextRemaining = Math.max(0, ROUND_EXPIRATION_SECONDS - elapsed);
+    const previousRemaining = lastComputedRemainingRef.current;
+    lastComputedRemainingRef.current = nextRemaining;
+
+    setTimeRemaining((prev) => (prev === nextRemaining ? prev : nextRemaining));
+
+    // Notify when timer starts (2+ players joining, only during waiting phase)
+    if (isWaiting && actualPlayerCount >= 2 && !hasNotifiedTimerStartRef.current) {
+      toast.success('Round starting! Timer activated', { duration: 3000 });
+      hasNotifiedTimerStartRef.current = true;
+    }
+
+    // Warning notifications (only relevant during waiting phase)
+    if (isWaiting && nextRemaining <= 10 && actualPlayerCount < 2 && !warnedTenSecondsRef.current) {
+      warnedTenSecondsRef.current = true;
+      toast.warning('10 seconds left! Need 2 players minimum', { duration: 3000 });
+    }
+    if (isWaiting && nextRemaining <= 5 && actualPlayerCount >= 2 && !warnedFiveSecondsRef.current) {
+      warnedFiveSecondsRef.current = true;
+      toast.info('5 seconds until round ends!', { duration: 2000 });
+    }
+
+    if (nextRemaining === 0 && previousRemaining !== 0) {
+      triggerCrank();
+    }
   }, [effectiveStartUnix, isWaiting, isInProgress, actualPlayerCount, triggerCrank, chainClockUnix]);
 
   const displayTimerSeconds = useMemo(() => {
