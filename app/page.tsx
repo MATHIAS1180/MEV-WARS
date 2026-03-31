@@ -126,8 +126,10 @@ export default function Home() {
   const miningBlockSize = getMiningBlockSize();
 
   const activeRoom = useMemo(() => ROOMS.find(r => r.id === roomId)!, [roomId]);
-  const isWaiting = !gameState || (gameState.state && 'waiting' in gameState.state);
-  const isInProgress = gameState && gameState.state && 'inProgress' in gameState.state;
+  const isInProgress = !!(gameState?.state && 'inProgress' in gameState.state);
+  const isFinished = !!(gameState?.state && 'finished' in gameState.state);
+  // Treat missing/late state payloads as waiting to keep timers and UI responsive.
+  const isWaiting = !isInProgress && !isFinished;
   const currentRound = gameState?.currentRound ?? 0;
   const survivors = gameState?.survivors ? gameState.survivors.filter((p: PublicKey) => p.toString() !== PublicKey.default.toString()) : [];
   const potAmount = gameState?.potAmount ? (gameState.potAmount.toNumber() / 1e9) : 0;
@@ -625,6 +627,13 @@ export default function Home() {
     warnedFiveSecondsRef.current = false;
   }, [effectiveStartUnix, isWaiting, isInProgress, actualPlayerCount, triggerCrank]);
 
+  const displayTimerSeconds = useMemo(() => {
+    const isRoundActive = (isWaiting || isInProgress) && actualPlayerCount > 0;
+    if (!isRoundActive) return null;
+    if (timeRemaining === null) return ROUND_EXPIRATION_SECONDS;
+    return timeRemaining;
+  }, [timeRemaining, isWaiting, isInProgress, actualPlayerCount]);
+
   const handleInitializeRoom = async () => {
     if (!connected) return;
     try {
@@ -839,7 +848,7 @@ export default function Home() {
                     }}
                   >
                     <AnimatePresence>
-                      {timeRemaining !== null && timeRemaining > 0 && countdown === null && (
+                      {displayTimerSeconds !== null && displayTimerSeconds > 0 && countdown === null && (
                         <motion.div
                           initial={{ opacity: 0, scale: 0.88 }}
                           animate={{ opacity: 1, scale: 1 }}
@@ -847,7 +856,7 @@ export default function Home() {
                           transition={{ duration: 0.25 }}
                           className="absolute inset-0 z-[80] flex items-center justify-center pointer-events-none"
                         >
-                          <CountdownTimer secondsLeft={timeRemaining} totalSeconds={ROUND_EXPIRATION_SECONDS} />
+                          <CountdownTimer secondsLeft={displayTimerSeconds} totalSeconds={ROUND_EXPIRATION_SECONDS} />
                         </motion.div>
                       )}
                     </AnimatePresence>
