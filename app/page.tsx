@@ -44,6 +44,16 @@ const WalletMultiButton = dynamic(
 
 const ROUND_EXPIRATION_SECONDS = 20;
 
+interface RoundOverlayState {
+  type: 'win' | 'lose' | 'survive';
+  title: string;
+  msg: string;
+  amount?: number;
+  multiplier?: number;
+  isFinal: boolean;
+  actionLabel: string;
+}
+
 export default function Home() {
   const { connected, publicKey } = useWallet();
   const [roomId, setRoomId] = useState<number>(101);
@@ -125,7 +135,7 @@ export default function Home() {
   const [rotation, setRotation] = useState(0);
   const [txPending, setTxPending] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
-  const [showResult, setShowResult] = useState<{ type: 'win' | 'lose', msg: string, amount?: number } | null>(null);
+  const [showResult, setShowResult] = useState<RoundOverlayState | null>(null);
   const [isProcessingResult, setIsProcessingResult] = useState(false);
 
   const actualPlayerCount = gameState?.playerCount ?? 0;
@@ -187,6 +197,56 @@ export default function Home() {
   }, [actualPlayerCount, myPlayerIndex]);
 
   const gameResultProcessedRef = useRef<string | null>(null);
+
+  const prevRoundSnapshotRef = useRef<{ round: number; survivors: string[]; inProgress: boolean }>({
+    round: 0,
+    survivors: [],
+    inProgress: false,
+  });
+
+  useEffect(() => {
+    if (!publicKey) return;
+
+    const myKey = publicKey.toString();
+    const inProgressNow = !!(gameState?.state && 'inProgress' in gameState.state);
+    const roundNow = gameState?.currentRound ?? 0;
+    const survivorsNow = (gameState?.survivors ?? [])
+      .filter((p: PublicKey) => p.toString() !== PublicKey.default.toString())
+      .map((p: PublicKey) => p.toString());
+
+    const prev = prevRoundSnapshotRef.current;
+
+    if (inProgressNow && prev.inProgress && roundNow > prev.round) {
+      const wasAlive = prev.survivors.includes(myKey);
+      const aliveNow = survivorsNow.includes(myKey);
+
+      if (wasAlive && aliveNow) {
+        setShowResult({
+          type: 'survive',
+          title: `ROUND ${prev.round} SURVIVED`,
+          msg: `Tu as survécu au round ${prev.round}. Prépare-toi pour le prochain tirage.`,
+          isFinal: false,
+          actionLabel: 'Next Round',
+        });
+      }
+
+      if (wasAlive && !aliveNow) {
+        setShowResult({
+          type: 'lose',
+          title: 'DÉFAITE',
+          msg: `Tu as été éliminé au round ${prev.round}. Mise perdue: ${activeRoom.label}.`,
+          isFinal: true,
+          actionLabel: 'Quitter',
+        });
+      }
+    }
+
+    prevRoundSnapshotRef.current = {
+      round: roundNow,
+      survivors: survivorsNow,
+      inProgress: inProgressNow,
+    };
+  }, [gameState?.state, gameState?.currentRound, gameState?.survivors, publicKey, activeRoom.label]);
   
   useEffect(() => {
     if (!gameResult) return;
@@ -216,9 +276,27 @@ export default function Home() {
           const isWinner = frozenResult.winners?.includes(myKey) || frozenResult.winner === myKey;
           const winAmt = (frozenResult.winnerAmount / 1e9).toFixed(4);
           if (wasInGame && isWinner) {
-            setShowResult({ type: 'win', msg: `You won! +${winAmt} SOL sent to your wallet.`, amount: parseFloat(winAmt) });
+            const multiplierValue = activeRoom.lamports > 0
+              ? frozenResult.winnerAmount / activeRoom.lamports
+              : undefined;
+
+            setShowResult({
+              type: 'win',
+              title: 'VICTOIRE',
+              msg: `Tu as gagné la partie. Le payout a été envoyé sur ton wallet.`,
+              amount: parseFloat(winAmt),
+              multiplier: multiplierValue,
+              isFinal: true,
+              actionLabel: 'Quitter',
+            });
           } else if (wasInGame && !isWinner) {
-            setShowResult({ type: 'lose', msg: "Better luck next round!" });
+            setShowResult({
+              type: 'lose',
+              title: 'DÉFAITE',
+              msg: `Partie terminée. Ta mise (${activeRoom.label}) est perdue sur ce round.`,
+              isFinal: true,
+              actionLabel: 'Quitter',
+            });
           }
           setGameResult(null);
           lastPlayersRef.current = [];
@@ -237,7 +315,13 @@ export default function Home() {
       clearInterval(intId);
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [gameResult, publicKey, setGameResult, stableFetch, showResult]);
+  }, [gameResult, publicKey, setGameResult, stableFetch, activeRoom.lamports, activeRoom.label]);
+
+  useEffect(() => {
+    if (!showResult) return;
+    const timeout = setTimeout(() => setShowResult(null), 5000);
+    return () => clearTimeout(timeout);
+  }, [showResult]);
 
   useEffect(() => {
     setShowResult(null); setIsSpinning(false); setCountdown(null);
@@ -533,20 +617,6 @@ export default function Home() {
               <div className="glass-card p-3 sm:p-4 lg:p-6">
                 
                 {/* Timer - Floating Above */}
-                <AnimatePresence>
-                  {timeRemaining !== null && timeRemaining > 0 && actualPlayerCount > 0 && (
-                    <motion.div 
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                      transition={{ duration: 0.3 }}
-                      className="absolute -top-20 sm:-top-24 left-1/2 -translate-x-1/2 z-30"
-                    >
-                      <CountdownTimer secondsLeft={timeRemaining} totalSeconds={ROUND_EXPIRATION_SECONDS} />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
                 {/* Mining Block Container - Dynamic Size */}
                 <div className="relative w-full flex items-center justify-center">
                   <div 
@@ -556,6 +626,19 @@ export default function Home() {
                       maxWidth: '100%'
                     }}
                   >
+                    <AnimatePresence>
+                      {timeRemaining !== null && timeRemaining > 0 && actualPlayerCount > 0 && countdown === null && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.88 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.88 }}
+                          transition={{ duration: 0.25 }}
+                          className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none"
+                        >
+                          <CountdownTimer secondsLeft={timeRemaining} totalSeconds={ROUND_EXPIRATION_SECONDS} />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                     
                     {/* Countdown Overlay - Ultra Premium */}
                       <AnimatePresence>
@@ -803,8 +886,13 @@ export default function Home() {
         {showResult && (
           <ResultOverlay
             type={showResult.type}
+            title={showResult.title}
             message={showResult.msg}
             amount={showResult.amount}
+            multiplier={showResult.multiplier}
+            isFinal={showResult.isFinal}
+            actionLabel={showResult.actionLabel}
+            autoCloseInSeconds={5}
             onClose={() => setShowResult(null)}
           />
         )}
