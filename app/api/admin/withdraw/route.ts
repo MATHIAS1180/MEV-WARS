@@ -4,6 +4,7 @@ import { Program, AnchorProvider, BN } from '@coral-xyz/anchor';
 import * as bs58 from 'bs58';
 import { IDL } from '../../../../utils/anchor';
 import { PROGRAM_ID, TREASURY_PUBKEY } from '../../../../config/constants';
+import { getServerRpcUrl } from '../../../../lib/rpc';
 
 export async function POST(req: NextRequest) {
   try {
@@ -56,7 +57,7 @@ export async function POST(req: NextRequest) {
     }
 
     const adminKeypair = Keypair.fromSecretKey(secretKey);
-    const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || 'https://api.devnet.solana.com';
+    const rpcUrl = getServerRpcUrl('app/api/admin/withdraw/route.ts');
     const connection = new Connection(rpcUrl, 'confirmed');
 
     const dummyWallet = {

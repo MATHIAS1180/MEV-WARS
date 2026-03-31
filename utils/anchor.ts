@@ -1,10 +1,10 @@
 import { Connection, PublicKey } from '@solana/web3.js';
 import { Idl } from '@coral-xyz/anchor';
 import { PROGRAM_ID, TREASURY_PUBKEY } from '../config/constants';
+import { getClientRpcUrl } from '../lib/rpc';
 
-// Localhost for local dev — override via NEXT_PUBLIC_RPC_URL in .env
 export const connection = new Connection(
-  process.env.NEXT_PUBLIC_RPC_URL || 'http://localhost:8899',
+  getClientRpcUrl('utils/anchor.ts connection'),
   'confirmed'
 );
 

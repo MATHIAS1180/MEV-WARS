@@ -6,6 +6,7 @@ import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { IDL } from '../../../utils/anchor';
 import { BLOCK_EXPIRATION_SECONDS, PROGRAM_ID, TREASURY_PUBKEY } from '../../../config/constants';
+import { getServerRpcUrl } from '../../../lib/rpc';
 
 // Rate limiting: 10 requests per 60 seconds per IP
 const hasUpstashEnv = !!process.env.UPSTASH_REDIS_REST_URL && !!process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -75,7 +76,7 @@ export async function POST(req: NextRequest) {
     }
 
     const crankKeypair = Keypair.fromSecretKey(secretKey);
-    const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || 'http://localhost:8899';
+    const rpcUrl = getServerRpcUrl('app/api/crank/route.ts');
     const connection = new Connection(rpcUrl, 'confirmed');
 
     const dummyWallet = {
