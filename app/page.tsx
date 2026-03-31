@@ -136,7 +136,10 @@ export default function Home() {
   // Treat missing/late state payloads as waiting to keep timers and UI responsive.
   const isWaiting = !isInProgress && !isFinished;
   const currentRound = gameState?.currentRound ?? 0;
-  const survivors = gameState?.survivors ? gameState.survivors.filter((p: PublicKey) => p.toString() !== PublicKey.default.toString()) : [];
+  const survivors = useMemo(() => {
+    if (!gameState?.survivors) return [] as PublicKey[];
+    return gameState.survivors.filter((p: PublicKey) => p.toString() !== PublicKey.default.toString());
+  }, [gameState?.survivors]);
   const potAmount = gameState?.potAmount ? (gameState.potAmount.toNumber() / 1e9) : 0;
   const multiplier = currentRound > 0 ? currentRound + 1 : 1; // Example multiplier
 
@@ -329,7 +332,7 @@ export default function Home() {
         survivors: survivorsNow,
       };
     }
-  }, [gameState?.state, gameState?.currentRound, gameState?.survivors, publicKey, activeRoom.label]);
+  }, [gameState?.state, gameState?.currentRound, gameState?.survivors, gameState?.players, gameState?.playerCount, publicKey, activeRoom.label]);
   
   useEffect(() => {
     if (!gameResult) return;
@@ -545,11 +548,10 @@ export default function Home() {
   const warnedTenSecondsRef = useRef<boolean>(false);
   const warnedFiveSecondsRef = useRef<boolean>(false);
   const blockStartUnix = useMemo(() => {
-    if (!gameState) return null;
-    const blockStart = gameState.blockStartTime
+    const blockStart = gameState?.blockStartTime
       ? normalizeUnixTimestamp(Number(gameState.blockStartTime.toString()))
       : null;
-    const lastActivity = gameState.lastActivityTime
+    const lastActivity = gameState?.lastActivityTime
       ? normalizeUnixTimestamp(Number(gameState.lastActivityTime.toString()))
       : null;
 
