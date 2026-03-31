@@ -351,8 +351,16 @@ export default function Home() {
     if (!lastPlayersRef.current.includes(myKey)) lastPlayersRef.current.push(myKey);
     try {
       setTxPending(true);
+      
+      // If room doesn't exist yet, initialize it first
+      if (!gameState) {
+        toast.loading('Initializing room...');
+        await initializeRoom(activeRoom.lamports);
+        toast.dismiss();
+      }
+      
       const txPromise = joinGame(activeRoom.lamports);
-      toast.promise(txPromise, { loading: 'Submitting transaction...', success: 'Entered round successfully!', error: (e: any) => `Failed: ${e.message}` });
+      toast.promise(txPromise, { loading: 'Entering round...', success: 'Entered round successfully!', error: (e: any) => `Failed: ${e.message}` });
       await txPromise;
     } catch (e) {
       // Error already handled by toast
@@ -736,21 +744,6 @@ export default function Home() {
                       <p className="text-[0.65rem] sm:text-xs text-zinc-500 font-bold uppercase tracking-wider">Connect Your Wallet</p>
                       <p className="text-[0.6rem] sm:text-[0.65rem] text-zinc-600 mt-1">Use the button in the header</p>
                     </div>
-                  ) : !gameState ? (
-                    <button
-                      onClick={handleInitializeRoom}
-                      disabled={txPending}
-                      className="w-full py-3 sm:py-4 px-4 sm:px-6 bg-gradient-to-r from-[#F59E0B] to-[#FF6B9D] text-white font-black uppercase text-xs sm:text-sm rounded-xl shadow-[0_0_30px_rgba(245,158,11,0.4)] hover:shadow-[0_0_50px_rgba(245,158,11,0.6)] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {txPending ? (
-                        <span className="flex items-center justify-center gap-2">
-                          <Loader2 className="animate-spin w-4 h-4 sm:w-5 sm:h-5" />
-                          <span>Initializing...</span>
-                        </span>
-                      ) : (
-                        `Initialize Room - ${activeRoom.label}`
-                      )}
-                    </button>
                   ) : myPlayerIndex !== null ? (
                     <div className="p-3 sm:p-4 bg-gradient-to-r from-[#00FFA3]/10 to-[#03E1FF]/10 border-2 border-[#00FFA3]/40 rounded-xl">
                       <div className="flex items-center justify-center gap-2 mb-1">
