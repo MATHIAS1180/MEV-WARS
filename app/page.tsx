@@ -299,9 +299,9 @@ export default function Home() {
   const hasNotifiedTimerStartRef = useRef<boolean>(false);
   
   useEffect(() => {
-    if (gameState && isWaiting && actualPlayerCount > 0) {
-      // Notify when timer starts (2+ players)
-      if (actualPlayerCount >= 2 && !hasNotifiedTimerStartRef.current) {
+    if (gameState && (isWaiting || isInProgress) && actualPlayerCount > 0) {
+      // Notify when timer starts (2+ players joining, only during waiting phase)
+      if (isWaiting && actualPlayerCount >= 2 && !hasNotifiedTimerStartRef.current) {
         toast.success('Round starting! Timer activated', { duration: 3000 });
         hasNotifiedTimerStartRef.current = true;
       }
@@ -313,8 +313,8 @@ export default function Home() {
         const remaining = r > 0 ? r : 0;
         setTimeRemaining(remaining);
         
-        // Warning notifications
-        if (remaining === 10 && actualPlayerCount < 2) {
+        // Warning notifications (only relevant during waiting phase)
+        if (isWaiting && remaining === 10 && actualPlayerCount < 2) {
           toast.warning('10 seconds left! Need 2 players minimum', { duration: 3000 });
         }
         if (remaining === 5 && actualPlayerCount >= 2) {
@@ -327,7 +327,7 @@ export default function Home() {
     }
     setTimeRemaining(null);
     hasNotifiedTimerStartRef.current = false;
-  }, [gameState, isWaiting, actualPlayerCount, triggerCrank]);
+  }, [gameState, isWaiting, isInProgress, actualPlayerCount, triggerCrank]);
 
   const handleInitializeRoom = async () => {
     if (!connected) return;
@@ -769,8 +769,8 @@ export default function Home() {
                     </button>
                   )}
 
-                  {/* Secure Gain Button */}
-                  {isInProgress && currentRound >= 1 && survivors.some((s: PublicKey) => s.toString() === publicKey?.toString()) && (
+                  {/* Secure Gain Button - only available from round 2 (multiplier >= 2) */}
+                  {isInProgress && currentRound >= 2 && survivors.some((s: PublicKey) => s.toString() === publicKey?.toString()) && (
                     <button
                       onClick={handleSecureGain}
                       disabled={txPending}

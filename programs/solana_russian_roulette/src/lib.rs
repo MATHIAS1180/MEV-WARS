@@ -3,7 +3,7 @@ use anchor_lang::system_program;
 use anchor_lang::solana_program::hash::hash;
 use std::str::FromStr;
 
-declare_id!("CwSeMKEj7gZ9E1p7tkszuJkwzN2u8gHbD4wMXQuVQrNV");
+declare_id!("7kw5LM3xMyr51Zpsgznh64pNcucoodFkcnJztRfHBLJj");
 
 pub const MAX_PLAYERS: usize = 30;
 pub const TREASURY_PUBKEY: &str = "FC2km6B1ub8fBf4FdLFs1hbJjmLx6EJbdAzN9Ajnb8nt";
@@ -71,17 +71,9 @@ pub mod solana_russian_roulette {
             game.last_activity_time = clock.unix_timestamp;
             game.block_start_time = clock.unix_timestamp;
             game.resolve_slot = clock.slot;
-        } else if game.player_count == 2 {
-            // Démarrer le jeu dès 2 joueurs
-            game.state = GameState::InProgress { round: 1, survivors: game.players[0..game.player_count as usize].to_vec() };
-            game.current_round = 1;
-            for i in 0..game.player_count as usize {
-                game.survivors[i] = game.players[i];
-            }
-            game.last_activity_time = clock.unix_timestamp;
-            game.block_start_time = clock.unix_timestamp;
-            game.resolve_slot = clock.slot;
         }
+        // Remaining players can continue joining while state is Waiting
+        // The crank will start the game via advance_round once the timer expires
 
         emit!(PlayerJoinedEvent {
             game: game.key(),
@@ -144,6 +136,17 @@ pub mod solana_russian_roulette {
         
         let elapsed = clock.unix_timestamp - game.block_start_time;
         require!(elapsed >= ROUND_EXPIRATION_SECONDS, ErrorCode::TimerNotExpired);
+
+        // If still in Waiting state with enough players, start the game now
+        if game.state == GameState::Waiting {
+            require!(game.player_count >= 2, ErrorCode::NotEnoughPlayers);
+            let survivors_vec: Vec<Pubkey> = game.players[0..game.player_count as usize].to_vec();
+            game.state = GameState::InProgress { round: 1, survivors: survivors_vec };
+            game.current_round = 1;
+            for i in 0..game.player_count as usize {
+                game.survivors[i] = game.players[i];
+            }
+        }
 
         // Clone the state to avoid borrow checker issues
         let current_state = game.state.clone();
