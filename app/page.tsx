@@ -324,8 +324,8 @@ export default function Home() {
     const frozenPlayers = [...lastPlayersRef.current];
     const frozenResult = { ...gameResult };
     setIsSpinning(false);
-    setCountdown(5);
-    let count = 5;
+    setCountdown(3);
+    let count = 3;
     let timeoutId: NodeJS.Timeout;
     const intId = setInterval(() => {
       count -= 1;
@@ -333,7 +333,7 @@ export default function Home() {
       if (count <= 0) {
         clearInterval(intId);
         setCountdown(null);
-        setRotation(360 * 5);
+        setRotation(360 * 3);
         setIsSpinning(true);
         timeoutId = setTimeout(() => {
           setIsSpinning(false);
@@ -373,8 +373,8 @@ export default function Home() {
             setIsProcessingResult(false);
             myPlayerIndexRef.current = null;
             stableFetch();
-          }, 10000);
-        }, 5000);
+          }, 5000);
+        }, 2500);
       }
     }, 1000);
     return () => {
@@ -488,9 +488,15 @@ export default function Home() {
 
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const hasNotifiedTimerStartRef = useRef<boolean>(false);
+  const blockStartUnix = useMemo(() => {
+    if (!gameState) return null;
+    if (gameState.blockStartTime) return Number(gameState.blockStartTime.toString());
+    if (gameState.lastActivityTime) return Number(gameState.lastActivityTime.toString());
+    return null;
+  }, [gameState?.blockStartTime, gameState?.lastActivityTime, gameState]);
   
   useEffect(() => {
-    if (gameState && (isWaiting || isInProgress) && actualPlayerCount > 0) {
+    if (blockStartUnix !== null && (isWaiting || isInProgress) && actualPlayerCount > 0) {
       // Notify when timer starts (2+ players joining, only during waiting phase)
       if (isWaiting && actualPlayerCount >= 2 && !hasNotifiedTimerStartRef.current) {
         toast.success('Round starting! Timer activated', { duration: 3000 });
@@ -498,8 +504,7 @@ export default function Home() {
       }
       
       const iv = setInterval(() => {
-        const blockStart = gameState.blockStartTime ? Number(gameState.blockStartTime.toString()) : gameState.lastActivityTime ? Number(gameState.lastActivityTime.toString()) : Date.now() / 1000;
-        const elapsed = Math.floor(Date.now() / 1000) - blockStart;
+        const elapsed = Math.floor(Date.now() / 1000) - blockStartUnix;
         const r = ROUND_EXPIRATION_SECONDS - elapsed;
         const remaining = r > 0 ? r : 0;
         setTimeRemaining(remaining);
@@ -518,7 +523,7 @@ export default function Home() {
     }
     setTimeRemaining(null);
     hasNotifiedTimerStartRef.current = false;
-  }, [gameState, isWaiting, isInProgress, actualPlayerCount, triggerCrank]);
+  }, [blockStartUnix, isWaiting, isInProgress, actualPlayerCount, triggerCrank]);
 
   const handleInitializeRoom = async () => {
     if (!connected) return;

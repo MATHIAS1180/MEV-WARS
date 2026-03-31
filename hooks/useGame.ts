@@ -1,6 +1,6 @@
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { Program, AnchorProvider, setProvider, BN, EventParser, BorshCoder } from '@coral-xyz/anchor';
-import { PublicKey, SystemProgram } from '@solana/web3.js';
+import { PublicKey, SystemProgram, Keypair, Transaction, VersionedTransaction } from '@solana/web3.js';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { PROGRAM_ID } from '../config/constants';
 import { IDL } from '../utils/anchor';
@@ -80,17 +80,31 @@ export function useGame(roomId: number) {
   const prevPlayerCountRef = useRef<number>(0);
   const prevInProgressRef = useRef<boolean>(false);
   const pollInFlightRef = useRef<boolean>(false);
+  const readOnlyWalletRef = useRef(Keypair.generate());
+
+  const anchorWallet = useMemo(() => {
+    if (wallet.publicKey && wallet.signTransaction && wallet.signAllTransactions) {
+      return wallet as any;
+    }
+
+    const fallback = readOnlyWalletRef.current;
+    return {
+      publicKey: fallback.publicKey,
+      signTransaction: async <T extends Transaction | VersionedTransaction>(tx: T) => tx,
+      signAllTransactions: async <T extends Transaction | VersionedTransaction>(txs: T[]) => txs,
+    };
+  }, [wallet]);
 
   useEffect(() => { gameResultRef.current = gameResult; }, [gameResult]);
 
   const provider = useMemo(() => {
-    // Create a read-only provider even without wallet
+    // Create a provider that also works for spectators without connected wallet.
     return new AnchorProvider(
       connection, 
-      wallet as any, 
+      anchorWallet,
       { commitment: 'confirmed' }
     );
-  }, [connection, wallet]);
+  }, [connection, anchorWallet]);
 
   const program = useMemo(() => {
     if (!provider) return null;
@@ -243,7 +257,7 @@ export function useGame(roomId: number) {
           fetchResult();
         }
       } catch (e) { console.error('Failed to decode', e); }
-    }, 'processed');
+    }, 'confirmed');
 
     // Ultra-live polling for near-real-time sync across players and spectators.
     const pollId = setInterval(() => {
