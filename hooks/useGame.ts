@@ -162,7 +162,10 @@ export function useGame(roomId: number) {
       if (!info) { setGameState(null); return; }
       try {
         const account = await program.account.game.fetch(gamePda);
-        setGameState(account);
+        const fetchedAccount = account as any;
+        prevPlayerCountRef.current = Number(fetchedAccount.playerCount ?? 0);
+        prevInProgressRef.current = !!(fetchedAccount.state && fetchedAccount.state.inProgress);
+        setGameState(fetchedAccount);
       } catch (err) { setGameState({ _corrupted: true }); }
     } catch { setGameState(null); }
     finally { setIsLoading(false); }
@@ -170,6 +173,9 @@ export function useGame(roomId: number) {
 
   useEffect(() => {
     setGameResult(null);
+    setIsScanningLogs(false);
+    prevPlayerCountRef.current = 0;
+    prevInProgressRef.current = false;
     if (!program) { setGameState(null); return; }
     fetchState();
 
@@ -331,9 +337,7 @@ export function useGame(roomId: number) {
     return true;
   };
 
-  const crankRoom = async (): Promise<'refund' | 'advance'> => {
-    if (!gameState) throw new Error('Room not initialized');
-
+  const crankRoom = useCallback(async (): Promise<'refund' | 'advance'> => {
     const response = await fetch('/api/crank', {
       method: 'POST',
       headers: {
@@ -357,7 +361,7 @@ export function useGame(roomId: number) {
     console.log('crankRoom TX confirmed:', payload?.signature, 'action:', action);
     await fetchState();
     return action;
-  };
+  }, [roomId, fetchState]);
 
   const secureGain = async (): Promise<boolean> => {
     if (!program || !wallet.publicKey || !provider) throw new Error('Wallet not connected');

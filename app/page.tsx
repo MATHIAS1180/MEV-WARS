@@ -46,6 +46,11 @@ const ROUND_EXPIRATION_SECONDS = 20;
 const OVERLAY_AUTO_CLOSE_MS = 5000;
 const RESULT_CLEANUP_DELAY_MS = OVERLAY_AUTO_CLOSE_MS + 200;
 
+const normalizeUnixTimestamp = (raw: number | null): number | null => {
+  if (raw === null || !Number.isFinite(raw) || raw <= 0) return null;
+  return raw > 1e12 ? Math.floor(raw / 1000) : Math.floor(raw);
+};
+
 interface RoundOverlayState {
   type: 'win' | 'lose' | 'survive';
   title: string;
@@ -541,10 +546,18 @@ export default function Home() {
   const warnedFiveSecondsRef = useRef<boolean>(false);
   const blockStartUnix = useMemo(() => {
     if (!gameState) return null;
-    if (gameState.blockStartTime) return Number(gameState.blockStartTime.toString());
-    if (gameState.lastActivityTime) return Number(gameState.lastActivityTime.toString());
-    return null;
-  }, [gameState?.blockStartTime, gameState?.lastActivityTime, gameState]);
+    const blockStart = gameState.blockStartTime
+      ? normalizeUnixTimestamp(Number(gameState.blockStartTime.toString()))
+      : null;
+    const lastActivity = gameState.lastActivityTime
+      ? normalizeUnixTimestamp(Number(gameState.lastActivityTime.toString()))
+      : null;
+
+    // Use the freshest chain timestamp to keep each round timer in sync.
+    if (blockStart === null) return lastActivity;
+    if (lastActivity === null) return blockStart;
+    return Math.max(blockStart, lastActivity);
+  }, [gameState?.blockStartTime, gameState?.lastActivityTime]);
 
   useEffect(() => {
     const isRoundActive = (isWaiting || isInProgress) && actualPlayerCount > 0;
@@ -572,7 +585,8 @@ export default function Home() {
   }, [blockStartUnix, localTimerStartMs]);
 
   useEffect(() => {
-    const canAnimatePreCrank = isWaiting && actualPlayerCount >= 2;
+    const aliveCount = isInProgress ? survivors.length : actualPlayerCount;
+    const canAnimatePreCrank = (isWaiting || isInProgress) && aliveCount >= 2;
 
     if (timeRemaining === null) {
       setCountdown(null);
@@ -591,7 +605,7 @@ export default function Home() {
     }
 
     setCountdown(null);
-  }, [timeRemaining, isWaiting, actualPlayerCount]);
+  }, [timeRemaining, isWaiting, isInProgress, actualPlayerCount, survivors.length]);
   
   useEffect(() => {
     if (effectiveStartUnix !== null && (isWaiting || isInProgress) && actualPlayerCount > 0) {
@@ -600,8 +614,8 @@ export default function Home() {
         toast.success('Round starting! Timer activated', { duration: 3000 });
         hasNotifiedTimerStartRef.current = true;
       }
-      
-      const iv = setInterval(() => {
+
+      const tick = () => {
         const elapsed = Math.floor(Date.now() / 1000) - effectiveStartUnix;
         const r = ROUND_EXPIRATION_SECONDS - elapsed;
         const remaining = r > 0 ? r : 0;
@@ -618,7 +632,11 @@ export default function Home() {
         }
         
         if (remaining === 0) triggerCrank();
-      }, 1000);
+      };
+
+      // Run immediately so UI never stays frozen at fallback value.
+      tick();
+      const iv = setInterval(tick, 1000);
       return () => clearInterval(iv);
     }
     setTimeRemaining(null);
@@ -630,9 +648,14 @@ export default function Home() {
   const displayTimerSeconds = useMemo(() => {
     const isRoundActive = (isWaiting || isInProgress) && actualPlayerCount > 0;
     if (!isRoundActive) return null;
-    if (timeRemaining === null) return ROUND_EXPIRATION_SECONDS;
+    if (timeRemaining === null) {
+      if (effectiveStartUnix === null) return ROUND_EXPIRATION_SECONDS;
+      const elapsed = Math.floor(Date.now() / 1000) - effectiveStartUnix;
+      const remaining = ROUND_EXPIRATION_SECONDS - elapsed;
+      return remaining > 0 ? remaining : 0;
+    }
     return timeRemaining;
-  }, [timeRemaining, isWaiting, isInProgress, actualPlayerCount]);
+  }, [timeRemaining, effectiveStartUnix, isWaiting, isInProgress, actualPlayerCount]);
 
   const handleInitializeRoom = async () => {
     if (!connected) return;
