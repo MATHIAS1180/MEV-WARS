@@ -1,5 +1,4 @@
 "use client";
-import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState, useMemo } from "react";
 import styles from './MiningBlock.module.css';
 
@@ -100,45 +99,7 @@ export default function MiningBlock({ playerCount, isSpinning, rotation, countdo
         transform: "translate3d(0, 0, 0)",
       }} />
 
-      {/* Countdown rings */}
-      <AnimatePresence>
-        {countdown !== null && countdown > 0 && (
-          <div key={`rings-${countdown}`} className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ willChange: "contents" }}>
-            {[...Array(performanceMode ? 1 : 2)].map((_, i) => {
-              const rc = countdown === 1 ? "#FF6B9D" : countdown === 2 ? "#FFB84D" : SURGE_GREEN;
-              return (
-                <motion.div key={i} className="absolute"
-                  initial={{ scale: 0.4, opacity: 1 }}
-                  animate={{ scale: 2.5, opacity: 0 }}
-                  transition={{ duration: 0.8, delay: i * 0.1, ease: [0.22, 1, 0.36, 1] }}
-                  style={{ willChange: "transform, opacity" }}>
-                  <div className="w-[450px] h-[450px] rounded-full border-2" style={{ borderColor: rc, transform: "translate3d(0, 0, 0)" }} />
-                </motion.div>
-              );
-            })}
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Countdown number */}
-      <AnimatePresence mode="wait">
-        {countdown !== null && countdown > 0 && (
-          <motion.div key={`cd-${countdown}`} className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center"
-            initial={{ scale: 0.3, opacity: 0 }}
-            animate={{ scale: [0.3, 1.2, 1], opacity: [0, 1, 1] }}
-            exit={{ scale: 1.6, opacity: 0 }}
-            transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}>
-            <div className="font-black leading-none select-none" style={{
-              fontSize: 150,
-              background: countdown === 1 ? "linear-gradient(135deg,#FF6B9D,#EC4899)"
-                : countdown === 2 ? "linear-gradient(135deg,#FFB84D,#F59E0B)"
-                : `linear-gradient(135deg,${SURGE_GREEN},${OCEAN_BLUE})`,
-              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-              filter: "drop-shadow(0 0 50px currentColor)",
-            }}>{countdown}</div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Countdown visual effects intentionally removed to keep the block static and stable. */}
 
       <svg className={styles.miningBlockSvg} viewBox="0 0 600 600" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
         <defs>

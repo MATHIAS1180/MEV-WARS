@@ -212,7 +212,6 @@ export default function Home() {
   }, [gameState?.players, actualPlayerCount]);
 
   const prevMyIndexRef = useRef<number | null>(null);
-  const lastJoinToastAtRef = useRef<number>(0);
   const refundHandledRef = useRef<boolean>(false);
   useEffect(() => {
     if (myPlayerIndex !== null && myPlayerIndex !== prevMyIndexRef.current) {
@@ -220,28 +219,6 @@ export default function Home() {
     }
     prevMyIndexRef.current = myPlayerIndex;
   }, [myPlayerIndex, roomId]);
-
-  // Notification when other players join
-  const prevActualPlayerCountRef = useRef<number>(0);
-  useEffect(() => {
-    const prev = prevActualPlayerCountRef.current;
-    const current = actualPlayerCount;
-    
-    // Someone joined (not us)
-    if (current > prev && prev > 0 && myPlayerIndex !== null) {
-      const now = Date.now();
-      if (now - lastJoinToastAtRef.current > 1200) {
-        toast.info(`Player joined! ${current} players in round`, {
-          duration: 1500,
-          id: `join-count-${roomId}`,
-        });
-        lastJoinToastAtRef.current = now;
-      }
-    }
-    
-    // Update ref
-    prevActualPlayerCountRef.current = current;
-  }, [actualPlayerCount, myPlayerIndex, roomId]);
 
   const gameResultProcessedRef = useRef<string | null>(null);
   const eliminatedThisGameRef = useRef<boolean>(false);
@@ -567,15 +544,11 @@ export default function Home() {
       return;
     }
 
-    // Show countdown animation for final 5 seconds (only if game can resolve)
-    if (canResolveRound && timeRemaining >= 1 && timeRemaining <= 5) {
-      setCountdown(Math.ceil(timeRemaining));
-    } else {
-      setCountdown(null);
-    }
+    // Keep block visuals static; use the separate timer widget only.
+    setCountdown(null);
 
     if (canResolveRound && timeRemaining === 0) {
-      setIsSpinning(true);
+      setIsSpinning(false);
     }
   }, [timeRemaining, isWaiting, isInProgress, actualPlayerCount, survivors.length]);
   
@@ -601,17 +574,14 @@ export default function Home() {
     setTimeRemaining((prev) => (prev === nextRemaining ? prev : nextRemaining));
 
     if (isWaiting && actualPlayerCount >= 2 && !hasNotifiedTimerStartRef.current) {
-      toast.success('Round starting! Timer activated', { duration: 3000 });
       hasNotifiedTimerStartRef.current = true;
     }
 
     if (isWaiting && nextRemaining <= 10 && actualPlayerCount < 2 && !warnedTenSecondsRef.current) {
       warnedTenSecondsRef.current = true;
-      toast.warning('10 seconds left! Need 2 players minimum', { duration: 3000 });
     }
     if (isWaiting && nextRemaining <= 5 && actualPlayerCount >= 2 && !warnedFiveSecondsRef.current) {
       warnedFiveSecondsRef.current = true;
-      toast.info('5 seconds until round ends!', { duration: 2000 });
     }
 
     if (nextRemaining === 0 && previousRemaining !== 0) {
