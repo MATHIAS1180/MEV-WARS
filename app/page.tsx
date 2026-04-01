@@ -212,14 +212,7 @@ export default function Home() {
     }
   }, [gameState?.players, actualPlayerCount]);
 
-  const prevMyIndexRef = useRef<number | null>(null);
   const refundHandledRef = useRef<boolean>(false);
-  useEffect(() => {
-    if (myPlayerIndex !== null && myPlayerIndex !== prevMyIndexRef.current) {
-      toast.info(`Entered round - Position #${myPlayerIndex + 1}`, { id: `entered-${roomId}` });
-    }
-    prevMyIndexRef.current = myPlayerIndex;
-  }, [myPlayerIndex, roomId]);
 
   const gameResultProcessedRef = useRef<string | null>(null);
   const eliminatedThisGameRef = useRef<boolean>(false);
@@ -252,59 +245,20 @@ export default function Home() {
 
     const prev = prevRoundSnapshotRef.current;
 
-    // First crank transitions Waiting -> InProgress and can already resolve round 1.
-    // In this case we compare against participants instead of previous survivors.
+    // Keep only final-resolution overlays to avoid rapid UI flashing between rounds.
     if (inProgressNow && !prev.inProgress && roundNow >= 2) {
       const wasInRoundOne = participantsNow.includes(myKey);
       const aliveNow = survivorsNow.includes(myKey);
-      setIsSpinning(false);
-
-      if (wasInRoundOne && aliveNow && !eliminatedThisGameRef.current) {
-        setShowResult({
-          type: 'survive',
-          title: 'ROUND 1 SURVIVED',
-          msg: 'You survived round 1. Get ready for the next draw.',
-          isFinal: false,
-          actionLabel: 'Next Round',
-        });
-      }
-
       if (wasInRoundOne && !aliveNow) {
         eliminatedThisGameRef.current = true;
-        setShowResult({
-          type: 'lose',
-          title: 'ROUND 1 ELIMINATED',
-          msg: 'You were eliminated on round 1. You can watch the rest of the game.',
-          isFinal: false,
-          actionLabel: 'Continue Watching',
-        });
       }
     }
 
     if (inProgressNow && prev.inProgress && roundNow > prev.round) {
       const wasAlive = prev.survivors.includes(myKey);
       const aliveNow = survivorsNow.includes(myKey);
-      setIsSpinning(false);
-
-      if (wasAlive && aliveNow && !eliminatedThisGameRef.current) {
-        setShowResult({
-          type: 'survive',
-          title: `ROUND ${prev.round} SURVIVED`,
-          msg: `You survived round ${prev.round}. Get ready for the next draw.`,
-          isFinal: false,
-          actionLabel: 'Next Round',
-        });
-      }
-
       if (wasAlive && !aliveNow) {
         eliminatedThisGameRef.current = true;
-        setShowResult({
-          type: 'lose',
-          title: `ROUND ${prev.round} ELIMINATED`,
-          msg: `You were eliminated on round ${prev.round}. You can watch the rest of the game.`,
-          isFinal: false,
-          actionLabel: 'Continue Watching',
-        });
       }
     }
 
@@ -421,54 +375,13 @@ export default function Home() {
     };
   }, []);
 
-  const finalFallbackShownRef = useRef(false);
   useEffect(() => {
-    if (!publicKey) return;
-
-    const myKey = publicKey.toString();
     const inProgressNow = !!(gameState?.state && 'inProgress' in gameState.state);
     const playerCountNow = gameState?.playerCount ?? 0;
-    const lastInProgress = lastInProgressSnapshotRef.current;
-
-    // Fallback for final card in case winner log parsing misses on slow RPC.
-    if (
-      !inProgressNow &&
-      playerCountNow === 0 &&
-      lastInProgress.round > 0 &&
-      !gameResult &&
-      !showResult &&
-      !finalFallbackShownRef.current
-    ) {
-      const wasParticipant = lastPlayersRef.current.includes(myKey);
-      if (!wasParticipant) return;
-
-      if (eliminatedThisGameRef.current) {
-        finalFallbackShownRef.current = true;
-        return;
-      }
-
-      const survivedUntilEnd = lastInProgress.survivors.includes(myKey);
-
-      setShowResult({
-        type: survivedUntilEnd ? 'win' : 'lose',
-        title: survivedUntilEnd ? 'VICTORY' : 'DEFEAT',
-        msg: survivedUntilEnd
-          ? 'Game finished. You survived the final round.'
-          : `Game finished. Your bet (${activeRoom.label}) was lost.`,
-        isFinal: true,
-        actionLabel: 'Close',
-      });
-
-      finalFallbackShownRef.current = true;
-    }
-
-    if (inProgressNow) {
-      finalFallbackShownRef.current = false;
-    }
     if (!inProgressNow && playerCountNow === 0) {
       eliminatedThisGameRef.current = false;
     }
-  }, [gameState?.state, gameState?.playerCount, publicKey, gameResult, showResult, activeRoom.label]);
+  }, [gameState?.state, gameState?.playerCount]);
 
   useEffect(() => {
     setShowResult(null); setIsSpinning(false); setCountdown(null);
@@ -687,7 +600,7 @@ export default function Home() {
       </div>
       <div className="cyber-grid" />
       <div className="scanlines" />
-      <Toaster position="top-center" theme="dark" />
+      <Toaster position="top-center" theme="dark" visibleToasts={1} />
 
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-black/40 backdrop-blur-2xl">
