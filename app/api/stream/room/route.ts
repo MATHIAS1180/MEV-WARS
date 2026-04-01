@@ -96,6 +96,11 @@ export async function GET(req: NextRequest) {
 
   let lastClockSyncAt = 0;
   let chainClockAnchor: { unix: number; localMs: number } | null = null;
+  // Never let chain clock go backward (prevents timerRemaining from jumping up after resync)
+  let lastEstimatedChainClock = 0;
+  // Never let timerRemaining increase mid-round
+  let lastTimerRemaining: number | null = null;
+  let lastBlockStartTime = 0;
 
   const stream = new ReadableStream({
     start(controller) {
@@ -127,13 +132,17 @@ export async function GET(req: NextRequest) {
       };
 
       const getEstimatedChainClock = () => {
+        let estimate: number;
         if (chainClockAnchor) {
           const elapsed = Math.max(0, Math.floor((Date.now() - chainClockAnchor.localMs) / 1000));
-          return chainClockAnchor.unix + elapsed;
+          estimate = chainClockAnchor.unix + elapsed;
+        } else {
+          // Fallback to server wall-clock time when chain clock unavailable
+          estimate = Math.floor(Date.now() / 1000);
         }
-        // FIX: Fallback to server wall-clock time when chain clock unavailable
-        // Solana chain time is typically within 1-2s of wall clock — acceptable for a 20s timer
-        return Math.floor(Date.now() / 1000);
+        // Monotonic: never return less than the last estimated value
+        if (estimate > lastEstimatedChainClock) lastEstimatedChainClock = estimate;
+        return lastEstimatedChainClock;
       };
 
       const tick = async () => {
@@ -170,9 +179,19 @@ export async function GET(req: NextRequest) {
             const roundActive = (state === 'waiting' || state === 'inProgress') && playerCount > 0;
 
             let timerRemaining: number | null = null;
-            // FIX: chainClockUnix is never null now (fallback to Date.now()/1000)
             if (roundActive && blockStartTime > 0) {
-              timerRemaining = Math.max(0, BLOCK_EXPIRATION_SECONDS - (chainClockUnix - blockStartTime));
+              // Reset monotonic tracking when a new round starts (blockStartTime changed)
+              if (blockStartTime !== lastBlockStartTime) {
+                lastTimerRemaining = null;
+                lastBlockStartTime = blockStartTime;
+              }
+              const raw = Math.max(0, BLOCK_EXPIRATION_SECONDS - (chainClockUnix - blockStartTime));
+              // Monotonic: timer can only decrease, never jump back up after clock resync
+              timerRemaining = lastTimerRemaining !== null ? Math.min(raw, lastTimerRemaining) : raw;
+              lastTimerRemaining = timerRemaining;
+            } else {
+              lastTimerRemaining = null;
+              lastBlockStartTime = 0;
             }
 
             snapshot = {

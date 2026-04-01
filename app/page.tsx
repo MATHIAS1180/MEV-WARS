@@ -525,6 +525,11 @@ export default function Home() {
     // FIX: If server sends timerRemaining, use it as anchor
     if (serverTimerRemaining !== null) {
       const nextRemaining = Math.max(0, serverTimerRemaining);
+      const currentVal = serverTimerValueRef.current;
+      // Never let the timer jump UP: a clock resync on the server can cause a momentary
+      // backwards jump in chainClockUnix which makes timerRemaining briefly increase.
+      // Ignore any server value that is higher than what we're already showing.
+      if (currentVal !== null && nextRemaining > currentVal) return;
       serverTimerValueRef.current = nextRemaining;
       serverTimerReceivedAtRef.current = Date.now();
       lastComputedRemainingRef.current = nextRemaining;
