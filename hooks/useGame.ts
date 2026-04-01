@@ -4,6 +4,9 @@ import { PublicKey, SystemProgram, Keypair, Transaction, VersionedTransaction } 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { PROGRAM_ID } from '../config/constants';
 import { IDL } from '../utils/anchor';
+// FIX: Import resilient connection wrapper + deduplication bus
+import { ResilientEventSource, ConnectionStatus } from '../lib/ResilientEventSource';
+import { txEventBus } from '../lib/TransactionEventBus';
 
 export interface GameResult {
   // Multi-winner: first winner for display compat, full list for multi-payout
@@ -132,8 +135,12 @@ export function useGame(roomId: number) {
   const [gameResult, setGameResult] = useState<GameResult | null>(null);
   const [chainClockUnix, setChainClockUnix] = useState<number | null>(null);
   const [serverTimerRemaining, setServerTimerRemaining] = useState<number | null>(null);
+  // FIX: Expose SSE connection status for UI indicator
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
 
   const gameResultRef = useRef<GameResult | null>(null);
+  // FIX: Cancellation flag for scanForGameResult to prevent stale scans after room change
+  const scanCancelledRef = useRef<boolean>(false);
   const prevPlayerCountRef = useRef<number>(0);
   const prevInProgressRef = useRef<boolean>(false);
   const readOnlyWalletRef = useRef(Keypair.generate());
@@ -229,12 +236,15 @@ export function useGame(roomId: number) {
 
   const scanForGameResult = useCallback(async (gamePda: PublicKey) => {
     if (gameResultRef.current) return;
+    // FIX: Reset cancellation flag at start of new scan
+    scanCancelledRef.current = false;
 
     setIsScanningLogs(true);
     let retries = 18;
 
     const fetchResult = async () => {
-      if (gameResultRef.current) {
+      // FIX: Abort if cancelled (room changed or unmounted) or result already found
+      if (scanCancelledRef.current || gameResultRef.current) {
         setIsScanningLogs(false);
         return;
       }
@@ -242,8 +252,15 @@ export function useGame(roomId: number) {
       try {
         const sigs = await connection.getSignaturesForAddress(gamePda, { limit: 40 });
         let foundResult: GameResult | null = null;
+        let foundSignature: string | null = null;
 
         for (const sig of sigs) {
+          // FIX: Check cancellation between iterations
+          if (scanCancelledRef.current) { setIsScanningLogs(false); return; }
+
+          // FIX: Skip if this signature was already processed by the event bus
+          if (txEventBus.hasProcessed(sig.signature, 'game_settled')) continue;
+
           const tx = await connection.getTransaction(sig.signature, {
             maxSupportedTransactionVersion: 0,
             commitment: 'confirmed',
@@ -253,23 +270,28 @@ export function useGame(roomId: number) {
           const result = parseLogsForResult(tx.meta.logMessages);
           if (result) {
             foundResult = result;
+            foundSignature = sig.signature;
             break;
           }
         }
 
-        if (foundResult) {
-          setGameResult(foundResult);
+        if (foundResult && foundSignature) {
+          // FIX: Emit through bus for global deduplication
+          const emitted = txEventBus.emit(foundSignature, 'game_settled', { result: foundResult });
+          if (emitted) {
+            setGameResult(foundResult);
+          }
           setIsScanningLogs(false);
           return;
         }
 
-        if (retries-- > 0) {
+        if (retries-- > 0 && !scanCancelledRef.current) {
           setTimeout(fetchResult, 1000);
         } else {
           setIsScanningLogs(false);
         }
       } catch {
-        if (retries-- > 0) {
+        if (retries-- > 0 && !scanCancelledRef.current) {
           setTimeout(fetchResult, 1000);
         } else {
           setIsScanningLogs(false);
@@ -285,6 +307,8 @@ export function useGame(roomId: number) {
     setIsScanningLogs(false);
     setServerTimerRemaining(null);
     setChainClockUnix(null);
+    // FIX: Cancel any in-flight scan from previous room
+    scanCancelledRef.current = true;
     prevPlayerCountRef.current = 0;
     prevInProgressRef.current = false;
 
@@ -296,18 +320,18 @@ export function useGame(roomId: number) {
       [Buffer.from('room'), Buffer.from([roomId])], PROGRAM_ID
     );
 
-    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
-    let closed = false;
-    let es: EventSource | null = null;
-
-    const connectStream = () => {
-      if (closed) return;
-
-      es = new EventSource(`/api/stream/room?roomId=${roomId}`);
-
-      es.addEventListener('snapshot', (event) => {
+    // FIX: Use ResilientEventSource with exponential backoff instead of raw EventSource
+    const resilientEs = new ResilientEventSource({
+      url: `/api/stream/room?roomId=${roomId}`,
+      onStatusChange: (status) => {
+        setConnectionStatus(status);
+        if (status === 'reconnecting') {
+          console.warn(`[useGame] SSE reconnecting for room ${roomId}...`);
+        }
+      },
+      onSnapshot: (rawData) => {
         try {
-          const data = JSON.parse((event as MessageEvent).data) as RoomStreamSnapshot;
+          const data = rawData as RoomStreamSnapshot;
 
           setChainClockUnix((prev) => (prev === data.chainClockUnix ? prev : data.chainClockUnix));
           setServerTimerRemaining((prev) => (prev === data.timerRemaining ? prev : data.timerRemaining));
@@ -331,35 +355,13 @@ export function useGame(roomId: number) {
         } catch (e) {
           console.error('[useGame] Failed to parse stream snapshot:', e);
         }
-      });
-
-      es.addEventListener('error', () => {
-        if (es) {
-          es.close();
-          es = null;
-        }
-
-        if (closed) return;
-
-        reconnectTimeout = setTimeout(() => {
-          reconnectTimeout = null;
-          connectStream();
-        }, 1000);
-      });
-    };
-
-    connectStream();
+      },
+    });
 
     return () => {
-      closed = true;
-      if (reconnectTimeout) {
-        clearTimeout(reconnectTimeout);
-        reconnectTimeout = null;
-      }
-      if (es) {
-        es.close();
-        es = null;
-      }
+      // FIX: Cancel pending scans and close resilient stream on cleanup
+      scanCancelledRef.current = true;
+      resilientEs.close();
     };
   }, [program, roomId, connection, parseLogsForResult, fetchState, scanForGameResult]);
 
@@ -471,6 +473,8 @@ export function useGame(roomId: number) {
     isScanningLogs,
     chainClockUnix,
     serverTimerRemaining,
+    // FIX: Expose connection status for UI indicator
+    connectionStatus,
     joinGame,
     initializeRoom,
     crankRoom,

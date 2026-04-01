@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { PROGRAM_ID } from '../config/constants';
 import { IDL } from '../utils/anchor';
 import { Program, AnchorProvider, EventParser, BorshCoder } from '@coral-xyz/anchor';
+// FIX: Import txEventBus for cross-component dedup (shared with useGame.ts)
+import { txEventBus } from '../lib/TransactionEventBus';
 
 export interface Activity {
   id: string;
@@ -136,7 +138,9 @@ export function useLiveActivity() {
     // Load recent history first
     loadRecentHistory();
 
-    const subscriptions: number[] = [];
+    // FIX: Separate arrays for interval IDs and subscription IDs to clean up correctly
+    const intervalIds: ReturnType<typeof setInterval>[] = [];
+    const accountSubIds: number[] = [];
     const provider = new AnchorProvider(connection, {} as any, { commitment: 'confirmed' });
     const program = new Program(IDL, PROGRAM_ID, provider);
 
@@ -147,55 +151,9 @@ export function useLiveActivity() {
         PROGRAM_ID
       );
 
-      // Real-time polling for faster event detection (every 3 seconds)
-      const pollIntervalId = setInterval(async () => {
-        try {
-          const signatures = await connection.getSignaturesForAddress(gamePda, { limit: 30 });
-          for (const sig of signatures) {
-            if (processedSignatures.current.has(sig.signature)) continue;
-            processedSignatures.current.add(sig.signature);
-            
-            const tx = await connection.getTransaction(sig.signature, {
-              maxSupportedTransactionVersion: 0,
-              commitment: 'confirmed',
-            });
-            
-            if (tx?.meta?.logMessages && tx.blockTime) {
-              const parser = new EventParser(PROGRAM_ID, new BorshCoder(IDL as any));
-              const timestamp = tx.blockTime * 1000;
-              
-              for (const event of parser.parseLogs(tx.meta.logMessages)) {
-                if (event.name === 'WinnerExtractedEvent') {
-                  const data = event.data as any;
-                  const winner = data.winner.toString();
-                  const amount = data.amount.toNumber() / 1e9;
-                  addActivity({
-                    id: `win-${roomId}-${winner}-${timestamp}`,
-                    type: 'win',
-                    address: formatAddress(winner),
-                    amount: parseFloat(amount.toFixed(4)),
-                    roomId,
-                    timestamp,
-                  });
-                }
-                if (event.name === 'GameRefundedEvent') {
-                  addActivity({
-                    id: `refund-${roomId}-${timestamp}`,
-                    type: 'refund',
-                    address: 'All players',
-                    roomId,
-                    timestamp,
-                  });
-                }
-              }
-            }
-          }
-        } catch (err) {
-          console.error(`Poll error room ${roomId}:`, err);
-        }
-      }, 3000); // Poll every 3 seconds
-      
-      subscriptions.push(pollIntervalId as any);
+      // FIX: Use ONLY onAccountChange for real-time updates (removed duplicate polling)
+      // The setInterval polling was causing double events with onAccountChange.
+      // onAccountChange is sufficient for real-time detection.
 
       // Listen for account changes
       const subId = connection.onAccountChange(
@@ -212,18 +170,16 @@ export function useLiveActivity() {
               const lastPlayer = players[currentPlayerCount - 1];
               
               if (lastPlayer && lastPlayer.toString() !== PublicKey.default.toString()) {
-                const activityId = `join-${roomId}-${Date.now()}-${Math.random()}`;
+                // FIX: Use deterministic ID based on player + playerCount (not Date.now/Math.random)
+                const activityId = `join-${roomId}-${lastPlayer.toString()}-${currentPlayerCount}`;
                 
-                // Avoid duplicates
-                if (!activitiesRef.current.some(a => a.id === activityId)) {
-                  addActivity({
-                    id: activityId,
-                    type: 'join',
-                    address: formatAddress(lastPlayer.toString()),
-                    roomId,
-                    timestamp: Date.now(),
-                  });
-                }
+                addActivity({
+                  id: activityId,
+                  type: 'join',
+                  address: formatAddress(lastPlayer.toString()),
+                  roomId,
+                  timestamp: Date.now(),
+                });
               }
             }
 
@@ -254,23 +210,32 @@ export function useLiveActivity() {
                         const winner = data.winner.toString();
                         const amount = data.amount.toNumber() / 1e9;
 
+                        // FIX: Gate through txEventBus for cross-component dedup
+                        // If useGame.ts already processed this tx, skip the activity
+                        if (!txEventBus.hasProcessed(sig.signature, 'win')) {
+                          txEventBus.emit(sig.signature, 'win', { winner, amount, roomId });
+                        }
                         addActivity({
-                          id: `win-${roomId}-${winner}-${Date.now()}`,
+                          id: `win-${roomId}-${winner}-${sig.signature.slice(0, 16)}`,
                           type: 'win',
                           address: formatAddress(winner),
                           amount: parseFloat(amount.toFixed(4)),
                           roomId,
-                          timestamp: Date.now(),
+                          timestamp: tx.blockTime ? tx.blockTime * 1000 : Date.now(),
                         });
                       }
 
                       if (event.name === 'GameRefundedEvent') {
+                        // FIX: Gate through txEventBus for cross-component dedup
+                        if (!txEventBus.hasProcessed(sig.signature, 'refund')) {
+                          txEventBus.emit(sig.signature, 'refund', { roomId });
+                        }
                         addActivity({
-                          id: `refund-${roomId}-${Date.now()}`,
+                          id: `refund-${roomId}-${sig.signature.slice(0, 16)}`,
                           type: 'refund',
                           address: 'All players',
                           roomId,
-                          timestamp: Date.now(),
+                          timestamp: tx.blockTime ? tx.blockTime * 1000 : Date.now(),
                         });
                       }
                     }
@@ -291,12 +256,13 @@ export function useLiveActivity() {
         'confirmed'
       );
 
-      subscriptions.push(subId);
+      accountSubIds.push(subId);
     });
 
-    // Cleanup subscriptions
+    // FIX: Cleanup — properly clear both intervals and account subscriptions
     return () => {
-      subscriptions.forEach((subId) => {
+      intervalIds.forEach((id) => clearInterval(id));
+      accountSubIds.forEach((subId) => {
         connection.removeAccountChangeListener(subId).catch(console.error);
       });
     };

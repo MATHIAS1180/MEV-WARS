@@ -8,6 +8,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Zap, Trophy, Coins, ShieldCheck, Clock, Loader2 } from "lucide-react";
 import { useGame } from "@/hooks/useGame";
 import { Toaster, toast } from "sonner";
+// FIX: Import anti-spam notification manager
+import { notificationManager } from "@/lib/NotificationManager";
+// FIX: Import animation queue for deduplicated overlay sequencing
+import { animationQueue } from "@/lib/AnimationQueue";
 import { PublicKey } from "@solana/web3.js";
 import MiningBlock from "@/components/MiningBlock";
 import ResultOverlay from "@/components/ResultOverlay";
@@ -59,7 +63,8 @@ interface RoundOverlayState {
 export default function Home() {
   const { connected, publicKey } = useWallet();
   const [roomId, setRoomId] = useState<number>(101);
-  const { gameState, fetchState, joinGame, initializeRoom, crankRoom, secureGain, gameResult, setGameResult, serverTimerRemaining } = useGame(roomId);
+  // FIX: Destructure connectionStatus for UI indicator
+  const { gameState, fetchState, joinGame, initializeRoom, crankRoom, secureGain, gameResult, setGameResult, serverTimerRemaining, connectionStatus } = useGame(roomId);
 
   // Dynamic viewport sizing
   const [viewportSize, setViewportSize] = useState({ width: 1280, height: 720 });
@@ -155,8 +160,12 @@ export default function Home() {
   const [txPending, setTxPending] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [showResult, setShowResult] = useState<RoundOverlayState | null>(null);
+  // FIX: Track the animation queue id for the current overlay so we can mark it complete
+  const [currentAnimationId, setCurrentAnimationId] = useState<string | null>(null);
   const [overlayCloseAtMs, setOverlayCloseAtMs] = useState<number | null>(null);
   const [isProcessingResult, setIsProcessingResult] = useState(false);
+  // FIX: Optimistic UI — show pending state immediately after user clicks join
+  const [optimisticJoined, setOptimisticJoined] = useState(false);
 
   const myPlayerIndex = useMemo(() => {
     if (!gameState?.players || !publicKey) return null;
@@ -296,29 +305,43 @@ export default function Home() {
 
     setIsSpinning(false);
     setCountdown(null);
+    // FIX: Reset optimistic join state when result arrives
+    setOptimisticJoined(false);
 
     if (wasInGame && isWinner && !eliminatedThisGameRef.current) {
       const multiplierValue = activeRoom.lamports > 0
         ? gameResult.winnerAmount / activeRoom.lamports
         : undefined;
 
-      setShowResult({
-        type: 'win',
-        title: 'VICTORY',
-        msg: 'You won the game. Payout has been sent to your wallet.',
-        amount: parseFloat(winAmt),
-        multiplier: multiplierValue,
-        isFinal: true,
-        actionLabel: 'Close',
-      });
+      // FIX: Enqueue animation through AnimationQueue for dedup + sequencing
+      const animId = `result-${resultKey}`;
+      const enqueued = animationQueue.enqueue(animId, 'win', { winAmt, multiplierValue });
+      if (enqueued) {
+        setCurrentAnimationId(animId);
+        setShowResult({
+          type: 'win',
+          title: 'VICTORY',
+          msg: 'You won the game. Payout has been sent to your wallet.',
+          amount: parseFloat(winAmt),
+          multiplier: multiplierValue,
+          isFinal: true,
+          actionLabel: 'Close',
+        });
+      }
     } else if (wasInGame) {
-      setShowResult({
-        type: 'lose',
-        title: 'DEFEAT',
-        msg: `Game finished. Your bet (${activeRoom.label}) was lost.`,
-        isFinal: true,
-        actionLabel: 'Close',
-      });
+      // FIX: Enqueue loss animation through AnimationQueue
+      const animId = `result-${resultKey}`;
+      const enqueued = animationQueue.enqueue(animId, 'lose', {});
+      if (enqueued) {
+        setCurrentAnimationId(animId);
+        setShowResult({
+          type: 'lose',
+          title: 'DEFEAT',
+          msg: `Game finished. Your bet (${activeRoom.label}) was lost.`,
+          isFinal: true,
+          actionLabel: 'Close',
+        });
+      }
     }
 
     setGameResult(null);
@@ -331,6 +354,11 @@ export default function Home() {
       setShowResult(null);
       setOverlayCloseAtMs(null);
       setIsProcessingResult(false);
+      // FIX: Mark animation complete in queue so next one can play
+      if (currentAnimationId) {
+        animationQueue.complete(currentAnimationId);
+        setCurrentAnimationId(null);
+      }
       myPlayerIndexRef.current = null;
       stableFetch();
       resultCleanupTimeoutRef.current = null;
@@ -390,6 +418,10 @@ export default function Home() {
     setShowResult(null); setIsSpinning(false); setCountdown(null);
     setOverlayCloseAtMs(null);
     setTxPending(false); setIsProcessingResult(false);
+    // FIX: Reset optimistic and animation state on room change
+    setOptimisticJoined(false);
+    setCurrentAnimationId(null);
+    animationQueue.clear();
     lastPlayersRef.current = [];
     gameResultProcessedRef.current = null;
     eliminatedThisGameRef.current = false;
@@ -427,10 +459,13 @@ export default function Home() {
     }
     if (prev > 0 && prev < 2 && current === 0 && wasInGameRef.current && !refundHandledRef.current) {
       refundHandledRef.current = true;
-      toast.success('Round expired: Not enough players. Your funds have been refunded.', {
-        duration: 4500,
-        id: `refund-${roomId}`,
-      });
+      // FIX: Use notificationManager with deduplication instead of raw toast
+      notificationManager.notify(
+        `refund-${roomId}`,
+        'success',
+        'Round expired: Not enough players. Your funds have been refunded.',
+        4500
+      );
       setIsSpinning(false);
       setCountdown(null);
       setTxPending(false);
@@ -534,11 +569,16 @@ export default function Home() {
     try {
       setTxPending(true);
       const txPromise = initializeRoom(activeRoom.lamports);
-      toast.promise(txPromise, {
-        loading: 'Initializing room...',
-        success: 'Room initialized!',
-        error: (e: any) => `Failed: ${e.message}`,
-      });
+      // FIX: Use notificationManager for deduplication and anti-spam
+      notificationManager.notifyPromise(
+        `init-${roomId}`,
+        txPromise,
+        {
+          loading: 'Initializing room...',
+          success: 'Room initialized!',
+          error: (e: any) => `Failed: ${e.message}`,
+        }
+      );
       await txPromise;
     } finally {
       setTxPending(false);
@@ -551,19 +591,26 @@ export default function Home() {
     if (!lastPlayersRef.current.includes(myKey)) lastPlayersRef.current.push(myKey);
     try {
       setTxPending(true);
+      // FIX: Optimistic UI — show joined state immediately before tx confirms
+      setOptimisticJoined(true);
       
       // If room doesn't exist yet, initialize it first
       if (!gameState) {
-        toast.loading('Initializing room...');
+        notificationManager.notify(`init-room-${roomId}`, 'info', 'Initializing room...', 3000);
         await initializeRoom(activeRoom.lamports);
-        toast.dismiss();
       }
       
       const txPromise = joinGame(activeRoom.lamports);
-      toast.promise(txPromise, { loading: 'Entering round...', success: 'Entered round successfully!', error: (e: any) => `Failed: ${e.message}` });
+      // FIX: Use notificationManager for deduplication and anti-spam
+      notificationManager.notifyPromise(
+        `join-${roomId}-${publicKey?.toString()}`,
+        txPromise,
+        { loading: 'Entering round...', success: 'Entered round successfully!', error: (e: any) => `Failed: ${e.message}` }
+      );
       await txPromise;
     } catch (e) {
-      // Error already handled by toast
+      // FIX: Rollback optimistic state on error
+      setOptimisticJoined(false);
     } finally {
       setTxPending(false);
     }
@@ -574,7 +621,12 @@ export default function Home() {
     try {
       setTxPending(true);
       const txPromise = secureGain();
-      toast.promise(txPromise, { loading: 'Securing gain...', success: 'Gain secured! You received 2x your entry.', error: (e: any) => `Failed: ${e.message}` });
+      // FIX: Use notificationManager for deduplication and anti-spam
+      notificationManager.notifyPromise(
+        `secure-${roomId}-${publicKey?.toString()}`,
+        txPromise,
+        { loading: 'Securing gain...', success: 'Gain secured! You received 2x your entry.', error: (e: any) => `Failed: ${e.message}` }
+      );
       await txPromise;
     } catch (e) {
       // Error already handled by toast
@@ -604,7 +656,18 @@ export default function Home() {
       </div>
       <div className="cyber-grid" />
       <div className="scanlines" />
-      <Toaster position="top-center" theme="dark" visibleToasts={1} />
+      {/* FIX: Toaster maxVisible set to 3 to prevent notification spam */}
+      <Toaster position="top-center" theme="dark" visibleToasts={3} />
+
+      {/* FIX: Connection status indicator — shows when SSE is reconnecting or disconnected */}
+      {(connectionStatus === 'reconnecting' || connectionStatus === 'disconnected') && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-full bg-yellow-900/90 border border-yellow-500/50 backdrop-blur-lg flex items-center gap-2 shadow-lg">
+          <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
+          <span className="text-xs font-bold text-yellow-300 uppercase tracking-wider">
+            {connectionStatus === 'reconnecting' ? 'Reconnecting...' : 'Connection Lost'}
+          </span>
+        </div>
+      )}
 
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-black/40 backdrop-blur-2xl">
@@ -621,13 +684,33 @@ export default function Home() {
           </motion.div>
 
           <motion.div initial={false} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-3 sm:gap-4">
-            {/* Live Badge with Pulse */}
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-[#00FFA3]/10 border border-[#00FFA3]/30 rounded-full">
+            {/* FIX: Live Badge — color reflects connection status */}
+            <div className={`hidden sm:flex items-center gap-2 px-3 py-1.5 border rounded-full ${
+              connectionStatus === 'connected'
+                ? 'bg-[#00FFA3]/10 border-[#00FFA3]/30'
+                : connectionStatus === 'reconnecting'
+                  ? 'bg-yellow-500/10 border-yellow-500/30'
+                  : 'bg-red-500/10 border-red-500/30'
+            }`}>
               <div className="relative">
-                <div className="w-2 h-2 rounded-full bg-[#00FFA3] shadow-[0_0_8px_#00FFA3]" />
-                <div className="absolute inset-0 w-2 h-2 rounded-full bg-[#00FFA3] animate-ping" />
+                <div className={`w-2 h-2 rounded-full ${
+                  connectionStatus === 'connected'
+                    ? 'bg-[#00FFA3] shadow-[0_0_8px_#00FFA3]'
+                    : connectionStatus === 'reconnecting'
+                      ? 'bg-yellow-400 shadow-[0_0_8px_#EAB308]'
+                      : 'bg-red-500 shadow-[0_0_8px_#EF4444]'
+                }`} />
+                {connectionStatus === 'connected' && (
+                  <div className="absolute inset-0 w-2 h-2 rounded-full bg-[#00FFA3] animate-ping" />
+                )}
               </div>
-              <span className="text-xs font-black uppercase tracking-widest text-[#00FFA3]">Live</span>
+              <span className={`text-xs font-black uppercase tracking-widest ${
+                connectionStatus === 'connected'
+                  ? 'text-[#00FFA3]'
+                  : connectionStatus === 'reconnecting'
+                    ? 'text-yellow-400'
+                    : 'text-red-400'
+              }`}>{connectionStatus === 'connected' ? 'Live' : connectionStatus === 'reconnecting' ? 'Reconnecting' : 'Offline'}</span>
             </div>
             <WalletMultiButton />
           </motion.div>
@@ -810,13 +893,13 @@ export default function Home() {
                       <p className="text-[0.65rem] sm:text-xs text-zinc-500 font-bold uppercase tracking-wider">Connect Your Wallet</p>
                       <p className="text-[0.6rem] sm:text-[0.65rem] text-zinc-600 mt-1">Use the button in the header</p>
                     </div>
-                  ) : hasJoinedCurrentGame && isCurrentPlayerAlive ? (
+                  ) : (hasJoinedCurrentGame || optimisticJoined) && isCurrentPlayerAlive ? (
                     <div className="p-3 sm:p-4 bg-gradient-to-r from-[#00FFA3]/10 to-[#03E1FF]/10 border-2 border-[#00FFA3]/40 rounded-xl">
                       <div className="flex items-center justify-center gap-2 mb-1">
                         <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-[#00FFA3]" />
                         <p className="text-base sm:text-lg font-black text-[#00FFA3]">You&apos;re In!</p>
                       </div>
-                      <p className="text-center text-xs sm:text-sm text-zinc-400">Position #{(displayPlayerIndex ?? myPlayerIndex) + 1}</p>
+                      <p className="text-center text-xs sm:text-sm text-zinc-400">Position #{((displayPlayerIndex ?? myPlayerIndex) ?? 0) + 1}</p>
                     </div>
                   ) : hasJoinedCurrentGame && isInProgress && !isCurrentPlayerAlive ? (
                     <div className="p-3 sm:p-4 bg-gradient-to-r from-[#FF5B5B]/10 to-[#FF6B9D]/10 border-2 border-[#FF5B5B]/40 rounded-xl">
@@ -881,10 +964,11 @@ export default function Home() {
       {/* Secondary sections are memoized to avoid rerendering every timer tick */}
       {secondarySections}
 
-      {/* Result Overlay */}
+      {/* FIX: Result Overlay — keyed by animation id for clean re-mount on new results */}
       <AnimatePresence>
         {showResult && (
           <ResultOverlay
+            key={currentAnimationId ?? 'overlay'}
             type={showResult.type}
             title={showResult.title}
             message={showResult.msg}
@@ -897,6 +981,11 @@ export default function Home() {
             onClose={() => {
               setShowResult(null);
               setOverlayCloseAtMs(null);
+              // FIX: Mark animation complete on manual close
+              if (currentAnimationId) {
+                animationQueue.complete(currentAnimationId);
+                setCurrentAnimationId(null);
+              }
             }}
           />
         )}
