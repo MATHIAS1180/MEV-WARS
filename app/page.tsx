@@ -486,6 +486,9 @@ export default function Home() {
   const warnedTenSecondsRef = useRef<boolean>(false);
   const warnedFiveSecondsRef = useRef<boolean>(false);
   const lastComputedRemainingRef = useRef<number | null>(null);
+  // FIX: Track when we last received a server timer value to interpolate between ticks
+  const serverTimerReceivedAtRef = useRef<number>(0);
+  const serverTimerValueRef = useRef<number | null>(null);
 
   useEffect(() => {
     const aliveCount = isInProgress ? survivors.length : actualPlayerCount;
@@ -509,6 +512,7 @@ export default function Home() {
     if (!isRoundActive) {
       setTimeRemaining(null);
       lastComputedRemainingRef.current = null;
+      serverTimerValueRef.current = null;
       hasNotifiedTimerStartRef.current = false;
       warnedTenSecondsRef.current = false;
       warnedFiveSecondsRef.current = false;
@@ -519,11 +523,13 @@ export default function Home() {
       return;
     }
 
+    // FIX: Store server value and timestamp for client-side interpolation
     const nextRemaining = Math.max(0, serverTimerRemaining);
-    const previousRemaining = lastComputedRemainingRef.current;
+    serverTimerValueRef.current = nextRemaining;
+    serverTimerReceivedAtRef.current = Date.now();
     lastComputedRemainingRef.current = nextRemaining;
 
-    setTimeRemaining((prev) => (prev === nextRemaining ? prev : nextRemaining));
+    setTimeRemaining(nextRemaining);
 
     if (isWaiting && actualPlayerCount >= 2 && !hasNotifiedTimerStartRef.current) {
       hasNotifiedTimerStartRef.current = true;
@@ -541,6 +547,29 @@ export default function Home() {
       triggerCrank();
     }
   }, [serverTimerRemaining, isWaiting, isInProgress, actualPlayerCount, triggerCrank]);
+
+  // FIX: Client-side interpolation — tick timer locally every second for smooth countdown
+  // All spectators see the same countdown because the anchor value comes from the same server SSE
+  useEffect(() => {
+    const isRoundActive = (isWaiting || isInProgress) && actualPlayerCount > 0;
+    if (!isRoundActive || serverTimerValueRef.current === null) return;
+
+    const interval = setInterval(() => {
+      const serverVal = serverTimerValueRef.current;
+      const receivedAt = serverTimerReceivedAtRef.current;
+      if (serverVal === null || receivedAt === 0) return;
+
+      const elapsed = Math.floor((Date.now() - receivedAt) / 1000);
+      const interpolated = Math.max(0, serverVal - elapsed);
+      setTimeRemaining(interpolated);
+
+      if (interpolated === 0) {
+        triggerCrank();
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isWaiting, isInProgress, actualPlayerCount, triggerCrank]);
 
   const displayTimerSeconds = useMemo(() => {
     const isRoundActive = (isWaiting || isInProgress) && actualPlayerCount > 0;

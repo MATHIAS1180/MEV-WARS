@@ -10,8 +10,8 @@ export const dynamic = 'force-dynamic';
 // FIX: Extend serverless function timeout for Vercel Pro (default 10s on Hobby)
 export const maxDuration = 60;
 
-const STREAM_TICK_MS = 2000;   // FIX: 300→2000ms to avoid 429 rate limits on public RPC
-const CHAIN_CLOCK_SYNC_MS = 30000; // FIX: 1s→30s — interpolated between syncs
+const STREAM_TICK_MS = 1000;   // FIX: 1s tick for smooth real-time sync across spectators
+const CHAIN_CLOCK_SYNC_MS = 10000; // FIX: Sync chain clock every 10s, interpolate between
 
 type SnapshotState = 'waiting' | 'inProgress' | 'finished' | 'unknown';
 
@@ -110,21 +110,30 @@ export async function GET(req: NextRequest) {
       };
 
       const readChainClockUnix = async (): Promise<{ slot: number; chainUnix: number | null }> => {
-        const slot = await connection.getSlot('confirmed');
-        // FIX: Try only 3 offsets instead of 7 to reduce RPC calls
-        for (let offset = 0; offset <= 2; offset += 1) {
-          const t = await connection.getBlockTime(slot - offset);
-          if (typeof t === 'number' && t > 0) {
-            return { slot, chainUnix: t };
+        try {
+          const slot = await connection.getSlot('confirmed');
+          // FIX: Try 5 offsets for getBlockTime (recent slots might not have it yet)
+          for (let offset = 0; offset <= 4; offset += 1) {
+            const t = await connection.getBlockTime(slot - offset);
+            if (typeof t === 'number' && t > 0) {
+              return { slot, chainUnix: t };
+            }
           }
+          return { slot, chainUnix: null };
+        } catch {
+          // FIX: If RPC fails, return null without crashing the tick
+          return { slot: 0, chainUnix: null };
         }
-        return { slot, chainUnix: null };
       };
 
       const getEstimatedChainClock = () => {
-        if (!chainClockAnchor) return null;
-        const elapsed = Math.max(0, Math.floor((Date.now() - chainClockAnchor.localMs) / 1000));
-        return chainClockAnchor.unix + elapsed;
+        if (chainClockAnchor) {
+          const elapsed = Math.max(0, Math.floor((Date.now() - chainClockAnchor.localMs) / 1000));
+          return chainClockAnchor.unix + elapsed;
+        }
+        // FIX: Fallback to server wall-clock time when chain clock unavailable
+        // Solana chain time is typically within 1-2s of wall clock — acceptable for a 20s timer
+        return Math.floor(Date.now() / 1000);
       };
 
       const tick = async () => {
@@ -161,7 +170,8 @@ export async function GET(req: NextRequest) {
             const roundActive = (state === 'waiting' || state === 'inProgress') && playerCount > 0;
 
             let timerRemaining: number | null = null;
-            if (roundActive && chainClockUnix && blockStartTime > 0) {
+            // FIX: chainClockUnix is never null now (fallback to Date.now()/1000)
+            if (roundActive && blockStartTime > 0) {
               timerRemaining = Math.max(0, BLOCK_EXPIRATION_SECONDS - (chainClockUnix - blockStartTime));
             }
 
