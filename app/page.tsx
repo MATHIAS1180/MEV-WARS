@@ -823,14 +823,14 @@ export default function Home() {
               <div className="glass-card p-2.5 sm:p-4 text-center">
                 <p className="text-[0.6rem] sm:text-[0.65rem] text-zinc-400 uppercase font-bold tracking-wider mb-1">Pool</p>
                 <p className="text-lg sm:text-xl lg:text-2xl font-black text-white">{potAmount.toFixed(3)}</p>
-                <p className="text-[0.6rem] sm:text-xs text-zinc-500">SOL</p>
+                <p className="text-[0.6rem] sm:text-xs text-zinc-400">SOL</p>
               </div>
               
               {/* Players */}
               <div className="glass-card p-2.5 sm:p-4 text-center">
                 <p className="text-[0.6rem] sm:text-[0.65rem] text-zinc-400 uppercase font-bold tracking-wider mb-1">Players</p>
                 <p className="text-lg sm:text-xl lg:text-2xl font-black text-white">{isInProgress ? survivors.length : actualPlayerCount}</p>
-                <p className="text-[0.6rem] sm:text-xs text-zinc-500">1 winner</p>
+                <p className="text-[0.6rem] sm:text-xs text-zinc-400">1 winner</p>
               </div>
               
               {/* Potential Multiplier */}
@@ -839,7 +839,7 @@ export default function Home() {
                 <p className="text-lg sm:text-xl lg:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF]">
                   {potentialMultiplier !== null ? `x${potentialMultiplier.toFixed(2)}` : "--"}
                 </p>
-                <p className="text-[0.6rem] sm:text-xs text-zinc-500">based on joined players</p>
+                <p className="text-[0.6rem] sm:text-xs text-zinc-400">based on joined players</p>
               </div>
             </div>
 
@@ -935,7 +935,7 @@ export default function Home() {
                 <div className="flex-1 flex flex-col justify-end gap-2 sm:gap-3">
                   {!connected ? (
                     <div className="text-center p-3 sm:p-4 border-2 border-dashed border-zinc-700 rounded-xl">
-                      <p className="text-[0.65rem] sm:text-xs text-zinc-500 font-bold uppercase tracking-wider">Connect Your Wallet</p>
+                      <p className="text-[0.65rem] sm:text-xs text-zinc-400 font-bold uppercase tracking-wider">Connect Your Wallet</p>
                       <p className="text-[0.6rem] sm:text-[0.65rem] text-zinc-600 mt-1">Use the button in the header</p>
                     </div>
                   ) : (hasJoinedCurrentGame || optimisticJoined) && isCurrentPlayerAlive ? (

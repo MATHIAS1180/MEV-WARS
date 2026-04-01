@@ -23,7 +23,7 @@ export default function TournamentPanel({ gameState }: { gameState?: any }) {
         ) : (
           <div className="rounded-xl border border-white/10 bg-[#010113]/70 p-4">
             <p className="text-sm text-zinc-300 font-bold">No tournament data available in contract</p>
-            <p className="text-xs text-zinc-500">Static tournament cards are removed when contract data does not provide active tournament metadata.</p>
+            <p className="text-xs text-zinc-400">Static tournament cards are removed when contract data does not provide active tournament metadata.</p>
           </div>
         )}
       </div>

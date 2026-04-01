@@ -47,7 +47,7 @@ export default function LiveActivity() {
             Live Activity
           </h3>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-zinc-500 font-mono">
+            <span className="text-xs text-zinc-400 font-mono">
               {activities.length} event{activities.length !== 1 ? 's' : ''}
             </span>
             <a
@@ -70,7 +70,7 @@ export default function LiveActivity() {
         ) : activities.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <RefreshCw className="w-8 h-8 text-zinc-600 mb-3 animate-spin" style={{ animationDuration: '3s' }} />
-            <p className="text-sm text-zinc-500">Waiting for activity...</p>
+            <p className="text-sm text-zinc-400">Waiting for activity...</p>
             <p className="text-xs text-zinc-600 mt-1">Events will appear here in real-time</p>
           </div>
         ) : (
@@ -119,7 +119,7 @@ export default function LiveActivity() {
                     </p>
                   </div>
 
-                  <span className="text-xs text-zinc-500 flex-shrink-0 font-mono">
+                  <span className="text-xs text-zinc-400 flex-shrink-0 font-mono">
                     {getTimeAgo(activity.timestamp)}
                   </span>
                 </motion.div>

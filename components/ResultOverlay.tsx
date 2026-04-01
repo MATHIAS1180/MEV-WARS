@@ -198,7 +198,7 @@ export default function ResultOverlay({
               {isFinal ? <LogOut className="w-5 h-5" /> : <ArrowRight className="w-5 h-5" />}
               <span>{resolvedActionLabel}</span>
             </button>
-            <p className="text-xs text-zinc-500 mt-3 uppercase tracking-widest">
+            <p className="text-xs text-zinc-400 mt-3 uppercase tracking-widest">
               Auto closes in {remainingSeconds}s
             </p>
           </motion.div>

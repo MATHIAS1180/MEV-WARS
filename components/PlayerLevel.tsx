@@ -86,7 +86,7 @@ export default function PlayerLevel({ level = "NOVICE", progressPercentage = 35 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="p-3 rounded-lg bg-white/5 border border-white/10">
-          <p className="text-xs text-zinc-500 uppercase font-bold tracking-wider mb-1">This Week</p>
+          <p className="text-xs text-zinc-400 uppercase font-bold tracking-wider mb-1">This Week</p>
           <div className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-[#14F195]" />
             <p className="text-lg font-black text-white">12 Wins</p>
@@ -94,7 +94,7 @@ export default function PlayerLevel({ level = "NOVICE", progressPercentage = 35 
         </div>
 
         <div className="p-3 rounded-lg bg-white/5 border border-white/10">
-          <p className="text-xs text-zinc-500 uppercase font-bold tracking-wider mb-1">Multiplier</p>
+          <p className="text-xs text-zinc-400 uppercase font-bold tracking-wider mb-1">Multiplier</p>
           <p className="text-lg font-black text-[#14F195]">1.25x</p>
         </div>
       </div>
@@ -130,7 +130,7 @@ export default function PlayerLevel({ level = "NOVICE", progressPercentage = 35 
                   </motion.div>
                 </div>
                 <p className="text-xs font-bold text-white">{levelConfig.label}</p>
-                <p className="text-[0.6rem] text-zinc-500">{levelConfig.minWins}+ wins</p>
+                <p className="text-[0.6rem] text-zinc-400">{levelConfig.minWins}+ wins</p>
               </motion.div>
             );
           })}

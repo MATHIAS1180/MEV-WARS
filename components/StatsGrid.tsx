@@ -58,7 +58,7 @@ export default function StatsGrid({ playerCount, potAmount, winnerCount, timeRem
             <div className={`text-transparent bg-clip-text bg-gradient-to-r ${stat.color}`}>
               {stat.icon}
             </div>
-            <p className="text-[10px] sm:text-xs text-zinc-500 uppercase tracking-wider font-bold">
+            <p className="text-[10px] sm:text-xs text-zinc-400 uppercase tracking-wider font-bold">
               {stat.label}
             </p>
           </div>

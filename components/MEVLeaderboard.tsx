@@ -71,7 +71,7 @@ const levelColors = {
 const statusColors = {
   online: "#14F195",
   idle: "#FFB84D",
-  offline: "#71717a",
+  offline: "#a1a1aa",
 };
 
 export default function MEVLeaderboard() {
@@ -131,7 +131,7 @@ export default function MEVLeaderboard() {
                       boxShadow: `0 0 8px ${statusColors[entry.status as keyof typeof statusColors]}`
                     }}
                   />
-                  <span className="text-[0.6rem] font-bold uppercase text-zinc-500">
+                  <span className="text-[0.6rem] font-bold uppercase text-zinc-400">
                     {entry.status}
                   </span>
                 </div>
@@ -165,7 +165,7 @@ export default function MEVLeaderboard() {
                     <TrendingUp className="w-4 h-4" />
                     {entry.dailyWins}
                   </div>
-                  <p className="text-[0.65rem] text-zinc-500 uppercase tracking-wider">Wins</p>
+                  <p className="text-[0.65rem] text-zinc-400 uppercase tracking-wider">Wins</p>
                 </div>
 
                 <div className="text-right">
@@ -173,7 +173,7 @@ export default function MEVLeaderboard() {
                     <Zap className="w-4 h-4" />
                     {entry.totalWinnings}
                   </div>
-                  <p className="text-[0.65rem] text-zinc-500 uppercase tracking-wider">SOL</p>
+                  <p className="text-[0.65rem] text-zinc-400 uppercase tracking-wider">SOL</p>
                 </div>
               </div>
             </div>

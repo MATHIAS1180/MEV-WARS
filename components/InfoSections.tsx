@@ -48,7 +48,7 @@ export default function InfoSections() {
               <span className="text-[12px] font-bold text-zinc-700 font-mono mt-0.5">{step.step}</span>
               <div className="flex flex-col gap-1">
                 <span className="text-[11px] font-bold text-white uppercase tracking-widest">{step.title}</span>
-                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider leading-relaxed">{step.desc}</p>
+                <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider leading-relaxed">{step.desc}</p>
               </div>
             </div>
           ))}

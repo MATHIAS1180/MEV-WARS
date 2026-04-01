@@ -30,10 +30,10 @@ export default function ActivityLog({ playerCount }: ActivityLogProps) {
       <div className="glass-card bg-black/40 border-white/5 flex flex-col h-[600px]">
         <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
           <div className="flex flex-col gap-1">
-            <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest leading-none">Global Event Log</h3>
+            <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-none">Global Event Log</h3>
             <span className="text-[8px] font-bold text-zinc-700 uppercase tracking-widest mt-1">Encrypted Chain Stream</span>
           </div>
-          <div className="px-3 py-1 rounded-full bg-white/5 border border-white/5 text-[9px] font-bold text-zinc-500 uppercase tracking-widest">
+          <div className="px-3 py-1 rounded-full bg-white/5 border border-white/5 text-[9px] font-bold text-zinc-400 uppercase tracking-widest">
             Realtime
           </div>
         </div>

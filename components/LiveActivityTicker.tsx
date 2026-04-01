@@ -105,7 +105,7 @@ export default function LiveActivityTicker() {
                       activity.blockNumber
                     )}
                   </p>
-                  <p className="text-xs text-zinc-500 mt-1">
+                  <p className="text-xs text-zinc-400 mt-1">
                     {new Date(activity.timestamp).toLocaleTimeString()}
                   </p>
                 </div>
@@ -140,15 +140,15 @@ export default function LiveActivityTicker() {
       <div className="mt-6 pt-6 border-t border-white/10 grid grid-cols-3 gap-4">
         <div className="text-center">
           <p className="text-2xl lg:text-3xl font-black text-[#14F195]">8.5K</p>
-          <p className="text-xs text-zinc-500 uppercase tracking-wider mt-1">Total Blocks</p>
+          <p className="text-xs text-zinc-400 uppercase tracking-wider mt-1">Total Blocks</p>
         </div>
         <div className="text-center">
           <p className="text-2xl lg:text-3xl font-black text-[#00D1FF]">2.4M</p>
-          <p className="text-xs text-zinc-500 uppercase tracking-wider mt-1">SOL Wagered</p>
+          <p className="text-xs text-zinc-400 uppercase tracking-wider mt-1">SOL Wagered</p>
         </div>
         <div className="text-center">
           <p className="text-2xl lg:text-3xl font-black text-[#9945FF]">12.1K</p>
-          <p className="text-xs text-zinc-500 uppercase tracking-wider mt-1">Active Players</p>
+          <p className="text-xs text-zinc-400 uppercase tracking-wider mt-1">Active Players</p>
         </div>
       </div>
 

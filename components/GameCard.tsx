@@ -42,7 +42,7 @@ export default function GameCard({
         {/* Header with Live Badge */}
         <div className="flex items-center justify-between mb-4 lg:mb-6">
           <div>
-            <p className="text-[0.625rem] sm:text-xs text-zinc-500 uppercase tracking-wider mb-1 font-bold">Round #{roomId}</p>
+            <p className="text-[0.625rem] sm:text-xs text-zinc-400 uppercase tracking-wider mb-1 font-bold">Round #{roomId}</p>
             <h3 className="text-xl sm:text-2xl lg:text-3xl font-black text-white">{label}</h3>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-[#00FFA3]/10 border border-[#00FFA3]/30 rounded-full">
@@ -63,7 +63,7 @@ export default function GameCard({
           <div className="bg-white/5 rounded-lg lg:rounded-xl p-3 sm:p-4 border border-white/10 hover:border-[#00FFA3]/30 transition-all">
             <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
               <Users className="w-3 h-3 sm:w-4 sm:h-4 text-[#00FFA3]" />
-              <p className="text-[0.625rem] sm:text-xs text-zinc-500 uppercase tracking-wider font-bold">Players</p>
+              <p className="text-[0.625rem] sm:text-xs text-zinc-400 uppercase tracking-wider font-bold">Players</p>
             </div>
             <p className="text-xl sm:text-2xl font-black text-white">{playerCount}</p>
             <p className="text-[0.625rem] sm:text-xs text-zinc-600 mt-0.5 sm:mt-1">{winnerCount} winner{winnerCount !== 1 ? "s" : ""}</p>
@@ -72,7 +72,7 @@ export default function GameCard({
           <div className="bg-white/5 rounded-lg lg:rounded-xl p-3 sm:p-4 border border-white/10 hover:border-[#03E1FF]/30 transition-all">
             <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
               <Coins className="w-3 h-3 sm:w-4 sm:h-4 text-[#03E1FF]" />
-              <p className="text-[0.625rem] sm:text-xs text-zinc-500 uppercase tracking-wider font-bold">Pool</p>
+              <p className="text-[0.625rem] sm:text-xs text-zinc-400 uppercase tracking-wider font-bold">Pool</p>
             </div>
             <p className="text-xl sm:text-2xl font-black text-white">{potAmount.toFixed(3)}</p>
             <p className="text-[0.625rem] sm:text-xs text-zinc-600 mt-0.5 sm:mt-1">SOL</p>
@@ -90,7 +90,7 @@ export default function GameCard({
             <p className="text-4xl sm:text-5xl font-black text-center text-transparent bg-clip-text bg-gradient-to-r from-[#00FFA3] via-[#03E1FF] to-[#DC1FFF]">
               {winChance}%
             </p>
-            <p className="text-[0.625rem] sm:text-xs text-center text-zinc-500 mt-1.5 sm:mt-2 font-bold">single final winner</p>
+            <p className="text-[0.625rem] sm:text-xs text-center text-zinc-400 mt-1.5 sm:mt-2 font-bold">single final winner</p>
           </div>
         </div>
 

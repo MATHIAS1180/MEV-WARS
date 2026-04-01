@@ -61,7 +61,7 @@ export default function CountdownTimer({ secondsLeft, totalSeconds = 20 }: Count
         >
           {String(secondsLeft).padStart(2, '0')}
         </span>
-        <span className="text-[11px] text-zinc-500 mt-1">secondes</span>
+        <span className="text-[11px] text-zinc-400 mt-1">secondes</span>
       </div>
     </div>
   );

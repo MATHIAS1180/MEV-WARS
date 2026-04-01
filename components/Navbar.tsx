@@ -31,8 +31,8 @@ export default function Navbar() {
           </motion.div>
 
           <div className="hidden lg:flex items-center gap-8">
-            <a href="#arena" className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-white transition-colors">Arena</a>
-            <a href="#specs" className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-white transition-colors">Docs</a>
+            <a href="#arena" className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-colors">Arena</a>
+            <a href="#specs" className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-colors">Docs</a>
           </div>
         </div>
 
