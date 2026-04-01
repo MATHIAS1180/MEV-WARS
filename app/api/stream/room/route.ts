@@ -7,6 +7,8 @@ import { getServerRpcUrl } from '@/lib/rpc';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+// FIX: Extend serverless function timeout for Vercel Pro (default 10s on Hobby)
+export const maxDuration = 60;
 
 const STREAM_TICK_MS = 2000;   // FIX: 300→2000ms to avoid 429 rate limits on public RPC
 const CHAIN_CLOCK_SYNC_MS = 30000; // FIX: 1s→30s — interpolated between syncs

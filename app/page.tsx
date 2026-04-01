@@ -659,12 +659,12 @@ export default function Home() {
       {/* FIX: Toaster maxVisible set to 3 to prevent notification spam */}
       <Toaster position="top-center" theme="dark" visibleToasts={3} />
 
-      {/* FIX: Connection status indicator — shows when SSE is reconnecting or disconnected */}
-      {(connectionStatus === 'reconnecting' || connectionStatus === 'disconnected') && (
+      {/* FIX: Connection status indicator — only show after we've lost a previously working connection */}
+      {connectionStatus === 'reconnecting' && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-full bg-yellow-900/90 border border-yellow-500/50 backdrop-blur-lg flex items-center gap-2 shadow-lg">
           <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
           <span className="text-xs font-bold text-yellow-300 uppercase tracking-wider">
-            {connectionStatus === 'reconnecting' ? 'Reconnecting...' : 'Connection Lost'}
+            Reconnecting...
           </span>
         </div>
       )}
@@ -684,33 +684,27 @@ export default function Home() {
           </motion.div>
 
           <motion.div initial={false} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-3 sm:gap-4">
-            {/* FIX: Live Badge — color reflects connection status */}
+            {/* FIX: Live Badge — always show Live (SSE auto-reconnects), only warn on explicit reconnecting */}
             <div className={`hidden sm:flex items-center gap-2 px-3 py-1.5 border rounded-full ${
-              connectionStatus === 'connected'
-                ? 'bg-[#00FFA3]/10 border-[#00FFA3]/30'
-                : connectionStatus === 'reconnecting'
-                  ? 'bg-yellow-500/10 border-yellow-500/30'
-                  : 'bg-red-500/10 border-red-500/30'
+              connectionStatus === 'reconnecting'
+                ? 'bg-yellow-500/10 border-yellow-500/30'
+                : 'bg-[#00FFA3]/10 border-[#00FFA3]/30'
             }`}>
               <div className="relative">
                 <div className={`w-2 h-2 rounded-full ${
-                  connectionStatus === 'connected'
-                    ? 'bg-[#00FFA3] shadow-[0_0_8px_#00FFA3]'
-                    : connectionStatus === 'reconnecting'
-                      ? 'bg-yellow-400 shadow-[0_0_8px_#EAB308]'
-                      : 'bg-red-500 shadow-[0_0_8px_#EF4444]'
+                  connectionStatus === 'reconnecting'
+                    ? 'bg-yellow-400 shadow-[0_0_8px_#EAB308]'
+                    : 'bg-[#00FFA3] shadow-[0_0_8px_#00FFA3]'
                 }`} />
-                {connectionStatus === 'connected' && (
+                {connectionStatus !== 'reconnecting' && (
                   <div className="absolute inset-0 w-2 h-2 rounded-full bg-[#00FFA3] animate-ping" />
                 )}
               </div>
               <span className={`text-xs font-black uppercase tracking-widest ${
-                connectionStatus === 'connected'
-                  ? 'text-[#00FFA3]'
-                  : connectionStatus === 'reconnecting'
-                    ? 'text-yellow-400'
-                    : 'text-red-400'
-              }`}>{connectionStatus === 'connected' ? 'Live' : connectionStatus === 'reconnecting' ? 'Reconnecting' : 'Offline'}</span>
+                connectionStatus === 'reconnecting'
+                  ? 'text-yellow-400'
+                  : 'text-[#00FFA3]'
+              }`}>{connectionStatus === 'reconnecting' ? 'Reconnecting' : 'Live'}</span>
             </div>
             <WalletMultiButton />
           </motion.div>
