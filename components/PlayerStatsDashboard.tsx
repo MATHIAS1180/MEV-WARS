@@ -48,7 +48,7 @@ export default function PlayerStatsDashboard({ stats }: { stats?: Stats }) {
       <div className="mt-6 p-4 border border-white/10 rounded-xl bg-[#0b0b13]/70">
         <div className="flex items-center gap-2 text-xs uppercase text-zinc-400">
           <ShieldCheck className="w-4 h-4 text-[#00D1FF]" />
-          On-chain integrity (RTP 95% confirmed)
+          On-chain integrity (RTP 98% confirmed)
         </div>
         <p className="text-[0.8rem] text-zinc-400 mt-2">
           Each round is verified via Solana logs. Only on-chain values are shown here; mocked stats have been removed.

@@ -12,7 +12,6 @@ import { PublicKey } from "@solana/web3.js";
 import MiningBlock from "@/components/MiningBlock";
 import ResultOverlay from "@/components/ResultOverlay";
 import CountdownTimer from "@/components/CountdownTimer";
-import GameCard from "@/components/GameCard";
 import { BLOCK_EXPIRATION_SECONDS, ROOMS } from "@/config/constants";
 
 const HowItWorks = dynamic(() => import("@/components/HowItWorks"));
@@ -144,9 +143,13 @@ export default function Home() {
   }, [gameState?.players, gameState?.playerCount]);
   const actualPlayerCount = gameState?.playerCount ?? 0;
   const potAmount = gameState?.potAmount ? (gameState.potAmount.toNumber() / 1e9) : 0;
-  const multiplier = currentRound > 0 ? currentRound + 1 : 1; // Example multiplier
   const joinedPlayersCount = isInProgress ? survivors.length : actualPlayerCount;
-  const potentialMultiplier = joinedPlayersCount >= 2 ? joinedPlayersCount * 0.98 : null;
+  const entryFeeSol = activeRoom.lamports / 1e9;
+  // Potential multiplier = what the winner would get relative to entry fee
+  // On-chain: winner gets potAmount - 2% house cut
+  const potentialMultiplier = potAmount > 0 && entryFeeSol > 0
+    ? (potAmount * 0.98) / entryFeeSol
+    : null;
 
   const [isSpinning, setIsSpinning] = useState(false);
   const [txPending, setTxPending] = useState(false);
@@ -394,12 +397,12 @@ export default function Home() {
 
   const lastCrankTimeRef = useRef(0);
   const triggerCrank = useCallback(async () => {
-    if (Date.now() - lastCrankTimeRef.current < 10000) return;
+    if (Date.now() - lastCrankTimeRef.current < 5000) return;
     lastCrankTimeRef.current = Date.now();
     try {
       await crankRoom();
     } catch {
-      // Silently ignore to avoid noisy toast spam during timer checks
+      // Silently ignore; the timer effect will retry when remaining stays at 0
     }
   }, [crankRoom]);
 
@@ -498,7 +501,8 @@ export default function Home() {
       warnedFiveSecondsRef.current = true;
     }
 
-    if (nextRemaining === 0 && previousRemaining !== 0) {
+    // Trigger crank when timer hits or stays at 0 (cooldown inside triggerCrank prevents spam)
+    if (nextRemaining === 0) {
       triggerCrank();
     }
   }, [serverTimerRemaining, isWaiting, isInProgress, actualPlayerCount, triggerCrank]);
@@ -702,7 +706,7 @@ export default function Home() {
               <div className="glass-card p-2.5 sm:p-4 text-center">
                 <p className="text-[0.6rem] sm:text-[0.65rem] text-zinc-400 uppercase font-bold tracking-wider mb-1">Pool</p>
                 <p className="text-lg sm:text-xl lg:text-2xl font-black text-white">{potAmount.toFixed(3)}</p>
-                <p className="text-[0.6rem] sm:text-xs text-zinc-500">SOL x{multiplier}</p>
+                <p className="text-[0.6rem] sm:text-xs text-zinc-500">SOL</p>
               </div>
               
               {/* Players */}

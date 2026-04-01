@@ -59,9 +59,14 @@ interface RoomStreamSnapshot {
   timerRemaining: number | null;
 }
 
-function mapSnapshotState(state: SnapshotState): GameState | null {
+function mapSnapshotState(state: SnapshotState, snapshot?: RoomStreamSnapshot['game']): GameState | null {
   if (state === 'waiting') return { waiting: {} };
-  if (state === 'inProgress') return { inProgress: { round: 0, survivors: [] } };
+  if (state === 'inProgress') return {
+    inProgress: {
+      round: snapshot?.currentRound ?? 0,
+      survivors: (snapshot?.survivors ?? []),
+    }
+  };
   if (state === 'finished') return { finished: {} };
   return null;
 }
@@ -74,7 +79,7 @@ function mapSnapshotToGameData(snapshot: RoomStreamSnapshot['game']): GameStateD
     entryFee: new BN(snapshot.entryFee),
     players: snapshot.players.map((p) => new PublicKey(p)),
     playerCount: snapshot.playerCount,
-    state: mapSnapshotState(snapshot.state),
+    state: mapSnapshotState(snapshot.state, snapshot),
     potAmount: new BN(snapshot.potAmount),
     resolveSlot: new BN(snapshot.resolveSlot),
     lastActivityTime: new BN(snapshot.lastActivityTime),
