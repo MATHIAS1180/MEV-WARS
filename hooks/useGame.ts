@@ -250,7 +250,8 @@ export function useGame(roomId: number) {
       }
 
       try {
-        const sigs = await connection.getSignaturesForAddress(gamePda, { limit: 40 });
+        // FIX: Reduced from 40 to 10 signatures to avoid 429 rate limits
+        const sigs = await connection.getSignaturesForAddress(gamePda, { limit: 10 });
         let foundResult: GameResult | null = null;
         let foundSignature: string | null = null;
 

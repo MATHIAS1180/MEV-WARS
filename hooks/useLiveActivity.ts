@@ -18,6 +18,8 @@ export interface Activity {
 
 const ROOMS = [101, 102, 103]; // 0.01, 0.1, 1.0 SOL rooms
 const MAX_ACTIVITIES = 20; // Keep last 20 activities
+// FIX: Small delay helper to avoid RPC 429 rate limits
+const rpcDelay = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
 export function useLiveActivity() {
   const { connection } = useConnection();
@@ -59,7 +61,8 @@ export function useLiveActivity() {
         );
 
         try {
-          const signatures = await connection.getSignaturesForAddress(gamePda, { limit: 30 });
+          // FIX: Reduced from 30 to 5 signatures to avoid 429 rate limit burst
+          const signatures = await connection.getSignaturesForAddress(gamePda, { limit: 5 });
 
           for (const sig of signatures) {
             if (processedSignatures.current.has(sig.signature)) continue;
@@ -69,6 +72,9 @@ export function useLiveActivity() {
               maxSupportedTransactionVersion: 0,
               commitment: 'confirmed',
             });
+
+            // FIX: Small delay between tx fetches to avoid 429
+            await rpcDelay(200);
 
             if (tx?.meta?.logMessages && tx.blockTime) {
               const parser = new EventParser(PROGRAM_ID, new BorshCoder(IDL as any));
@@ -118,6 +124,9 @@ export function useLiveActivity() {
         } catch (err) {
           console.error(`Error loading history for room ${roomId}:`, err);
         }
+
+        // FIX: Stagger room fetches to spread RPC load
+        await rpcDelay(500);
       }
 
       // Sort by timestamp (newest first) and limit
@@ -187,7 +196,8 @@ export function useLiveActivity() {
             if (prevPlayerCount >= 2 && currentPlayerCount === 0) {
               // Fetch recent transactions to get winner info
               try {
-                const signatures = await connection.getSignaturesForAddress(gamePda, { limit: 5 });
+                // FIX: Reduced from limit:5 to limit:2 to minimize RPC calls on game resolve
+                const signatures = await connection.getSignaturesForAddress(gamePda, { limit: 2 });
                 
                 for (const sig of signatures) {
                   if (processedSignatures.current.has(sig.signature)) continue;

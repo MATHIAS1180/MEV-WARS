@@ -8,8 +8,8 @@ import { getServerRpcUrl } from '@/lib/rpc';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const STREAM_TICK_MS = 300;
-const CHAIN_CLOCK_SYNC_MS = 1000;
+const STREAM_TICK_MS = 2000;   // FIX: 300→2000ms to avoid 429 rate limits on public RPC
+const CHAIN_CLOCK_SYNC_MS = 30000; // FIX: 1s→30s — interpolated between syncs
 
 type SnapshotState = 'waiting' | 'inProgress' | 'finished' | 'unknown';
 
@@ -109,7 +109,8 @@ export async function GET(req: NextRequest) {
 
       const readChainClockUnix = async (): Promise<{ slot: number; chainUnix: number | null }> => {
         const slot = await connection.getSlot('confirmed');
-        for (let offset = 0; offset <= 6; offset += 1) {
+        // FIX: Try only 3 offsets instead of 7 to reduce RPC calls
+        for (let offset = 0; offset <= 2; offset += 1) {
           const t = await connection.getBlockTime(slot - offset);
           if (typeof t === 'number' && t > 0) {
             return { slot, chainUnix: t };
@@ -142,20 +143,10 @@ export async function GET(req: NextRequest) {
 
           const chainClockUnix = getEstimatedChainClock();
 
-          const accountInfo = await connection.getAccountInfo(gamePda, 'confirmed');
-          const account = accountInfo ? await program.account.game.fetch(gamePda as any) : null;
+          // FIX: Single fetch call instead of getAccountInfo + fetch (halves RPC calls)
           let snapshot: StreamSnapshot;
-
-          if (!account) {
-            snapshot = {
-              roomId,
-              slot,
-              chainClockUnix,
-              fetchedAtMs: nowMs,
-              game: null,
-              timerRemaining: null,
-            };
-          } else {
+          try {
+            const account = await program.account.game.fetch(gamePda as any);
             const fetched: any = account;
             const playerCount = Number(fetched.playerCount ?? 0);
             const players = toPlayerList(fetched.players ?? [], playerCount);
@@ -193,21 +184,47 @@ export async function GET(req: NextRequest) {
               },
               timerRemaining,
             };
+          } catch {
+            // Account doesn't exist yet — send null game
+            snapshot = {
+              roomId,
+              slot: 0,
+              chainClockUnix: getEstimatedChainClock(),
+              fetchedAtMs: nowMs,
+              game: null,
+              timerRemaining: null,
+            };
           }
 
           write('snapshot', snapshot);
+          // FIX: Reset backoff on successful tick
+          consecutiveErrors = 0;
         } catch (error: any) {
+          // FIX: Track consecutive errors for adaptive backoff
+          consecutiveErrors++;
           write('error', { message: error?.message || 'stream tick failed' });
         }
       };
 
       write('ready', { roomId });
-      const intervalId = setInterval(tick, STREAM_TICK_MS);
-      tick();
+      // FIX: Use adaptive setTimeout instead of fixed setInterval to back off on 429
+      let consecutiveErrors = 0;
+      const scheduleNext = () => {
+        if (closed) return;
+        // Back off: 2s, 4s, 8s, 16s, max 30s on consecutive errors
+        const delay = consecutiveErrors > 0
+          ? Math.min(STREAM_TICK_MS * Math.pow(2, consecutiveErrors), 30000)
+          : STREAM_TICK_MS;
+        setTimeout(async () => {
+          if (closed) return;
+          await tick();
+          scheduleNext();
+        }, delay);
+      };
+      tick().then(scheduleNext);
 
       req.signal.addEventListener('abort', () => {
         closed = true;
-        clearInterval(intervalId);
         try {
           controller.close();
         } catch {
