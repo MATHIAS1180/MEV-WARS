@@ -144,6 +144,8 @@ export default function Home() {
   }, [gameState?.players, gameState?.playerCount]);
   const potAmount = gameState?.potAmount ? (gameState.potAmount.toNumber() / 1e9) : 0;
   const multiplier = currentRound > 0 ? currentRound + 1 : 1; // Example multiplier
+  const joinedPlayersCount = isInProgress ? survivors.length : actualPlayerCount;
+  const potentialMultiplier = joinedPlayersCount >= 2 ? joinedPlayersCount * 0.98 : null;
 
   const [isSpinning, setIsSpinning] = useState(false);
   const [txPending, setTxPending] = useState(false);
@@ -791,13 +793,6 @@ export default function Home() {
                 <p className="text-[0.6rem] sm:text-xs text-zinc-500">SOL x{multiplier}</p>
               </div>
               
-              {/* Round */}
-              <div className="glass-card p-2.5 sm:p-4 text-center">
-                <p className="text-[0.6rem] sm:text-[0.65rem] text-zinc-400 uppercase font-bold tracking-wider mb-1">Round</p>
-                <p className="text-lg sm:text-xl lg:text-2xl font-black text-white">{currentRound || '-'}</p>
-                <p className="text-[0.6rem] sm:text-xs text-zinc-500">Active</p>
-              </div>
-              
               {/* Players */}
               <div className="glass-card p-2.5 sm:p-4 text-center">
                 <p className="text-[0.6rem] sm:text-[0.65rem] text-zinc-400 uppercase font-bold tracking-wider mb-1">Players</p>
@@ -805,13 +800,13 @@ export default function Home() {
                 <p className="text-[0.6rem] sm:text-xs text-zinc-500">1 winner</p>
               </div>
               
-              {/* Win Chance */}
+              {/* Potential Multiplier */}
               <div className="glass-card p-2.5 sm:p-4 text-center bg-gradient-to-br from-[#00FFA3]/5 to-[#DC1FFF]/5 border-[#00FFA3]/30">
-                <p className="text-[0.6rem] sm:text-[0.65rem] text-zinc-400 uppercase font-bold tracking-wider mb-1">Win Chance</p>
+                <p className="text-[0.6rem] sm:text-[0.65rem] text-zinc-400 uppercase font-bold tracking-wider mb-1">Potential Multiplier</p>
                 <p className="text-lg sm:text-xl lg:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF]">
-                  {(isInProgress ? survivors.length : actualPlayerCount) >= 2 ? (100 / (isInProgress ? survivors.length : actualPlayerCount)).toFixed(1) : "50.0"}%
+                  {potentialMultiplier !== null ? `x${potentialMultiplier.toFixed(2)}` : "--"}
                 </p>
-                <p className="text-[0.6rem] sm:text-xs text-zinc-500">to win</p>
+                <p className="text-[0.6rem] sm:text-xs text-zinc-500">based on joined players</p>
               </div>
             </div>
 
