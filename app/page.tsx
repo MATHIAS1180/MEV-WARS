@@ -325,6 +325,24 @@ export default function Home() {
       }
     }
 
+    // Case C: Game just ended (inProgress → no longer in progress).
+    // Show a neutral "calculating" card for players who were in the final round.
+    // The gameResult effect will replace this with VICTORY or DEFEAT within 1-3 s.
+    // This guarantees the final-round loser always sees feedback even if there is
+    // a network delay before the TX scan resolves.
+    if (prev.inProgress && !inProgressNow) {
+      const wasInFinalRound = prev.survivors.includes(myKey);
+      if (wasInFinalRound) {
+        setShowResult({
+          type: 'survive',
+          title: 'GAME OVER',
+          msg: `Round ${prev.round} complete — calculating final results…`,
+          isFinal: false,
+          actionLabel: 'Waiting…',
+        });
+      }
+    }
+
     prevRoundSnapshotRef.current = {
       round: roundNow,
       survivors: survivorsNow,
@@ -359,41 +377,49 @@ export default function Home() {
     // FIX: Reset optimistic join state when result arrives
     setOptimisticJoined(false);
 
-    if (wasInGame && isWinner && !eliminatedThisGameRef.current) {
+    if (wasInGame && isWinner) {
+      // Always show VICTORY to the winner regardless of any intermediate state.
       const multiplierValue = activeRoom.lamports > 0
         ? gameResult.winnerAmount / activeRoom.lamports
         : undefined;
 
-      // FIX: Enqueue animation through AnimationQueue for dedup + sequencing
       const animId = `result-${resultKey}`;
       const enqueued = animationQueue.enqueue(animId, 'win', { winAmt, multiplierValue });
       if (enqueued) {
         setCurrentAnimationId(animId);
-        setShowResult({
-          type: 'win',
-          title: 'VICTORY',
-          msg: 'You won the game. Payout has been sent to your wallet.',
-          amount: parseFloat(winAmt),
-          multiplier: multiplierValue,
-          isFinal: true,
-          actionLabel: 'Close',
-        });
       }
-    } else if (wasInGame && !eliminatedThisGameRef.current) {
-      // Skip final defeat overlay if player already saw an intermediate ELIMINATED card
-      // FIX: Enqueue loss animation through AnimationQueue
+      // Always overwrite whatever is showing (e.g. Case C "GAME OVER" card)
+      setShowResult({
+        type: 'win',
+        title: 'VICTORY',
+        msg: 'You won the game. Payout has been sent to your wallet.',
+        amount: parseFloat(winAmt),
+        multiplier: multiplierValue,
+        isFinal: true,
+        actionLabel: 'Close',
+      });
+    } else if (wasInGame && !isWinner && !eliminatedThisGameRef.current) {
+      // Show DEFEAT only if the player did NOT already receive an ELIMINATED card
+      // from a mid-game round transition (eliminatedThisGameRef = true).
+      // This prevents mid-game eliminated players from seeing a duplicate DEFEAT.
+      // Final-round losers (eliminatedThisGameRef = false) always reach this branch.
       const animId = `result-${resultKey}`;
       const enqueued = animationQueue.enqueue(animId, 'lose', {});
       if (enqueued) {
         setCurrentAnimationId(animId);
-        setShowResult({
-          type: 'lose',
-          title: 'DEFEAT',
-          msg: `Game finished. Your bet (${activeRoom.label}) was lost.`,
-          isFinal: true,
-          actionLabel: 'Close',
-        });
       }
+      // Overwrite Case C "GAME OVER" card with the real DEFEAT card
+      setShowResult({
+        type: 'lose',
+        title: 'DEFEAT',
+        msg: `Game finished. Your bet (${activeRoom.label}) was lost.`,
+        isFinal: true,
+        actionLabel: 'Close',
+      });
+    } else if (wasInGame && !isWinner && eliminatedThisGameRef.current) {
+      // Player already saw an ELIMINATED card mid-game — no duplicate needed.
+      // Just clear any lingering "GAME OVER" placeholder from Case C.
+      setShowResult(null);
     }
 
     setGameResult(null);
@@ -458,13 +484,17 @@ export default function Home() {
     };
   }, []);
 
+  // Reset eliminatedThisGameRef only when a NEW game starts (first player joins),
+  // NOT when the game ends. Resetting on game-end would clear the flag for mid-game
+  // eliminated players BEFORE gameResult arrives, causing a duplicate DEFEAT overlay.
+  const prevPlayerCountForElimResetRef = useRef<number>(0);
   useEffect(() => {
-    const inProgressNow = !!(gameState?.state && 'inProgress' in gameState.state);
     const playerCountNow = gameState?.playerCount ?? 0;
-    if (!inProgressNow && playerCountNow === 0) {
+    if (prevPlayerCountForElimResetRef.current === 0 && playerCountNow > 0) {
       eliminatedThisGameRef.current = false;
     }
-  }, [gameState?.state, gameState?.playerCount]);
+    prevPlayerCountForElimResetRef.current = playerCountNow;
+  }, [gameState?.playerCount]);
 
   useEffect(() => {
     setShowResult(null); setIsSpinning(false); setCountdown(null);
@@ -477,6 +507,7 @@ export default function Home() {
     lastPlayersRef.current = [];
     gameResultProcessedRef.current = null;
     eliminatedThisGameRef.current = false;
+    prevPlayerCountForElimResetRef.current = 0;
   }, [roomId]);
 
   const lastCrankTimeRef = useRef(0);
