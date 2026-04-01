@@ -396,7 +396,6 @@ export default function Home() {
     resultCleanupTimeoutRef.current = setTimeout(() => {
       setShowResult(null);
       setOverlayCloseAtMs(null);
-      setRotation(0);
       setIsProcessingResult(false);
       myPlayerIndexRef.current = null;
       stableFetch();
@@ -549,7 +548,6 @@ export default function Home() {
       myPlayerIndexRef.current = null;
       lastPlayersRef.current = [];
       wasInGameRef.current = false;
-      setRotation(0);
       setTimeout(() => stableFetch(), 100);
     }
     prevPlayerCountForRefundRef.current = current;
@@ -640,7 +638,6 @@ export default function Home() {
     setIsSpinning(false);
     setCountdown(null);
     setTimeRemaining(null);
-    setRotation(0);
     hasNotifiedTimerStartRef.current = false;
     warnedTenSecondsRef.current = false;
     warnedFiveSecondsRef.current = false;
@@ -649,7 +646,6 @@ export default function Home() {
   // Smooth mining block rotation animation
   useEffect(() => {
     if (!isSpinning) {
-      setRotation(0);
       if (rotationIntervalRef.current) {
         clearInterval(rotationIntervalRef.current);
         rotationIntervalRef.current = null;
