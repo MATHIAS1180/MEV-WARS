@@ -182,15 +182,6 @@
 ::-webkit-scrollbar-thumb { background: rgba(220, 31, 255, 0.4); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(220, 31, 255, 0.7); }
 
-/* Center Sonner toast notifications in the middle of the viewport */
-[data-sonner-toaster] {
-  top: 50% !important;
-  bottom: auto !important;
-  left: 50% !important;
-  right: auto !important;
-  transform: translate(-50%, -50%) !important;
-}
-
 /* Animation delays for blob elements */
 .animation-delay-2000 {
   animation-delay: 2s;
