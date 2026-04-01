@@ -306,17 +306,17 @@ export default function MiningBlock({ playerCount, isSpinning, rotation, countdo
                       ? color
                       : isEliminated
                         ? "rgba(120,120,135,0.35)"
-                        : "rgba(40,40,60,0.4)"
+                        : "rgba(58,58,82,0.62)"
                   }
                   stroke={
                     isPlayerActive
                       ? "#9945FF"
                       : isEliminated
                         ? "rgba(170,170,185,0.45)"
-                        : "rgba(60,60,80,0.3)"
+                        : "rgba(110,110,145,0.55)"
                   }
                   strokeWidth={isPlayerActive ? "2" : "1"}
-                  opacity={isPlayerActive ? "1" : isEliminated ? "0.7" : "0.3"}
+                  opacity={isPlayerActive ? "1" : isEliminated ? "0.72" : "0.62"}
                   filter={
                     performanceMode
                       ? undefined
