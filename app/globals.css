@@ -20,7 +20,7 @@
     --text-muted: #a1a1aa;
 
     /* Font variables injected by Next.js layout */
-    --font-space: 'Barlow Condensed', sans-serif;
+    --font-space: 'Exo 2', sans-serif;
     --font-inter: 'Inter', sans-serif;
   }
 
@@ -34,9 +34,9 @@
     font-display: swap;
   }
 
-  /* Apply Barlow Condensed to all headings */
+  /* Apply Exo 2 to all headings */
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-space), 'Barlow Condensed', sans-serif;
+    font-family: var(--font-space), 'Exo 2', sans-serif;
     letter-spacing: 0.01em;
   }
 
