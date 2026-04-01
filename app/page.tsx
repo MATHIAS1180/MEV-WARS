@@ -682,9 +682,9 @@ export default function Home() {
     return timeRemaining;
   }, [timeRemaining, isWaiting, isInProgress, actualPlayerCount]);
 
-  // DEBUG: Log timer values for live diagnosis (console.warn is kept in prod)
+  // Timer values logged in dev only
   useEffect(() => {
-    if (actualPlayerCount > 0) {
+    if (process.env.NODE_ENV === 'development' && actualPlayerCount > 0) {
       console.warn('[Timer Debug]', { serverTimerRemaining, timeRemaining, displayTimerSeconds, actualPlayerCount, isWaiting, isInProgress });
     }
   }, [serverTimerRemaining, timeRemaining, displayTimerSeconds, actualPlayerCount, isWaiting, isInProgress]);
@@ -853,21 +853,28 @@ export default function Home() {
       </header>
 
       {/* Hero Section */}
-      <section className="relative w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 py-8 sm:py-12 lg:py-16">
+      <section className="relative w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 pt-10 sm:pt-14 lg:pt-18 pb-4 sm:pb-6">
         <div className="text-center">
+          {/* Category pill */}
+          <motion.div
+            initial={false}
+            animate={{ opacity: 1 }}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#00FFA3]/25 bg-[#00FFA3]/6 mb-5 sm:mb-7"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-[#00FFA3] animate-pulse" />
+            <span className="text-[0.65rem] sm:text-xs font-black uppercase tracking-[0.18em] text-[#00FFA3]">
+              Provably Fair · Fully On-Chain · Solana
+            </span>
+          </motion.div>
+
           <motion.h1
             initial={false}
             animate={{ opacity: 1, y: 0 }}
-            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black uppercase tracking-tighter mb-4 sm:mb-6 leading-tight"
+            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black uppercase tracking-tighter mb-4 sm:mb-5 leading-[0.92]"
           >
-            <span className="text-white">MEV Wars</span>
-            <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00FFA3] via-[#03E1FF] to-[#DC1FFF]">
-              Provably Fair
-            </span>
-            <br />
-            <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl text-white/90">
-              Solana Casino Game
+            <span className="text-white">MEV</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00FFA3] via-[#03E1FF] to-[#DC1FFF] px-3">
+              Wars
             </span>
           </motion.h1>
 
@@ -875,9 +882,10 @@ export default function Home() {
             initial={false}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-base sm:text-lg md:text-xl lg:text-2xl text-zinc-300 font-medium max-w-3xl mx-auto mb-8 sm:mb-10 px-4 leading-relaxed"
+            className="text-sm sm:text-base md:text-lg lg:text-xl text-zinc-400 font-medium max-w-xl mx-auto mb-8 sm:mb-10 px-4 leading-relaxed"
           >
-            Join a round. <span className="text-[#00FFA3] font-bold">Minimum 2 players, 1 final winner.</span> Fully on-chain. Instant payouts.
+            Minimum 2 players. One final winner.{" "}
+            <span className="text-zinc-200 font-semibold">Instant payouts, provably fair.</span>
           </motion.p>
 
           {/* Social Proof Bar */}
@@ -885,16 +893,16 @@ export default function Home() {
             initial={false}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 lg:gap-8"
+            className="flex flex-wrap items-center justify-center gap-3 sm:gap-5 lg:gap-8"
           >
             {[
-              { icon: <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />, text: "100% On-chain", color: "text-[#00FFA3]" },
-              { icon: <Zap className="w-4 h-4 sm:w-5 sm:h-5" />, text: "Provably Fair", color: "text-[#03E1FF]" },
-              { icon: <Clock className="w-4 h-4 sm:w-5 sm:h-5" />, text: "Instant Payouts", color: "text-[#DC1FFF]" },
+              { icon: <ShieldCheck className="w-4 h-4" />, text: "100% On-chain", color: "text-[#00FFA3]", glow: "shadow-[0_0_12px_rgba(0,255,163,0.3)]" },
+              { icon: <Zap className="w-4 h-4" />, text: "Provably Fair", color: "text-[#03E1FF]", glow: "shadow-[0_0_12px_rgba(3,225,255,0.3)]" },
+              { icon: <Clock className="w-4 h-4" />, text: "Instant Payouts", color: "text-[#DC1FFF]", glow: "shadow-[0_0_12px_rgba(220,31,255,0.3)]" },
             ].map((item, i) => (
-              <div key={i} className={`flex items-center gap-2 ${item.color}`}>
+              <div key={i} className={`flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/8 bg-white/4 ${item.color}`}>
                 {item.icon}
-                <span className="text-xs sm:text-sm font-bold uppercase tracking-wider">{item.text}</span>
+                <span className="text-[0.7rem] sm:text-xs font-bold uppercase tracking-widest">{item.text}</span>
               </div>
             ))}
           </motion.div>
@@ -908,39 +916,39 @@ export default function Home() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-3 sm:mb-4">
               
               {/* Round Info */}
-              <div className="glass-card p-2.5 sm:p-4">
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-[0.6rem] sm:text-[0.65rem] text-zinc-400 uppercase font-bold tracking-wider">Round</p>
-                  <div className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 bg-[#00FFA3]/10 border border-[#00FFA3]/30 rounded-full">
-                    <div className="w-1 sm:w-1.5 h-1 sm:h-1.5 rounded-full bg-[#00FFA3] animate-pulse" />
-                    <span className="text-[0.5rem] sm:text-[0.55rem] font-black uppercase text-[#00FFA3]">Live</span>
+              <div className="glass-card card-green p-3 sm:p-4">
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-[0.65rem] sm:text-xs text-zinc-500 uppercase font-bold tracking-wider">Room</p>
+                  <div className="flex items-center gap-1 px-2 py-0.5 bg-[#00FFA3]/10 border border-[#00FFA3]/25 rounded-full">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#00FFA3] animate-pulse" />
+                    <span className="text-[0.55rem] font-black uppercase text-[#00FFA3] tracking-widest">Live</span>
                   </div>
                 </div>
-                <p className="text-lg sm:text-xl lg:text-2xl font-black text-white">#{roomId}</p>
-                <p className="text-xs sm:text-sm text-[#00FFA3] font-bold">{activeRoom.label}</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-black text-white tabular-nums">#{roomId}</p>
+                <p className="text-xs sm:text-sm text-[#00FFA3] font-bold mt-0.5">{activeRoom.label}</p>
               </div>
 
               {/* Pool */}
-              <div className="glass-card p-2.5 sm:p-4 text-center">
-                <p className="text-[0.6rem] sm:text-[0.65rem] text-zinc-400 uppercase font-bold tracking-wider mb-1">Pool</p>
-                <p className="text-lg sm:text-xl lg:text-2xl font-black text-white">{potAmount.toFixed(3)}</p>
-                <p className="text-[0.6rem] sm:text-xs text-zinc-400">SOL</p>
+              <div className="glass-card card-blue p-3 sm:p-4 text-center">
+                <p className="text-[0.65rem] sm:text-xs text-zinc-500 uppercase font-bold tracking-wider mb-1.5">Prize Pool</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-black text-white tabular-nums">{potAmount.toFixed(3)}</p>
+                <p className="text-[0.65rem] sm:text-xs text-zinc-500 font-semibold mt-0.5">SOL</p>
               </div>
               
               {/* Players */}
-              <div className="glass-card p-2.5 sm:p-4 text-center">
-                <p className="text-[0.6rem] sm:text-[0.65rem] text-zinc-400 uppercase font-bold tracking-wider mb-1">Players</p>
-                <p className="text-lg sm:text-xl lg:text-2xl font-black text-white">{isInProgress ? survivors.length : actualPlayerCount}</p>
-                <p className="text-[0.6rem] sm:text-xs text-zinc-400">1 winner</p>
+              <div className="glass-card card-purple p-3 sm:p-4 text-center">
+                <p className="text-[0.65rem] sm:text-xs text-zinc-500 uppercase font-bold tracking-wider mb-1.5">Players</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-black text-white tabular-nums">{isInProgress ? survivors.length : actualPlayerCount}</p>
+                <p className="text-[0.65rem] sm:text-xs text-zinc-500 font-semibold mt-0.5">1 winner</p>
               </div>
               
               {/* Potential Multiplier */}
-              <div className="glass-card p-2.5 sm:p-4 text-center bg-gradient-to-br from-[#00FFA3]/5 to-[#DC1FFF]/5 border-[#00FFA3]/30">
-                <p className="text-[0.6rem] sm:text-[0.65rem] text-zinc-400 uppercase font-bold tracking-wider mb-1">Potential Multiplier</p>
-                <p className="text-lg sm:text-xl lg:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF]">
+              <div className="glass-card p-3 sm:p-4 text-center bg-gradient-to-br from-[#00FFA3]/5 to-[#DC1FFF]/5 border-[#00FFA3]/25">
+                <p className="text-[0.65rem] sm:text-xs text-zinc-500 uppercase font-bold tracking-wider mb-1.5">Multiplier</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF] tabular-nums">
                   {potentialMultiplier !== null ? `x${potentialMultiplier.toFixed(2)}` : "--"}
                 </p>
-                <p className="text-[0.6rem] sm:text-xs text-zinc-400">based on joined players</p>
+                <p className="text-[0.65rem] sm:text-xs text-zinc-500 font-semibold mt-0.5">if you win</p>
               </div>
             </div>
 
@@ -996,7 +1004,6 @@ export default function Home() {
                   <h3 className="text-xs sm:text-sm font-black uppercase text-white mb-2 sm:mb-3 tracking-wider">Select Your Bet</h3>
                   <div className="space-y-2">
                     {ROOMS.map(room => {
-                      // FIX: Disable other room buttons when player has joined a game
                       const isCurrentRoom = roomId === room.id;
                       const hasJoinedAnyRoom = hasJoinedCurrentGame || optimisticJoined;
                       const isLocked = hasJoinedAnyRoom && !isCurrentRoom;
@@ -1005,20 +1012,22 @@ export default function Home() {
                           key={room.id}
                           onClick={() => !isLocked && setRoomId(room.id)}
                           disabled={isLocked}
-                          className={`w-full flex items-center justify-between p-2.5 sm:p-3 rounded-xl font-bold text-xs sm:text-sm transition-all ${
+                          className={`w-full flex items-center justify-between p-3 sm:p-3.5 rounded-xl font-bold text-sm transition-all border ${
                             isCurrentRoom
-                              ? 'bg-gradient-to-r from-[#9945FF] to-[#14F195] text-white shadow-[0_0_20px_rgba(153,69,255,0.4)]' 
+                              ? 'bg-gradient-to-r from-[#9945FF]/20 to-[#14F195]/15 text-white border-[#9945FF]/50 shadow-[0_0_18px_rgba(153,69,255,0.25)]'
                               : isLocked
-                                ? 'bg-white/3 text-zinc-600 border border-white/5 cursor-not-allowed'
-                                : 'bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-200 border border-white/10'
-                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                ? 'bg-white/2 text-zinc-600 border-white/5 cursor-not-allowed'
+                                : 'bg-white/4 text-zinc-300 hover:bg-white/8 hover:text-white border-white/8 hover:border-white/18'
+                          } disabled:opacity-40 disabled:cursor-not-allowed`}
                         >
-                          <span className="flex items-center gap-2">
-                            <span className="w-3.5 h-3.5 sm:w-4 sm:h-4">{getRoomIcon(room.iconName)}</span>
-                            <span>{room.label}</span>
+                          <span className="flex items-center gap-2.5">
+                            <span className={`w-7 h-7 rounded-lg flex items-center justify-center ${
+                              isCurrentRoom ? 'bg-[#9945FF]/30 text-[#14F195]' : 'bg-white/5 text-zinc-500'
+                            }`}>{getRoomIcon(room.iconName)}</span>
+                            <span className="text-xs sm:text-sm font-black uppercase tracking-wide">{room.label}</span>
                           </span>
                           {isCurrentRoom && (
-                            <span className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-white/20 flex items-center justify-center text-xs">✓</span>
+                            <span className="text-[0.6rem] font-black uppercase tracking-widest text-[#14F195] bg-[#14F195]/10 px-2 py-0.5 rounded-full border border-[#14F195]/25">Selected</span>
                           )}
                           {isLocked && (
                             <span className="text-[0.6rem] text-zinc-600">🔒</span>

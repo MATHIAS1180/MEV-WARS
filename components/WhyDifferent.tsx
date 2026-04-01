@@ -7,22 +7,26 @@ export default function WhyDifferent() {
     {
       icon: <Users className="w-5 h-5 sm:w-6 sm:h-6" />,
       title: "PvP-Based",
-      description: "Play against other players, not the house. Fair competition.",
+      description: "Play against other players, not the house. Fair competition where skill and timing matter.",
+      boxClass: "icon-box-purple",
     },
     {
       icon: <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6" />,
       title: "Transparent On-Chain",
-      description: "All game logic runs on Solana. Verify every result.",
+      description: "All game logic runs on Solana. Verify every result independently on-chain.",
+      boxClass: "icon-box-green",
     },
     {
       icon: <Zap className="w-5 h-5 sm:w-6 sm:h-6" />,
       title: "No Manipulation",
-      description: "Provably fair RNG. Winners selected using future block hashes.",
+      description: "Provably fair RNG. Winners selected using future block hashes — unpredictable at deposit time.",
+      boxClass: "icon-box-blue",
     },
     {
       icon: <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6" />,
       title: "Fast Execution",
-      description: "Powered by Solana's speed. Instant payouts to your wallet.",
+      description: "Powered by Solana's speed. Instant payouts directly to your wallet.",
+      boxClass: "icon-box-green",
     },
   ];
 
@@ -34,12 +38,13 @@ export default function WhyDifferent() {
         viewport={{ once: true }}
         className="text-center mb-8 sm:mb-12"
       >
-        <h2 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase tracking-tighter mb-2 sm:mb-3">
-          Why MEV Wars is{" "}
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#DC1FFF] to-[#00FFA3]">Different</span>
+        <span className="section-label mb-4">Why MEV Wars</span>
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase tracking-tighter mb-2 sm:mb-3 mt-4">
+          Not Your Typical{" "}
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#DC1FFF] to-[#00FFA3]">Casino</span>
         </h2>
-        <p className="text-sm sm:text-base text-zinc-300 font-medium max-w-2xl mx-auto px-4">
-          Not your typical casino. A competitive on-chain game with transparent mechanics.
+        <p className="text-sm sm:text-base text-zinc-400 font-medium max-w-2xl mx-auto px-4">
+          A competitive on-chain game with transparent mechanics — no house advantage, no hidden RNG.
         </p>
       </motion.div>
 
@@ -51,12 +56,12 @@ export default function WhyDifferent() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: i * 0.1 }}
-            className="glass-card p-4 sm:p-6 text-center group hover:border-[#00FFA3]/30"
+            className="glass-card p-5 sm:p-6 group"
           >
-            <div className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 rounded-xl bg-gradient-to-br from-[#DC1FFF]/20 to-[#00FFA3]/20 border border-white/10 flex items-center justify-center text-[#00FFA3] group-hover:scale-110 transition-transform">
+            <div className={`${feature.boxClass} mb-4`}>
               {feature.icon}
             </div>
-            <h3 className="text-sm sm:text-base lg:text-lg font-bold uppercase tracking-wide mb-1 sm:mb-2 text-white">{feature.title}</h3>
+            <h3 className="text-sm sm:text-base font-bold uppercase tracking-wide mb-2 text-white">{feature.title}</h3>
             <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">{feature.description}</p>
           </motion.div>
         ))}

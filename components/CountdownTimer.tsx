@@ -12,15 +12,24 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 export default function CountdownTimer({ secondsLeft, totalSeconds = 20 }: CountdownTimerProps) {
   const progress = secondsLeft / totalSeconds;
   const dashOffset = CIRCUMFERENCE * (1 - progress);
+  const isUrgent = secondsLeft <= 5;
   
   const color = useMemo(() => {
-    if (secondsLeft > 15) return '#00FFA3'; // Surge Green
-    if (secondsLeft > 8) return '#FFB547';  // Orange
-    return '#FF5B5B'; // Red
+    if (secondsLeft > 15) return '#00FFA3';
+    if (secondsLeft > 8) return '#FFB547';
+    return '#FF5B5B';
   }, [secondsLeft]);
 
   return (
     <div className="relative w-[140px] h-[140px] mx-auto">
+      {/* Urgency pulse ring */}
+      {isUrgent && (
+        <div
+          className="absolute inset-0 rounded-full animate-ping"
+          style={{ border: `2px solid ${color}40` }}
+        />
+      )}
+
       <svg width="140" height="140" viewBox="0 0 140 140" className="transform -rotate-90">
         {/* Background track */}
         <circle
@@ -53,7 +62,7 @@ export default function CountdownTimer({ secondsLeft, totalSeconds = 20 }: Count
       {/* Centered countdown number */}
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span 
-          className="font-mono text-4xl font-bold leading-none"
+          className={`font-mono text-4xl font-bold leading-none ${isUrgent ? 'animate-pulse' : ''}`}
           style={{ 
             color,
             textShadow: `0 0 20px ${color}80`
@@ -61,7 +70,7 @@ export default function CountdownTimer({ secondsLeft, totalSeconds = 20 }: Count
         >
           {String(secondsLeft).padStart(2, '0')}
         </span>
-        <span className="text-[11px] text-zinc-400 mt-1">secondes</span>
+        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mt-1">SEC</span>
       </div>
     </div>
   );

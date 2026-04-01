@@ -1,6 +1,6 @@
 "use client";
 import { motion } from "framer-motion";
-import { ShieldCheck, ExternalLink } from "lucide-react";
+import { ShieldCheck, ExternalLink, ScrollText } from "lucide-react";
 
 export default function ProvablyFair() {
   return (
@@ -16,8 +16,8 @@ export default function ProvablyFair() {
           <div className="absolute top-0 right-0 w-48 h-48 bg-[#00FFA3]/5 blur-[60px] rounded-full pointer-events-none" />
 
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-2.5 bg-white/5 rounded-xl border border-white/10">
-              <ShieldCheck className="w-6 h-6 text-[#00FFA3]" />
+            <div className="icon-box-green">
+              <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <h3 className="text-2xl font-black uppercase tracking-tight text-white">Provably Fair RNG</h3>
           </div>
@@ -51,8 +51,8 @@ export default function ProvablyFair() {
           <div className="absolute top-0 right-0 w-48 h-48 bg-[#DC1FFF]/5 blur-[60px] rounded-full pointer-events-none" />
 
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-2.5 bg-white/5 rounded-xl border border-white/10">
-              <ShieldCheck className="w-6 h-6 text-[#DC1FFF]" />
+            <div className="icon-box-purple">
+              <ScrollText className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <h3 className="text-2xl font-black uppercase tracking-tight text-white">Protocol Rules</h3>
           </div>

@@ -1,5 +1,5 @@
 "use client";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 
@@ -47,7 +47,8 @@ export default function FAQ() {
         viewport={{ once: true }}
         className="text-center mb-12"
       >
-        <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tighter mb-3">
+        <span className="section-label mb-4">FAQ</span>
+        <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tighter mb-3 mt-4">
           Frequently Asked{" "}
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#03E1FF] to-[#DC1FFF]">Questions</span>
         </h2>
@@ -77,14 +78,20 @@ export default function FAQ() {
             </button>
 
             {openIndex === i && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="px-6 pb-5"
-              >
-                <p className="text-zinc-400 text-sm leading-relaxed">{faq.answer}</p>
-              </motion.div>
+              <AnimatePresence>
+                <motion.div
+                  key="faq-answer"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.25, ease: "easeInOut" }}
+                  className="overflow-hidden"
+                >
+                  <div className="px-6 pb-5 border-t border-white/5 pt-4">
+                    <p className="text-zinc-400 text-sm leading-relaxed">{faq.answer}</p>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
             )}
           </motion.div>
         ))}

@@ -72,6 +72,15 @@ export default function Footer() {
           </div>
         </div>
 
+        {/* Responsible Gaming Notice */}
+        <div className="mb-6 px-4 py-4 rounded-xl border border-white/6 bg-white/3 text-center">
+          <p className="text-zinc-500 text-[0.65rem] leading-relaxed max-w-3xl mx-auto">
+            <span className="font-bold text-zinc-400">18+</span> · Gambling involves real financial risk. Play responsibly. Never gamble more than you can afford to lose.
+            MEV Wars is a provably fair skill-based on-chain game. If gambling is a problem for you, seek help at{" "}
+            <a href="https://www.begambleaware.org" target="_blank" rel="noopener noreferrer" className="underline hover:text-zinc-300 transition-colors">BeGambleAware.org</a>.
+          </p>
+        </div>
+
         {/* Bottom */}
         <div className="pt-6 border-t border-white/5 text-center">
           <p className="text-zinc-600 text-xs">
