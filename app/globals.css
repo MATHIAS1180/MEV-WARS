@@ -3,6 +3,11 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+
   :root {
     --surge-green: #00FFA3;
     --ocean-blue: #03E1FF;
