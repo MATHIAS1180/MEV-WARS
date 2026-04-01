@@ -64,7 +64,7 @@ export default function Home() {
   const { connected, publicKey } = useWallet();
   const [roomId, setRoomId] = useState<number>(101);
   // FIX: Destructure connectionStatus for UI indicator
-  const { gameState, fetchState, joinGame, initializeRoom, crankRoom, secureGain, gameResult, setGameResult, serverTimerRemaining, connectionStatus } = useGame(roomId);
+  const { gameState, fetchState, joinGame, initializeRoom, crankRoom, secureGain, gameResult, setGameResult, serverTimerRemaining, serverTimerDeadlineMs, connectionStatus } = useGame(roomId);
 
   // Dynamic viewport sizing
   const [viewportSize, setViewportSize] = useState({ width: 1280, height: 720 });
@@ -477,6 +477,7 @@ export default function Home() {
       setOptimisticJoined(false);
       setTimeRemaining(null);
       serverTimerValueRef.current = null;
+      timerDeadlineMsRef.current = null;
       myPlayerIndexRef.current = null;
       lastPlayersRef.current = [];
       wasInGameRef.current = false;
@@ -489,7 +490,9 @@ export default function Home() {
   const warnedTenSecondsRef = useRef<boolean>(false);
   const warnedFiveSecondsRef = useRef<boolean>(false);
   const lastComputedRemainingRef = useRef<number | null>(null);
-  // FIX: Track when we last received a server timer value to interpolate between ticks
+  // Deadline-based sync: all clients compute from the same absolute ms timestamp
+  const timerDeadlineMsRef = useRef<number | null>(null);
+  // Legacy refs kept for fallback path only
   const serverTimerReceivedAtRef = useRef<number>(0);
   const serverTimerValueRef = useRef<number | null>(null);
 
@@ -515,6 +518,7 @@ export default function Home() {
     if (!isRoundActive) {
       setTimeRemaining(null);
       lastComputedRemainingRef.current = null;
+      timerDeadlineMsRef.current = null;
       serverTimerValueRef.current = null;
       hasNotifiedTimerStartRef.current = false;
       warnedTenSecondsRef.current = false;
@@ -522,7 +526,19 @@ export default function Home() {
       return;
     }
 
-    // FIX: If server sends timerRemaining, use it as anchor
+    // Primary path: use absolute deadline sent by server
+    // All clients compute remaining = Math.ceil((deadline - Date.now()) / 1000)
+    // This cancels out any per-client network latency difference
+    if (serverTimerDeadlineMs !== null) {
+      timerDeadlineMsRef.current = serverTimerDeadlineMs;
+      const remaining = Math.max(0, Math.ceil((serverTimerDeadlineMs - Date.now()) / 1000));
+      lastComputedRemainingRef.current = remaining;
+      setTimeRemaining(remaining);
+      if (remaining === 0) triggerCrank();
+      return;
+    }
+
+    // Fallback: server sent timerRemaining but not deadline (older snapshot)
     if (serverTimerRemaining !== null) {
       const nextRemaining = Math.max(0, serverTimerRemaining);
       serverTimerValueRef.current = nextRemaining;
@@ -530,7 +546,7 @@ export default function Home() {
       lastComputedRemainingRef.current = nextRemaining;
       setTimeRemaining(nextRemaining);
     } else if (gameState?.blockStartTime && serverTimerValueRef.current === null) {
-      // FIX: Fallback — compute timer client-side from blockStartTime when SSE hasn't sent timerRemaining yet
+      // Last resort: compute client-side from blockStartTime
       const blockStart = typeof gameState.blockStartTime === 'object' && 'toNumber' in gameState.blockStartTime
         ? gameState.blockStartTime.toNumber()
         : Number(gameState.blockStartTime);
@@ -541,7 +557,6 @@ export default function Home() {
           serverTimerValueRef.current = fallback;
           serverTimerReceivedAtRef.current = Date.now();
           setTimeRemaining(fallback);
-          console.warn('[Timer] Using client-side fallback:', fallback, 'blockStart:', blockStart, 'now:', nowUnix);
         }
       }
     }
@@ -550,27 +565,30 @@ export default function Home() {
     if (currentRemaining !== null && currentRemaining === 0) {
       triggerCrank();
     }
-  }, [serverTimerRemaining, gameState?.blockStartTime, isWaiting, isInProgress, actualPlayerCount, triggerCrank]);
+  }, [serverTimerDeadlineMs, serverTimerRemaining, gameState?.blockStartTime, isWaiting, isInProgress, actualPlayerCount, triggerCrank]);
 
-  // FIX: Client-side interpolation — tick timer locally every second for smooth countdown
-  // All spectators see the same countdown because the anchor value comes from the same server SSE
+  // Local tick every 250ms: re-compute remaining from the absolute deadline for smooth display
   useEffect(() => {
     const isRoundActive = (isWaiting || isInProgress) && actualPlayerCount > 0;
-    if (!isRoundActive || serverTimerValueRef.current === null) return;
+    if (!isRoundActive) return;
 
     const interval = setInterval(() => {
+      // Deadline path (primary)
+      if (timerDeadlineMsRef.current !== null) {
+        const remaining = Math.max(0, Math.ceil((timerDeadlineMsRef.current - Date.now()) / 1000));
+        setTimeRemaining(remaining);
+        if (remaining === 0) triggerCrank();
+        return;
+      }
+      // Legacy interpolation fallback
       const serverVal = serverTimerValueRef.current;
       const receivedAt = serverTimerReceivedAtRef.current;
       if (serverVal === null || receivedAt === 0) return;
-
       const elapsed = Math.floor((Date.now() - receivedAt) / 1000);
       const interpolated = Math.max(0, serverVal - elapsed);
       setTimeRemaining(interpolated);
-
-      if (interpolated === 0) {
-        triggerCrank();
-      }
-    }, 1000);
+      if (interpolated === 0) triggerCrank();
+    }, 250);
 
     return () => clearInterval(interval);
   }, [isWaiting, isInProgress, actualPlayerCount, triggerCrank]);

@@ -60,6 +60,7 @@ interface RoomStreamSnapshot {
     bump: number;
   } | null;
   timerRemaining: number | null;
+  timerDeadlineMs: number | null;
 }
 
 function mapSnapshotState(state: SnapshotState, snapshot?: RoomStreamSnapshot['game']): GameState | null {
@@ -135,6 +136,7 @@ export function useGame(roomId: number) {
   const [gameResult, setGameResult] = useState<GameResult | null>(null);
   const [chainClockUnix, setChainClockUnix] = useState<number | null>(null);
   const [serverTimerRemaining, setServerTimerRemaining] = useState<number | null>(null);
+  const [serverTimerDeadlineMs, setServerTimerDeadlineMs] = useState<number | null>(null);
   // FIX: Expose SSE connection status for UI indicator
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
 
@@ -307,6 +309,7 @@ export function useGame(roomId: number) {
     setGameResult(null);
     setIsScanningLogs(false);
     setServerTimerRemaining(null);
+    setServerTimerDeadlineMs(null);
     setChainClockUnix(null);
     // FIX: Cancel any in-flight scan from previous room
     scanCancelledRef.current = true;
@@ -336,6 +339,7 @@ export function useGame(roomId: number) {
 
           setChainClockUnix((prev) => (prev === data.chainClockUnix ? prev : data.chainClockUnix));
           setServerTimerRemaining((prev) => (prev === data.timerRemaining ? prev : data.timerRemaining));
+          setServerTimerDeadlineMs((prev) => (prev === data.timerDeadlineMs ? prev : data.timerDeadlineMs ?? null));
 
           const decoded = mapSnapshotToGameData(data.game) as any;
           if (!decoded) {
@@ -474,6 +478,7 @@ export function useGame(roomId: number) {
     isScanningLogs,
     chainClockUnix,
     serverTimerRemaining,
+    serverTimerDeadlineMs,
     // FIX: Expose connection status for UI indicator
     connectionStatus,
     joinGame,

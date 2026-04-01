@@ -35,6 +35,8 @@ type StreamSnapshot = {
     bump: number;
   } | null;
   timerRemaining: number | null;
+  // Absolute server-wall-clock deadline so all clients stay in sync regardless of latency
+  timerDeadlineMs: number | null;
 };
 
 function mapState(state: any): SnapshotState {
@@ -194,6 +196,10 @@ export async function GET(req: NextRequest) {
               lastBlockStartTime = 0;
             }
 
+            // Absolute deadline: all clients compute remaining = deadline - Date.now()
+            // This eliminates per-client latency skew (each client uses its own NTP clock)
+            const timerDeadlineMs = timerRemaining !== null ? nowMs + timerRemaining * 1000 : null;
+
             snapshot = {
               roomId,
               slot,
@@ -214,6 +220,7 @@ export async function GET(req: NextRequest) {
                 bump: Number(fetched.bump ?? 0),
               },
               timerRemaining,
+              timerDeadlineMs,
             };
           } catch {
             // Account doesn't exist yet — send null game
@@ -224,6 +231,7 @@ export async function GET(req: NextRequest) {
               fetchedAtMs: nowMs,
               game: null,
               timerRemaining: null,
+              timerDeadlineMs: null,
             };
           }
 
