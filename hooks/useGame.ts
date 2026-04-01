@@ -139,12 +139,17 @@ export function useGame(roomId: number) {
   const [serverTimerDeadlineMs, setServerTimerDeadlineMs] = useState<number | null>(null);
   // FIX: Expose SSE connection status for UI indicator
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
+  // Debounce 'reconnecting' state: only expose it after 5 s of sustained disconnection
+  // so a quick reconnect doesn't flash the warning badge to the user.
+  const reconnectingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const gameResultRef = useRef<GameResult | null>(null);
   // FIX: Cancellation flag for scanForGameResult to prevent stale scans after room change
   const scanCancelledRef = useRef<boolean>(false);
   const prevPlayerCountRef = useRef<number>(0);
   const prevInProgressRef = useRef<boolean>(false);
+  // Track finished state transitions so we scan even when SSE reconnects after game ended
+  const prevFinishedRef = useRef<boolean>(false);
   const readOnlyWalletRef = useRef(Keypair.generate());
 
   const anchorWallet = useMemo(() => {
@@ -315,6 +320,7 @@ export function useGame(roomId: number) {
     scanCancelledRef.current = true;
     prevPlayerCountRef.current = 0;
     prevInProgressRef.current = false;
+    prevFinishedRef.current = false;
 
     if (!program) { setGameState(null); return; }
 
@@ -328,9 +334,22 @@ export function useGame(roomId: number) {
     const resilientEs = new ResilientEventSource({
       url: `/api/stream/room?roomId=${roomId}`,
       onStatusChange: (status) => {
-        setConnectionStatus(status);
         if (status === 'reconnecting') {
-          console.warn(`[useGame] SSE reconnecting for room ${roomId}...`);
+          // Only surface 'reconnecting' to UI after 5 s of sustained disconnection
+          if (!reconnectingTimerRef.current) {
+            reconnectingTimerRef.current = setTimeout(() => {
+              reconnectingTimerRef.current = null;
+              setConnectionStatus('reconnecting');
+              console.warn(`[useGame] SSE reconnecting for room ${roomId}...`);
+            }, 5000);
+          }
+        } else {
+          // Any recovery clears the pending debounce immediately
+          if (reconnectingTimerRef.current) {
+            clearTimeout(reconnectingTimerRef.current);
+            reconnectingTimerRef.current = null;
+          }
+          setConnectionStatus(status);
         }
       },
       onSnapshot: (rawData) => {
@@ -349,12 +368,17 @@ export function useGame(roomId: number) {
 
           const prev = prevPlayerCountRef.current;
           const inProgressNow = !!(decoded.state && (decoded.state as any).inProgress);
+          const isFinishedNow = !!(decoded.state && 'finished' in decoded.state);
           const settledTransition = prevInProgressRef.current && !inProgressNow;
+          // Trigger scan when state JUST becomes finished (handles SSE reconnect after game ends:
+          // prevPlayerCount restarts at 0 so the prev>=2 check would be missed)
+          const justBecameFinished = !prevFinishedRef.current && isFinishedNow;
           prevPlayerCountRef.current = decoded.playerCount;
           prevInProgressRef.current = inProgressNow;
+          prevFinishedRef.current = isFinishedNow;
           setGameState(decoded);
 
-          if (((prev >= 2 && decoded.playerCount === 0) || settledTransition) && !gameResultRef.current) {
+          if (((prev >= 2 && decoded.playerCount === 0) || settledTransition || justBecameFinished) && !gameResultRef.current) {
             scanForGameResult(gamePda);
           }
         } catch (e) {
@@ -367,6 +391,11 @@ export function useGame(roomId: number) {
       // FIX: Cancel pending scans and close resilient stream on cleanup
       scanCancelledRef.current = true;
       resilientEs.close();
+      // Clear any pending reconnecting debounce
+      if (reconnectingTimerRef.current) {
+        clearTimeout(reconnectingTimerRef.current);
+        reconnectingTimerRef.current = null;
+      }
     };
   }, [program, roomId, connection, parseLogsForResult, fetchState, scanForGameResult]);
 

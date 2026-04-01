@@ -196,9 +196,18 @@ export async function GET(req: NextRequest) {
               lastBlockStartTime = 0;
             }
 
-            // Absolute deadline: all clients compute remaining = deadline - Date.now()
-            // This eliminates per-client latency skew (each client uses its own NTP clock)
-            const timerDeadlineMs = timerRemaining !== null ? nowMs + timerRemaining * 1000 : null;
+            // Stable deadline anchored to blockStartTime so all clients stay in sync.
+            // Using nowMs + timerRemaining * 1000 oscillates ±1 s per tick (integer floor drift).
+            // Instead: deadline = (blockStart + expiry) seconds converted to wall-clock ms via
+            // the chain-clock anchor (chainClockAnchor.localMs − chainClockAnchor.unix * 1000).
+            // This value is constant for the full round, so every client computes the same
+            // remaining = ceil((deadline − Date.now()) / 1000) regardless of tick latency.
+            const chainClockOffsetMs = chainClockAnchor
+              ? chainClockAnchor.localMs - chainClockAnchor.unix * 1000
+              : 0;
+            const timerDeadlineMs = roundActive && blockStartTime > 0
+              ? (blockStartTime + BLOCK_EXPIRATION_SECONDS) * 1000 + chainClockOffsetMs
+              : null;
 
             snapshot = {
               roomId,

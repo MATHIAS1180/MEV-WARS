@@ -257,20 +257,71 @@ export default function Home() {
 
     const prev = prevRoundSnapshotRef.current;
 
-    // Keep only final-resolution overlays to avoid rapid UI flashing between rounds.
+    // Show survive/defeat overlay when a round advances within the game.
+    // Case A: SSE first catches the game already in inProgress (waiting → inProgress transition).
+    //         roundNow >= 2 because advance_round atomically starts + runs round 1 in one TX.
     if (inProgressNow && !prev.inProgress && roundNow >= 2) {
       const wasInRoundOne = participantsNow.includes(myKey);
       const aliveNow = survivorsNow.includes(myKey);
       if (wasInRoundOne && !aliveNow) {
         eliminatedThisGameRef.current = true;
+        // Show immediate defeat card (isFinal=false: game continues for survivors)
+        const animId = `round-elim-${roomId}-${roundNow}-${myKey.slice(-6)}`;
+        if (animationQueue.enqueue(animId, 'eliminated', {})) {
+          setCurrentAnimationId(animId);
+          setShowResult({
+            type: 'lose',
+            title: 'ELIMINATED',
+            msg: `You were eliminated in round ${roundNow - 1}. The game continues for the remaining players.`,
+            isFinal: false,
+            actionLabel: 'Watch',
+          });
+        }
+      } else if (wasInRoundOne && aliveNow) {
+        // Show survive card
+        const animId = `round-survive-${roomId}-${roundNow}-${myKey.slice(-6)}`;
+        if (animationQueue.enqueue(animId, 'survive', {})) {
+          setCurrentAnimationId(animId);
+          setShowResult({
+            type: 'survive',
+            title: 'SURVIVED!',
+            msg: `Round ${roundNow - 1} cleared — ${survivorsNow.length} player${survivorsNow.length !== 1 ? 's' : ''} remain. Stay sharp!`,
+            isFinal: false,
+            actionLabel: 'Next Round',
+          });
+        }
       }
     }
 
+    // Case B: Game was already in inProgress and round counter advanced (mid-game round).
     if (inProgressNow && prev.inProgress && roundNow > prev.round) {
       const wasAlive = prev.survivors.includes(myKey);
       const aliveNow = survivorsNow.includes(myKey);
       if (wasAlive && !aliveNow) {
         eliminatedThisGameRef.current = true;
+        const animId = `round-elim-${roomId}-${roundNow}-${myKey.slice(-6)}`;
+        if (animationQueue.enqueue(animId, 'eliminated', {})) {
+          setCurrentAnimationId(animId);
+          setShowResult({
+            type: 'lose',
+            title: 'ELIMINATED',
+            msg: `You were eliminated in round ${prev.round}. The game continues.`,
+            isFinal: false,
+            actionLabel: 'Watch',
+          });
+        }
+      } else if (wasAlive && aliveNow) {
+        const animId = `round-survive-${roomId}-${roundNow}-${myKey.slice(-6)}`;
+        if (animationQueue.enqueue(animId, 'survive', {})) {
+          setCurrentAnimationId(animId);
+          setShowResult({
+            type: 'survive',
+            title: 'SURVIVED!',
+            msg: `Round ${prev.round} cleared — ${survivorsNow.length} player${survivorsNow.length !== 1 ? 's' : ''} remain. Stay sharp!`,
+            isFinal: false,
+            actionLabel: 'Next Round',
+          });
+        }
       }
     }
 
@@ -286,7 +337,7 @@ export default function Home() {
         survivors: survivorsNow,
       };
     }
-  }, [gameState?.state, gameState?.currentRound, gameState?.survivors, gameState?.players, gameState?.playerCount, publicKey, activeRoom.label]);
+  }, [gameState?.state, gameState?.currentRound, gameState?.survivors, gameState?.players, gameState?.playerCount, publicKey, roomId]);
   
   useEffect(() => {
     if (!gameResult) return;
@@ -328,7 +379,8 @@ export default function Home() {
           actionLabel: 'Close',
         });
       }
-    } else if (wasInGame) {
+    } else if (wasInGame && !eliminatedThisGameRef.current) {
+      // Skip final defeat overlay if player already saw an intermediate ELIMINATED card
       // FIX: Enqueue loss animation through AnimationQueue
       const animId = `result-${resultKey}`;
       const enqueued = animationQueue.enqueue(animId, 'lose', {});
@@ -728,7 +780,7 @@ export default function Home() {
       )}
 
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-black/40 backdrop-blur-2xl">
+      <header className="sticky top-0 z-50 w-full border-b border-[#9945FF]/15 bg-gradient-to-b from-[#050510]/97 to-black/95 backdrop-blur-3xl shadow-[0_1px_0_0_rgba(153,69,255,0.08)]">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 py-3 sm:py-4 flex items-center justify-between gap-3 sm:gap-4">
           <motion.div initial={false} animate={{ opacity: 1, x: 0 }}>
             <Image
