@@ -142,6 +142,7 @@ export default function Home() {
     if (!gameState?.players) return [] as PublicKey[];
     return (gameState.players as PublicKey[]).slice(0, gameState.playerCount ?? 0);
   }, [gameState?.players, gameState?.playerCount]);
+  const actualPlayerCount = gameState?.playerCount ?? 0;
   const potAmount = gameState?.potAmount ? (gameState.potAmount.toNumber() / 1e9) : 0;
   const multiplier = currentRound > 0 ? currentRound + 1 : 1; // Example multiplier
   const joinedPlayersCount = isInProgress ? survivors.length : actualPlayerCount;
@@ -153,8 +154,6 @@ export default function Home() {
   const [showResult, setShowResult] = useState<RoundOverlayState | null>(null);
   const [overlayCloseAtMs, setOverlayCloseAtMs] = useState<number | null>(null);
   const [isProcessingResult, setIsProcessingResult] = useState(false);
-
-  const actualPlayerCount = gameState?.playerCount ?? 0;
 
   const myPlayerIndex = useMemo(() => {
     if (!gameState?.players || !publicKey) return null;
