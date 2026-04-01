@@ -459,18 +459,18 @@ export default function Home() {
     }
     if (prev > 0 && prev < 2 && current === 0 && wasInGameRef.current && !refundHandledRef.current) {
       refundHandledRef.current = true;
-      // FIX: Use notificationManager with deduplication instead of raw toast
-      notificationManager.notify(
-        `refund-${roomId}`,
-        'success',
-        'Round expired: Not enough players. Your funds have been refunded.',
-        4500
-      );
-      // FIX: Single clean reset — no setTimeout(stableFetch) to avoid double render cycle
+      // FIX: Show a full ResultOverlay card for refund (not just a toast) so players know the game was cancelled
+      setShowResult({
+        type: 'survive',
+        title: 'ROUND CANCELLED',
+        msg: 'Not enough players joined before the timer expired. Your funds have been automatically refunded to your wallet.',
+        isFinal: true,
+        actionLabel: 'OK',
+      });
+      // Clean reset
       setIsSpinning(false);
       setCountdown(null);
       setTxPending(false);
-      setShowResult(null);
       setOverlayCloseAtMs(null);
       setGameResult(null);
       setIsProcessingResult(false);
@@ -480,7 +480,6 @@ export default function Home() {
       myPlayerIndexRef.current = null;
       lastPlayersRef.current = [];
       wasInGameRef.current = false;
-      // No stableFetch() here — the SSE stream will naturally push the updated state
     }
     prevPlayerCountForRefundRef.current = current;
   }, [actualPlayerCount, stableFetch, setGameResult, roomId]);
@@ -523,34 +522,35 @@ export default function Home() {
       return;
     }
 
-    if (serverTimerRemaining === null) {
-      return;
+    // FIX: If server sends timerRemaining, use it as anchor
+    if (serverTimerRemaining !== null) {
+      const nextRemaining = Math.max(0, serverTimerRemaining);
+      serverTimerValueRef.current = nextRemaining;
+      serverTimerReceivedAtRef.current = Date.now();
+      lastComputedRemainingRef.current = nextRemaining;
+      setTimeRemaining(nextRemaining);
+    } else if (gameState?.blockStartTime && serverTimerValueRef.current === null) {
+      // FIX: Fallback — compute timer client-side from blockStartTime when SSE hasn't sent timerRemaining yet
+      const blockStart = typeof gameState.blockStartTime === 'object' && 'toNumber' in gameState.blockStartTime
+        ? gameState.blockStartTime.toNumber()
+        : Number(gameState.blockStartTime);
+      if (blockStart > 0) {
+        const nowUnix = Math.floor(Date.now() / 1000);
+        const fallback = Math.max(0, BLOCK_EXPIRATION_SECONDS - (nowUnix - blockStart));
+        if (fallback > 0 && fallback <= BLOCK_EXPIRATION_SECONDS) {
+          serverTimerValueRef.current = fallback;
+          serverTimerReceivedAtRef.current = Date.now();
+          setTimeRemaining(fallback);
+          console.warn('[Timer] Using client-side fallback:', fallback, 'blockStart:', blockStart, 'now:', nowUnix);
+        }
+      }
     }
 
-    // FIX: Store server value and timestamp for client-side interpolation
-    const nextRemaining = Math.max(0, serverTimerRemaining);
-    serverTimerValueRef.current = nextRemaining;
-    serverTimerReceivedAtRef.current = Date.now();
-    lastComputedRemainingRef.current = nextRemaining;
-
-    setTimeRemaining(nextRemaining);
-
-    if (isWaiting && actualPlayerCount >= 2 && !hasNotifiedTimerStartRef.current) {
-      hasNotifiedTimerStartRef.current = true;
-    }
-
-    if (isWaiting && nextRemaining <= 10 && actualPlayerCount < 2 && !warnedTenSecondsRef.current) {
-      warnedTenSecondsRef.current = true;
-    }
-    if (isWaiting && nextRemaining <= 5 && actualPlayerCount >= 2 && !warnedFiveSecondsRef.current) {
-      warnedFiveSecondsRef.current = true;
-    }
-
-    // Trigger crank when timer hits or stays at 0 (cooldown inside triggerCrank prevents spam)
-    if (nextRemaining === 0) {
+    const currentRemaining = serverTimerValueRef.current;
+    if (currentRemaining !== null && currentRemaining === 0) {
       triggerCrank();
     }
-  }, [serverTimerRemaining, isWaiting, isInProgress, actualPlayerCount, triggerCrank]);
+  }, [serverTimerRemaining, gameState?.blockStartTime, isWaiting, isInProgress, actualPlayerCount, triggerCrank]);
 
   // FIX: Client-side interpolation — tick timer locally every second for smooth countdown
   // All spectators see the same countdown because the anchor value comes from the same server SSE
