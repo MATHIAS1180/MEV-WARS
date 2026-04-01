@@ -9,7 +9,7 @@ interface CountdownTimerProps {
 const RADIUS = 54;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-export default function CountdownTimer({ secondsLeft, totalSeconds = 30 }: CountdownTimerProps) {
+export default function CountdownTimer({ secondsLeft, totalSeconds = 20 }: CountdownTimerProps) {
   const progress = secondsLeft / totalSeconds;
   const dashOffset = CIRCUMFERENCE * (1 - progress);
   

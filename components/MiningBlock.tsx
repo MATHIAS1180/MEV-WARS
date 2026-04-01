@@ -53,7 +53,7 @@ const SQUARES = Array.from({ length: 30 }, (_, i) => ({
   color: SOLANA_COLORS[i],
 }));
 
-export default function MiningBlock({ playerCount, isSpinning, countdown, activeSlotIndexes }: Props) {
+export default function MiningBlock({ playerCount, isSpinning, rotation, countdown, activeSlotIndexes }: Props) {
   const isActive = isSpinning || countdown !== null;
   const [performanceMode, setPerformanceMode] = useState(true);
   
@@ -140,7 +140,7 @@ export default function MiningBlock({ playerCount, isSpinning, countdown, active
         )}
       </AnimatePresence>
 
-      <svg className={styles.miningBlockSvg} viewBox="0 0 600 600" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+      <svg className={styles.miningBlockSvg} viewBox="0 0 600 600" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" style={{ transform: `rotate(${rotation}deg)`, transition: isSpinning ? 'none' : 'transform 0.3s ease-out', willChange: 'transform' }}>
         <defs>
           {/* Solana gradient for border */}
           <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">

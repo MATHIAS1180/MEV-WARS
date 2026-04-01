@@ -43,7 +43,7 @@ const WalletMultiButton = dynamic(
   }
 );
 
-const ROUND_EXPIRATION_SECONDS = BLOCK_EXPIRATION_SECONDS;
+const ROUND_EXPIRATION_SECONDS = BLOCK_EXPIRATION_SECONDS; // 20 seconds
 const OVERLAY_AUTO_CLOSE_MS = 5000;
 const RESULT_CLEANUP_DELAY_MS = OVERLAY_AUTO_CLOSE_MS + 200;
 
@@ -136,6 +136,12 @@ export default function Home() {
     if (!gameState?.survivors) return [] as PublicKey[];
     return gameState.survivors.filter((p: PublicKey) => p.toString() !== PublicKey.default.toString());
   }, [gameState?.survivors]);
+
+  // Get all players array (permanent indices)
+  const allPlayers = useMemo(() => {
+    if (!gameState?.players) return [] as PublicKey[];
+    return (gameState.players as PublicKey[]).slice(0, gameState.playerCount ?? 0);
+  }, [gameState?.players, gameState?.playerCount]);
   const potAmount = gameState?.potAmount ? (gameState.potAmount.toNumber() / 1e9) : 0;
   const multiplier = currentRound > 0 ? currentRound + 1 : 1; // Example multiplier
 
@@ -175,7 +181,7 @@ export default function Home() {
   }, [publicKey, myPlayerIndex, isInProgress, survivors]);
 
   const activeSlotIndexes = useMemo(() => {
-    if (!gameState?.players) return [] as number[];
+    if (!gameState ?.players) return [] as number[];
     const players = (gameState.players as PublicKey[]).slice(0, actualPlayerCount);
 
     if (isInProgress) {
@@ -543,6 +549,7 @@ export default function Home() {
   const warnedTenSecondsRef = useRef<boolean>(false);
   const warnedFiveSecondsRef = useRef<boolean>(false);
   const lastComputedRemainingRef = useRef<number | null>(null);
+  const rotationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const aliveCount = isInProgress ? survivors.length : actualPlayerCount;
@@ -553,8 +560,12 @@ export default function Home() {
       return;
     }
 
-    // Keep the center timer animation style consistent for all 20 seconds.
-    setCountdown(null);
+    // Show countdown animation for final 5 seconds (only if game can resolve)
+    if (canResolveRound && timeRemaining >= 1 && timeRemaining <= 5) {
+      setCountdown(Math.ceil(timeRemaining));
+    } else {
+      setCountdown(null);
+    }
 
     if (canResolveRound && timeRemaining === 0) {
       setIsSpinning(true);
@@ -623,6 +634,29 @@ export default function Home() {
     warnedTenSecondsRef.current = false;
     warnedFiveSecondsRef.current = false;
   }, [actualPlayerCount, isInProgress]);
+
+  // Smooth mining block rotation animation
+  useEffect(() => {
+    if (!isSpinning) {
+      setRotation(0);
+      if (rotationIntervalRef.current) {
+        clearInterval(rotationIntervalRef.current);
+        rotationIntervalRef.current = null;
+      }
+      return;
+    }
+
+    rotationIntervalRef.current = setInterval(() => {
+      setRotation((prev) => (prev + 8) % 360);
+    }, 16);
+
+    return () => {
+      if (rotationIntervalRef.current) {
+        clearInterval(rotationIntervalRef.current);
+        rotationIntervalRef.current = null;
+      }
+    };
+  }, [isSpinning]);
 
   const handleInitializeRoom = async () => {
     if (!connected) return;
@@ -822,7 +856,7 @@ export default function Home() {
               <div className="glass-card p-2.5 sm:p-4 text-center bg-gradient-to-br from-[#00FFA3]/5 to-[#DC1FFF]/5 border-[#00FFA3]/30">
                 <p className="text-[0.6rem] sm:text-[0.65rem] text-zinc-400 uppercase font-bold tracking-wider mb-1">Win Chance</p>
                 <p className="text-lg sm:text-xl lg:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF]">
-                  {actualPlayerCount >= 2 ? (100 / actualPlayerCount).toFixed(1) : "50.0"}%
+                  {(isInProgress ? survivors.length : actualPlayerCount) >= 2 ? (100 / (isInProgress ? survivors.length : actualPlayerCount)).toFixed(1) : "50.0"}%
                 </p>
                 <p className="text-[0.6rem] sm:text-xs text-zinc-500">to win</p>
               </div>
