@@ -850,22 +850,7 @@ export default function Home() {
               <div className="glass-card p-3 sm:p-4 lg:p-6">
                 
                 {/* Mining Block Container - Dynamic Size */}
-                <div className="relative w-full flex flex-col items-center justify-center">
-                  {/* FIX: Countdown Timer positioned ABOVE MiningBlock, always visible */}
-                  <AnimatePresence>
-                    {displayTimerSeconds !== null && displayTimerSeconds > 0 && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={{ duration: 0.25 }}
-                        className="mb-3 sm:mb-4"
-                      >
-                        <CountdownTimer secondsLeft={displayTimerSeconds} totalSeconds={ROUND_EXPIRATION_SECONDS} />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
+                <div className="relative w-full flex items-center justify-center">
                   <div 
                     className="relative aspect-square"
                     style={{ 
@@ -873,6 +858,21 @@ export default function Home() {
                       maxWidth: '100%'
                     }}
                   >
+                    {/* FIX: Countdown Timer centered ON TOP of MiningBlock as overlay */}
+                    <AnimatePresence>
+                      {displayTimerSeconds !== null && displayTimerSeconds > 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.88 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.88 }}
+                          transition={{ duration: 0.25 }}
+                          className="absolute inset-0 z-[80] flex items-center justify-center pointer-events-none"
+                        >
+                          <CountdownTimer secondsLeft={displayTimerSeconds} totalSeconds={ROUND_EXPIRATION_SECONDS} />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
                     {/* Mining Block */}
                     <div className="w-full h-full">
                       <MiningBlock 
@@ -894,26 +894,37 @@ export default function Home() {
                 <div>
                   <h3 className="text-xs sm:text-sm font-black uppercase text-white mb-2 sm:mb-3 tracking-wider">Select Your Bet</h3>
                   <div className="space-y-2">
-                    {ROOMS.map(room => (
-                      <button
-                        key={room.id}
-                        onClick={() => !countdown && setRoomId(room.id)}
-                        disabled={!!countdown}
-                        className={`w-full flex items-center justify-between p-2.5 sm:p-3 rounded-xl font-bold text-xs sm:text-sm transition-all ${
-                          roomId === room.id 
-                            ? 'bg-gradient-to-r from-[#9945FF] to-[#14F195] text-white shadow-[0_0_20px_rgba(153,69,255,0.4)]' 
-                            : 'bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-200 border border-white/10'
-                        } disabled:opacity-50 disabled:cursor-not-allowed`}
-                      >
-                        <span className="flex items-center gap-2">
-                          <span className="w-3.5 h-3.5 sm:w-4 sm:h-4">{getRoomIcon(room.iconName)}</span>
-                          <span>{room.label}</span>
-                        </span>
-                        {roomId === room.id && (
-                          <span className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-white/20 flex items-center justify-center text-xs">✓</span>
-                        )}
-                      </button>
-                    ))}
+                    {ROOMS.map(room => {
+                      // FIX: Disable other room buttons when player has joined a game
+                      const isCurrentRoom = roomId === room.id;
+                      const hasJoinedAnyRoom = hasJoinedCurrentGame || optimisticJoined;
+                      const isLocked = hasJoinedAnyRoom && !isCurrentRoom;
+                      return (
+                        <button
+                          key={room.id}
+                          onClick={() => !isLocked && setRoomId(room.id)}
+                          disabled={isLocked}
+                          className={`w-full flex items-center justify-between p-2.5 sm:p-3 rounded-xl font-bold text-xs sm:text-sm transition-all ${
+                            isCurrentRoom
+                              ? 'bg-gradient-to-r from-[#9945FF] to-[#14F195] text-white shadow-[0_0_20px_rgba(153,69,255,0.4)]' 
+                              : isLocked
+                                ? 'bg-white/3 text-zinc-600 border border-white/5 cursor-not-allowed'
+                                : 'bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-200 border border-white/10'
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <span className="w-3.5 h-3.5 sm:w-4 sm:h-4">{getRoomIcon(room.iconName)}</span>
+                            <span>{room.label}</span>
+                          </span>
+                          {isCurrentRoom && (
+                            <span className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-white/20 flex items-center justify-center text-xs">✓</span>
+                          )}
+                          {isLocked && (
+                            <span className="text-[0.6rem] text-zinc-600">🔒</span>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
