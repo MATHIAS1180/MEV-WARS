@@ -146,7 +146,6 @@ export default function Home() {
   const multiplier = currentRound > 0 ? currentRound + 1 : 1; // Example multiplier
 
   const [isSpinning, setIsSpinning] = useState(false);
-  const [rotation, setRotation] = useState(0);
   const [txPending, setTxPending] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [showResult, setShowResult] = useState<RoundOverlayState | null>(null);
@@ -558,7 +557,6 @@ export default function Home() {
   const warnedTenSecondsRef = useRef<boolean>(false);
   const warnedFiveSecondsRef = useRef<boolean>(false);
   const lastComputedRemainingRef = useRef<number | null>(null);
-  const rotationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const aliveCount = isInProgress ? survivors.length : actualPlayerCount;
@@ -642,28 +640,6 @@ export default function Home() {
     warnedTenSecondsRef.current = false;
     warnedFiveSecondsRef.current = false;
   }, [actualPlayerCount, isInProgress]);
-
-  // Smooth mining block rotation animation
-  useEffect(() => {
-    if (!isSpinning) {
-      if (rotationIntervalRef.current) {
-        clearInterval(rotationIntervalRef.current);
-        rotationIntervalRef.current = null;
-      }
-      return;
-    }
-
-    rotationIntervalRef.current = setInterval(() => {
-      setRotation((prev) => (prev + 8) % 360);
-    }, 16);
-
-    return () => {
-      if (rotationIntervalRef.current) {
-        clearInterval(rotationIntervalRef.current);
-        rotationIntervalRef.current = null;
-      }
-    };
-  }, [isSpinning]);
 
   const handleInitializeRoom = async () => {
     if (!connected) return;
@@ -904,7 +880,7 @@ export default function Home() {
                       <MiningBlock 
                         playerCount={actualPlayerCount} 
                         isSpinning={isSpinning} 
-                        rotation={rotation} 
+                        rotation={0} 
                         countdown={countdown}
                         activeSlotIndexes={activeSlotIndexes}
                       />
