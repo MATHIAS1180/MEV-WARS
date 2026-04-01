@@ -66,21 +66,6 @@ export default function HowItWorks() {
         ))}
       </div>
 
-      {/* Win Probability Highlight */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        className="mt-8 sm:mt-12 text-center"
-      >
-        <div className="inline-block glass-card px-6 sm:px-8 py-4 sm:py-6">
-          <p className="text-zinc-400 text-xs sm:text-sm uppercase tracking-wider mb-2">Your Win Chance</p>
-          <p className="text-4xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#00FFA3] to-[#03E1FF]">
-            50.0%
-          </p>
-          <p className="text-zinc-400 text-[10px] sm:text-xs mt-2">base case: 2 players, 1 winner</p>
-        </div>
-      </motion.div>
     </section>
   );
 }
