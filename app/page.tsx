@@ -69,7 +69,12 @@ export default function Home() {
   // Dynamic viewport sizing
   const [viewportSize, setViewportSize] = useState({ width: 1280, height: 720 });
   const [performanceMode, setPerformanceMode] = useState(false);
-  
+
+  // Scroll to top on page load/refresh
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   useEffect(() => {
     const updateSize = () => {
       setViewportSize({

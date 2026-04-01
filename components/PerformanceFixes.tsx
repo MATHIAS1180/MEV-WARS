@@ -4,6 +4,11 @@ import { useEffect } from "react";
 
 export default function PerformanceFixes() {
   useEffect(() => {
+    // Disable browser scroll restoration so refresh always starts at top
+    if (typeof window !== "undefined" && "scrollRestoration" in history) {
+      history.scrollRestoration = "manual";
+    }
+
     const perf = typeof window !== "undefined" ? window.performance : undefined;
     if (!perf) return;
 
