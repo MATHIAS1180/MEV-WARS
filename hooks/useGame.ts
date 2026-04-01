@@ -309,7 +309,7 @@ export function useGame(roomId: number) {
 
           const decoded = mapSnapshotToGameData(data.game) as any;
           if (!decoded) {
-            setGameState(null);
+            // Ignore transient null snapshots to avoid UI flicker during stream hiccups.
             return;
           }
 
