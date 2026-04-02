@@ -513,6 +513,9 @@ export default function Home() {
     gameResultProcessedRef.current = null;
     eliminatedThisGameRef.current = false;
     prevPlayerCountForElimResetRef.current = 0;
+    // FIX: Reset round tracking refs to prevent stale transitions when switching rooms
+    prevRoundSnapshotRef.current = { round: 0, survivors: [], inProgress: false };
+    lastInProgressSnapshotRef.current = { round: 0, survivors: [] };
   }, [roomId]);
 
   const lastCrankTimeRef = useRef(0);

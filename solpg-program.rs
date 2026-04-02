@@ -3,7 +3,7 @@ use anchor_lang::system_program;
 use anchor_lang::solana_program::hash::hash;
 use std::str::FromStr;
 
-declare_id!("7kw5LM3xMyr51Zpsgznh64pNcucoodFkcnJztRfHBLJj");
+declare_id!("2JNhd8ePoxBHtaQnLesv4ofb18Ft4XcrXK2Y5BHjxP63");
 
 pub const MAX_PLAYERS: usize = 30;
 pub const TREASURY_PUBKEY: &str = "FC2km6B1ub8fBf4FdLFs1hbJjmLx6EJbdAzN9Ajnb8nt";
@@ -42,6 +42,11 @@ pub mod solana_russian_roulette {
     pub fn join_game(ctx: Context<JoinGame>, room_id: u8) -> Result<()> {
         let game = &mut ctx.accounts.game;
         let player = &ctx.accounts.player;
+
+        // FIX: Auto-reset from Finished → Waiting so the room can be reused
+        if game.state == GameState::Finished {
+            game.state = GameState::Waiting;
+        }
 
         require!(game.state == GameState::Waiting, ErrorCode::GameNotInWaitingState);
 

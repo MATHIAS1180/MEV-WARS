@@ -310,6 +310,16 @@ export function useGame(roomId: number) {
     fetchResult();
   }, [connection, parseLogsForResult]);
 
+  // FIX: Stable refs for callbacks — prevents SSE reconnection when wallet connects.
+  // Without this, connecting wallet changes program → fetchState → scanForGameResult,
+  // which are all in the SSE effect deps, causing a full SSE teardown + reconnect.
+  // Players 2+ who connect wallet mid-game lose timer/notification/cube state.
+  const fetchStateStableRef = useRef(fetchState);
+  useEffect(() => { fetchStateStableRef.current = fetchState; }, [fetchState]);
+
+  const scanForGameResultStableRef = useRef(scanForGameResult);
+  useEffect(() => { scanForGameResultStableRef.current = scanForGameResult; }, [scanForGameResult]);
+
   useEffect(() => {
     setGameResult(null);
     setIsScanningLogs(false);
@@ -324,7 +334,7 @@ export function useGame(roomId: number) {
 
     if (!program) { setGameState(null); return; }
 
-    fetchState();
+    fetchStateStableRef.current();
 
     const [gamePda] = PublicKey.findProgramAddressSync(
       [Buffer.from('room'), Buffer.from([roomId])], PROGRAM_ID
@@ -379,7 +389,7 @@ export function useGame(roomId: number) {
           setGameState(decoded);
 
           if (((prev >= 2 && decoded.playerCount === 0) || settledTransition || justBecameFinished) && !gameResultRef.current) {
-            scanForGameResult(gamePda);
+            scanForGameResultStableRef.current(gamePda);
           }
         } catch (e) {
           console.error('[useGame] Failed to parse stream snapshot:', e);
@@ -397,7 +407,10 @@ export function useGame(roomId: number) {
         reconnectingTimerRef.current = null;
       }
     };
-  }, [program, roomId, connection, parseLogsForResult, fetchState, scanForGameResult]);
+  // FIX: Only reconnect SSE on roomId change.
+  // Callbacks are accessed via stable refs so wallet/program changes don't cause reconnection.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomId]);
 
   const joinGame = async (entryFeeLamports: number): Promise<boolean> => {
     if (!program || !wallet.publicKey || !provider) throw new Error('Wallet not connected');
