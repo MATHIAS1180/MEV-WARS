@@ -439,7 +439,7 @@ export function useGame(roomId: number) {
     }).rpc();
 
     console.log('joinGame TX confirmed:', signature);
-    fetchState();
+    await fetchState();
     return true;
   };
 

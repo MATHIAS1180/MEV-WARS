@@ -171,8 +171,6 @@ export default function Home() {
   useEffect(() => { currentAnimationIdRef.current = currentAnimationId; }, [currentAnimationId]);
   const [overlayCloseAtMs, setOverlayCloseAtMs] = useState<number | null>(null);
   const [isProcessingResult, setIsProcessingResult] = useState(false);
-  // FIX: Optimistic UI — show pending state immediately after user clicks join
-  const [optimisticJoined, setOptimisticJoined] = useState(false);
 
   const myPlayerIndex = useMemo(() => {
     if (!gameState?.players || !publicKey) return null;
@@ -186,14 +184,12 @@ export default function Home() {
   useEffect(() => {
     if (myPlayerIndex !== null) {
       myPlayerIndexRef.current = myPlayerIndex;
-      // FIX: SSE confirmed player is in game → clear optimistic flag
-      if (optimisticJoined) setOptimisticJoined(false);
     }
     if (!isProcessingResult && actualPlayerCount === 0 && !countdown && !isSpinning && !gameResult && !showResult) {
       const timer = setTimeout(() => { myPlayerIndexRef.current = null; }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [myPlayerIndex, actualPlayerCount, countdown, isSpinning, gameResult, showResult, isProcessingResult, optimisticJoined]);
+  }, [myPlayerIndex, actualPlayerCount, countdown, isSpinning, gameResult, showResult, isProcessingResult]);
 
   const displayPlayerIndex = myPlayerIndex !== null ? myPlayerIndex : myPlayerIndexRef.current;
 
@@ -414,8 +410,6 @@ export default function Home() {
 
     setIsSpinning(false);
     setCountdown(null);
-    // FIX: Reset optimistic join state when result arrives
-    setOptimisticJoined(false);
 
     if (wasInGame && isWinner) {
       // Always show VICTORY to the winner regardless of any intermediate state.
@@ -541,8 +535,6 @@ export default function Home() {
     setShowResult(null); setIsSpinning(false); setCountdown(null);
     setOverlayCloseAtMs(null);
     setTxPending(false); setIsProcessingResult(false);
-    // FIX: Reset optimistic and animation state on room change
-    setOptimisticJoined(false);
     setCurrentAnimationId(null);
     animationQueue.clear();
     lastPlayersRef.current = [];
@@ -616,7 +608,6 @@ export default function Home() {
       setOverlayCloseAtMs(null);
       setGameResult(null);
       setIsProcessingResult(false);
-      setOptimisticJoined(false);
       setTimeRemaining(null);
       serverTimerValueRef.current = null;
       timerDeadlineMsRef.current = null;
@@ -801,8 +792,6 @@ export default function Home() {
     if (!lastPlayersRef.current.includes(myKey)) lastPlayersRef.current.push(myKey);
     try {
       setTxPending(true);
-      // FIX: Optimistic UI — show joined state immediately before tx confirms
-      setOptimisticJoined(true);
       
       // If room doesn't exist yet, initialize it first
       if (!gameState) {
@@ -818,9 +807,8 @@ export default function Home() {
         { loading: 'Entering round...', success: 'Entered round successfully!', error: (e: any) => `Failed: ${e.message}` }
       );
       await txPromise;
-    } catch (e) {
-      // FIX: Rollback optimistic state on error
-      setOptimisticJoined(false);
+    } catch {
+      // TX failed — button returns to normal via txPending reset
     } finally {
       setTxPending(false);
     }
@@ -1057,7 +1045,7 @@ export default function Home() {
                   <div className="space-y-2">
                     {ROOMS.map(room => {
                       const isCurrentRoom = roomId === room.id;
-                      const hasJoinedAnyRoom = hasJoinedCurrentGame || optimisticJoined;
+                      const hasJoinedAnyRoom = hasJoinedCurrentGame || txPending;
                       const isLocked = hasJoinedAnyRoom && !isCurrentRoom;
                       return (
                         <button
@@ -1100,16 +1088,14 @@ export default function Home() {
                       <p className="text-[0.65rem] sm:text-xs text-zinc-400 font-bold uppercase tracking-wider">Connect Your Wallet</p>
                       <p className="text-[0.6rem] sm:text-[0.65rem] text-zinc-600 mt-1">Use the button in the header</p>
                     </div>
-                  ) : (hasJoinedCurrentGame || optimisticJoined) && (isCurrentPlayerAlive || optimisticJoined) ? (
+                  ) : hasJoinedCurrentGame && (isCurrentPlayerAlive) ? (
                     <div className="p-3 sm:p-4 bg-gradient-to-r from-[#00FFA3]/10 to-[#03E1FF]/10 border-2 border-[#00FFA3]/40 rounded-xl">
                       <div className="flex items-center justify-center gap-2 mb-1">
                         <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-[#00FFA3]" />
                         <p className="text-base sm:text-lg font-black text-[#00FFA3]">You&apos;re In!</p>
                       </div>
                       <p className="text-center text-xs sm:text-sm text-zinc-400">
-                        {myPlayerIndex !== null
-                          ? `Position #${myPlayerIndex + 1}`
-                          : 'Confirming on-chain…'}
+                        {`Position #${myPlayerIndex + 1}`}
                       </p>
                     </div>
                   ) : hasJoinedCurrentGame && isInProgress && !isCurrentPlayerAlive ? (
