@@ -35,7 +35,7 @@ pub mod solana_russian_roulette {
         Ok(())
     }
 
-    pub fn join_game(ctx: Context<JoinGame>, room_id: u8) -> Result<()> {
+    pub fn join_game(ctx: Context<JoinGame>, _room_id: u8) -> Result<()> {
         let game = &mut ctx.accounts.game;
         let player = &ctx.accounts.player;
 
@@ -88,7 +88,7 @@ pub mod solana_russian_roulette {
     }
 
     /// Refund all players if timer expired and <2 players
-    pub fn refund_expired_game(ctx: Context<RefundExpiredGame>, room_id: u8) -> Result<()> {
+    pub fn refund_expired_game(ctx: Context<RefundExpiredGame>, _room_id: u8) -> Result<()> {
         let game = &mut ctx.accounts.game;
         let clock = Clock::get()?;
 
@@ -130,7 +130,7 @@ pub mod solana_russian_roulette {
     }
 
     /// Advance to next round or settle winner
-    pub fn advance_round(ctx: Context<AdvanceRound>, room_id: u8) -> Result<()> {
+    pub fn advance_round(ctx: Context<AdvanceRound>, _room_id: u8) -> Result<()> {
         let game = &mut ctx.accounts.game;
 
         let clock = Clock::get()?;
