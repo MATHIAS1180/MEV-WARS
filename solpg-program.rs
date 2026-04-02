@@ -73,20 +73,13 @@ pub mod solana_russian_roulette {
         let clock = Clock::get()?;
 
         if game.player_count == 1 {
-            game.last_activity_time = clock.unix_timestamp;
-            game.block_start_time = clock.unix_timestamp;
-            game.resolve_slot = clock.slot;
-        } else if game.player_count == 2 {
-            // Démarrer le jeu dès 2 joueurs
-            game.state = GameState::InProgress { round: 1, survivors: game.players[0..game.player_count as usize].to_vec() };
-            game.current_round = 1;
-            for i in 0..game.player_count as usize {
-                game.survivors[i] = game.players[i];
-            }
+            // First player starts the countdown timer
             game.last_activity_time = clock.unix_timestamp;
             game.block_start_time = clock.unix_timestamp;
             game.resolve_slot = clock.slot;
         }
+        // Players 2-30 join during the countdown while state remains Waiting.
+        // The crank will start the game via advance_round once the timer expires.
 
         emit!(PlayerJoinedEvent {
             game: game.key(),
@@ -149,6 +142,17 @@ pub mod solana_russian_roulette {
         
         let elapsed = clock.unix_timestamp - game.block_start_time;
         require!(elapsed >= ROUND_EXPIRATION_SECONDS, ErrorCode::TimerNotExpired);
+
+        // If still in Waiting state with enough players, start the game now
+        if game.state == GameState::Waiting {
+            require!(game.player_count >= 2, ErrorCode::NotEnoughPlayers);
+            let survivors_vec: Vec<Pubkey> = game.players[0..game.player_count as usize].to_vec();
+            game.state = GameState::InProgress { round: 1, survivors: survivors_vec };
+            game.current_round = 1;
+            for i in 0..game.player_count as usize {
+                game.survivors[i] = game.players[i];
+            }
+        }
 
         // Clone the state to avoid borrow checker issues
         let current_state = game.state.clone();

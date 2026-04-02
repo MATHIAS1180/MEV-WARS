@@ -75,12 +75,13 @@ pub mod solana_russian_roulette {
         let clock = Clock::get()?;
 
         if game.player_count == 1 {
+            // First player starts the countdown timer
             game.last_activity_time = clock.unix_timestamp;
             game.block_start_time = clock.unix_timestamp;
             game.resolve_slot = clock.slot;
         }
-        // Remaining players can continue joining while state is Waiting
-        // The crank will start the game via advance_round once the timer expires
+        // Players 2-30 join during the countdown while state remains Waiting.
+        // The crank will start the game via advance_round once the timer expires.
 
         emit!(PlayerJoinedEvent {
             game: game.key(),

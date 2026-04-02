@@ -184,12 +184,16 @@ export default function Home() {
 
   const myPlayerIndexRef = useRef<number | null>(null);
   useEffect(() => {
-    if (myPlayerIndex !== null) myPlayerIndexRef.current = myPlayerIndex;
+    if (myPlayerIndex !== null) {
+      myPlayerIndexRef.current = myPlayerIndex;
+      // FIX: SSE confirmed player is in game → clear optimistic flag
+      if (optimisticJoined) setOptimisticJoined(false);
+    }
     if (!isProcessingResult && actualPlayerCount === 0 && !countdown && !isSpinning && !gameResult && !showResult) {
       const timer = setTimeout(() => { myPlayerIndexRef.current = null; }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [myPlayerIndex, actualPlayerCount, countdown, isSpinning, gameResult, showResult, isProcessingResult]);
+  }, [myPlayerIndex, actualPlayerCount, countdown, isSpinning, gameResult, showResult, isProcessingResult, optimisticJoined]);
 
   const displayPlayerIndex = myPlayerIndex !== null ? myPlayerIndex : myPlayerIndexRef.current;
 
@@ -533,10 +537,25 @@ export default function Home() {
   }, [crankRoom]);
 
   const prevPlayerCountRef = useRef<number>(0);
+  const processingResultTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     const pc = gameState?.playerCount ?? 0;
-    if (prevPlayerCountRef.current >= 2 && pc === 0) setIsProcessingResult(true);
+    if (prevPlayerCountRef.current >= 2 && pc === 0) {
+      setIsProcessingResult(true);
+      // FIX: Safety timeout — clear isProcessingResult after 20s even if scan fails
+      if (processingResultTimeoutRef.current) clearTimeout(processingResultTimeoutRef.current);
+      processingResultTimeoutRef.current = setTimeout(() => {
+        setIsProcessingResult(false);
+        processingResultTimeoutRef.current = null;
+      }, 20000);
+    }
     prevPlayerCountRef.current = pc;
+    return () => {
+      if (processingResultTimeoutRef.current) {
+        clearTimeout(processingResultTimeoutRef.current);
+        processingResultTimeoutRef.current = null;
+      }
+    };
   }, [gameState?.playerCount, txPending]);
 
   const prevPlayerCountForRefundRef = useRef<number>(0);
@@ -596,7 +615,13 @@ export default function Home() {
 
     if (timeRemaining === null) {
       setCountdown(null);
+      setIsSpinning(false);
       return;
+    }
+
+    // FIX: Activate MiningBlock animations when a round is active with players
+    if (canResolveRound && timeRemaining > 0) {
+      setIsSpinning(true);
     }
 
     // Keep block visuals static; use the separate timer widget only.
@@ -739,6 +764,11 @@ export default function Home() {
 
   const handleJoin = async () => {
     if (!publicKey) return;
+    // FIX: Guard against joining when game is already InProgress (would fail on-chain)
+    if (isInProgress) {
+      notificationManager.notify(`join-blocked-${roomId}`, 'error', 'Game already in progress. Wait for it to finish.', 3000);
+      return;
+    }
     const myKey = publicKey.toString();
     if (!lastPlayersRef.current.includes(myKey)) lastPlayersRef.current.push(myKey);
     try {
@@ -1059,7 +1089,7 @@ export default function Home() {
                       <p className="text-[0.65rem] sm:text-xs text-zinc-400 font-bold uppercase tracking-wider">Connect Your Wallet</p>
                       <p className="text-[0.6rem] sm:text-[0.65rem] text-zinc-600 mt-1">Use the button in the header</p>
                     </div>
-                  ) : (hasJoinedCurrentGame || optimisticJoined) && isCurrentPlayerAlive ? (
+                  ) : (hasJoinedCurrentGame || optimisticJoined) && (isCurrentPlayerAlive || optimisticJoined) ? (
                     <div className="p-3 sm:p-4 bg-gradient-to-r from-[#00FFA3]/10 to-[#03E1FF]/10 border-2 border-[#00FFA3]/40 rounded-xl">
                       <div className="flex items-center justify-center gap-2 mb-1">
                         <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-[#00FFA3]" />
@@ -1081,6 +1111,14 @@ export default function Home() {
                         <p className="text-base sm:text-lg font-black text-zinc-100">Game In Progress</p>
                       </div>
                       <p className="text-center text-xs sm:text-sm text-zinc-400">Wait for round end to enter the next game</p>
+                    </div>
+                  ) : isFinished && isProcessingResult ? (
+                    <div className="p-3 sm:p-4 bg-gradient-to-r from-[#9945FF]/10 to-[#03E1FF]/10 border border-[#9945FF]/30 rounded-xl">
+                      <div className="flex items-center justify-center gap-2 mb-1">
+                        <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 text-[#03E1FF] animate-spin" />
+                        <p className="text-base sm:text-lg font-black text-zinc-100">Settling...</p>
+                      </div>
+                      <p className="text-center text-xs sm:text-sm text-zinc-400">On-chain results loading</p>
                     </div>
                   ) : (
                     <button
