@@ -54,16 +54,6 @@ export const IDL: Idl = {
       ]
     },
     {
-      name: "secureGain",
-      accounts: [
-        { name: "game", isMut: true, isSigner: false },
-        { name: "player", isMut: true, isSigner: true }
-      ],
-      args: [
-        { name: "roomId", type: "u8" }
-      ]
-    },
-    {
       name: "withdrawFees",
       accounts: [
         { name: "treasury", isMut: true, isSigner: false },
@@ -105,7 +95,7 @@ export const IDL: Idl = {
         kind: "enum",
         variants: [
           { name: "Waiting" },
-          { name: "InProgress", fields: [{ name: "round", type: "u8" }, { name: "survivors", type: { vec: "publicKey" } }] },
+          { name: "InProgress" },
           { name: "Finished" }
         ]
       }
@@ -175,15 +165,6 @@ export const IDL: Idl = {
         { name: "player", type: "publicKey", index: false },
         { name: "round", type: "u8", index: false }
       ]
-    },
-    {
-      name: "PlayerSecuredEvent",
-      fields: [
-        { name: "game", type: "publicKey", index: false },
-        { name: "player", type: "publicKey", index: false },
-        { name: "amount", type: "u64", index: false },
-        { name: "round", type: "u8", index: false }
-      ]
     }
   ],
   errors: [
@@ -198,12 +179,8 @@ export const IDL: Idl = {
     { code: 6008, name: "NotEnoughPlayers", msg: "Not enough players. Need at least 2 players to start." },
     { code: 6009, name: "GameNotInProgress", msg: "Game is not in progress." },
     { code: 6010, name: "GameAlreadyFinished", msg: "Game already finished." },
-    { code: 6011, name: "CannotSecureBeforeRound1", msg: "Cannot secure gain before round 1." },
-    { code: 6012, name: "MultiplierTooLow", msg: "Multiplier too low to secure." },
-    { code: 6013, name: "PlayerNotSurvivor", msg: "Player is not a survivor." },
-    { code: 6014, name: "InsufficientPot", msg: "Insufficient pot for secure." },
-    { code: 6015, name: "Unauthorized", msg: "Unauthorized. Only admin can perform this action." },
-    { code: 6016, name: "InsufficientFunds", msg: "Insufficient funds in treasury." },
-    { code: 6017, name: "RoomFull", msg: "Room is full." }
+    { code: 6011, name: "Unauthorized", msg: "Unauthorized. Only admin can perform this action." },
+    { code: 6012, name: "InsufficientFunds", msg: "Insufficient funds in treasury." },
+    { code: 6013, name: "RoomFull", msg: "Room is full." }
   ]
 };

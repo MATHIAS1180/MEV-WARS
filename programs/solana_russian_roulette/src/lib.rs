@@ -8,11 +8,7 @@ declare_id!("2JNhd8ePoxBHtaQnLesv4ofb18Ft4XcrXK2Y5BHjxP63");
 pub const MAX_PLAYERS: usize = 30;
 pub const TREASURY_PUBKEY: &str = "FC2km6B1ub8fBf4FdLFs1hbJjmLx6EJbdAzN9Ajnb8nt";
 pub const ROUND_EXPIRATION_SECONDS: i64 = 20;
-pub const GAME_STATE_MAX_SIZE: usize =
-    1 +                    // enum discriminant
-    1 +                    // round (u8) for InProgress
-    4 +                    // vec length prefix
-    (32 * MAX_PLAYERS);    // survivors vec max content
+pub const GAME_STATE_MAX_SIZE: usize = 1; // enum discriminant only (no inner data)
 
 #[program]
 pub mod solana_russian_roulette {
@@ -148,139 +144,138 @@ pub mod solana_russian_roulette {
         // If still in Waiting state with enough players, start the game now
         if game.state == GameState::Waiting {
             require!(game.player_count >= 2, ErrorCode::NotEnoughPlayers);
-            let survivors_vec: Vec<Pubkey> = game.players[0..game.player_count as usize].to_vec();
-            game.state = GameState::InProgress { round: 1, survivors: survivors_vec };
+            game.state = GameState::InProgress;
             game.current_round = 1;
             for i in 0..game.player_count as usize {
                 game.survivors[i] = game.players[i];
             }
         }
 
-        // Clone the state to avoid borrow checker issues
-        let current_state = game.state.clone();
+        require!(game.state == GameState::InProgress, ErrorCode::GameNotInProgress);
 
-        match current_state {
-            GameState::InProgress { round, survivors } => {
-                let survivor_count = survivors.len();
-                if survivor_count <= 1 {
-                    return err!(ErrorCode::GameAlreadyFinished);
-                }
+        let round = game.current_round;
+        let survivors: Vec<Pubkey> = game.survivors.iter()
+            .filter(|p| **p != Pubkey::default())
+            .cloned()
+            .collect();
+        let survivor_count = survivors.len();
 
-                // Calculate eliminations: 10% of survivors, min 1
-                let eliminations = std::cmp::max(1, survivor_count / 10);
+        if survivor_count <= 1 {
+            return err!(ErrorCode::GameAlreadyFinished);
+        }
 
-                // Eliminate players using on-chain randomness
-                let mut seed_data = Vec::new();
-                seed_data.extend_from_slice(&clock.slot.to_le_bytes());
-                seed_data.extend_from_slice(&clock.unix_timestamp.to_le_bytes());
-                seed_data.extend_from_slice(&[round]);
-                for s in &survivors {
-                    seed_data.extend_from_slice(s.as_ref());
-                }
+        // Calculate eliminations: 10% of survivors, min 1
+        let eliminations = std::cmp::max(1, survivor_count / 10);
 
-                let mut available_indices: Vec<usize> = (0..survivor_count).collect();
-                let mut eliminated = Vec::new();
+        // Eliminate players using on-chain randomness
+        let mut seed_data = Vec::new();
+        seed_data.extend_from_slice(&clock.slot.to_le_bytes());
+        seed_data.extend_from_slice(&clock.unix_timestamp.to_le_bytes());
+        seed_data.extend_from_slice(&[round]);
+        for s in &survivors {
+            seed_data.extend_from_slice(s.as_ref());
+        }
 
-                for _ in 0..eliminations {
-                    let random_hash = hash(&seed_data).to_bytes();
-                    let mut rand_slice = [0u8; 8];
-                    rand_slice.copy_from_slice(&random_hash[0..8]);
-                    let rand_val = u64::from_le_bytes(rand_slice);
+        let mut available_indices: Vec<usize> = (0..survivor_count).collect();
+        let mut eliminated = Vec::new();
 
-                    let idx = (rand_val % available_indices.len() as u64) as usize;
-                    eliminated.push(survivors[available_indices[idx]]);
-                    available_indices.remove(idx);
+        for _ in 0..eliminations {
+            let random_hash = hash(&seed_data).to_bytes();
+            let mut rand_slice = [0u8; 8];
+            rand_slice.copy_from_slice(&random_hash[0..8]);
+            let rand_val = u64::from_le_bytes(rand_slice);
 
-                    // Reseed for next elimination
-                    seed_data.extend_from_slice(&[eliminated.len() as u8]);
-                }
+            let idx = (rand_val % available_indices.len() as u64) as usize;
+            eliminated.push(survivors[available_indices[idx]]);
+            available_indices.remove(idx);
 
-                // New survivors after elimination
-                let new_survivors: Vec<Pubkey> = available_indices.iter().map(|&i| survivors[i]).collect();
+            // Reseed for next elimination
+            seed_data.extend_from_slice(&[eliminated.len() as u8]);
+        }
 
-                // Emit elimination events
-                for elim in &eliminated {
-                    emit!(PlayerEliminatedEvent {
-                        game: game.key(),
-                        player: *elim,
-                        round,
-                    });
-                }
+        // New survivors after elimination
+        let new_survivors: Vec<Pubkey> = available_indices.iter().map(|&i| survivors[i]).collect();
 
-                if new_survivors.len() <= 1 {
-                    // Last survivor wins
-                    let winner = new_survivors[0];
-                    let treasury_key = Pubkey::from_str(TREASURY_PUBKEY).unwrap();
-                    let treasury_account = ctx.remaining_accounts
-                        .iter()
-                        .find(|a| a.key() == treasury_key)
-                        .ok_or(ErrorCode::InvalidTreasury)?;
+        // Emit elimination events
+        for elim in &eliminated {
+            emit!(PlayerEliminatedEvent {
+                game: game.key(),
+                player: *elim,
+                round,
+            });
+        }
 
-                    let total_pot = game.pot_amount;
-                    let house_cut = total_pot * 2 / 100; // 2% house edge
-                    let winner_amount = total_pot - house_cut;
+        if new_survivors.len() <= 1 {
+            // Last survivor wins
+            let winner = new_survivors[0];
+            let treasury_key = Pubkey::from_str(TREASURY_PUBKEY).unwrap();
+            let treasury_account = ctx.remaining_accounts
+                .iter()
+                .find(|a| a.key() == treasury_key)
+                .ok_or(ErrorCode::InvalidTreasury)?;
 
-                    **game.to_account_info().try_borrow_mut_lamports()? -= house_cut;
-                    **treasury_account.try_borrow_mut_lamports()? += house_cut;
+            let total_pot = game.pot_amount;
+            let house_cut = total_pot * 2 / 100; // 2% house edge
+            let winner_amount = total_pot - house_cut;
 
-                    let winner_acc = ctx.remaining_accounts
-                        .iter()
-                        .find(|a| a.key() == winner)
-                        .ok_or(ErrorCode::PlayerNotInGame)?;
+            **game.to_account_info().try_borrow_mut_lamports()? -= house_cut;
+            **treasury_account.try_borrow_mut_lamports()? += house_cut;
 
-                    **game.to_account_info().try_borrow_mut_lamports()? -= winner_amount;
-                    **winner_acc.try_borrow_mut_lamports()? += winner_amount;
+            let winner_acc = ctx.remaining_accounts
+                .iter()
+                .find(|a| a.key() == winner)
+                .ok_or(ErrorCode::PlayerNotInGame)?;
 
-                    emit!(WinnerExtractedEvent {
-                        game: game.key(),
-                        winner,
-                        amount: winner_amount,
-                    });
+            **game.to_account_info().try_borrow_mut_lamports()? -= winner_amount;
+            **winner_acc.try_borrow_mut_lamports()? += winner_amount;
 
-                    emit!(GameSettledEvent {
-                        game: game.key(),
-                        total_pot,
-                        winners_count: 1,
-                    });
+            emit!(WinnerExtractedEvent {
+                game: game.key(),
+                winner,
+                amount: winner_amount,
+            });
 
-                    game.state = GameState::Finished;
-                    // Reset for next game
-                    game.player_count = 0;
-                    game.pot_amount = 0;
-                    game.current_round = 0;
-                    game.block_start_time = 0;
-                    for i in 0..MAX_PLAYERS {
-                        game.players[i] = Pubkey::default();
-                        game.survivors[i] = Pubkey::default();
-                    }
-                } else {
-                    for surv in &new_survivors {
-                        emit!(SurvivorEvent {
-                            game: game.key(),
-                            player: *surv,
-                            round: round + 1,
-                        });
-                    }
+            emit!(GameSettledEvent {
+                game: game.key(),
+                total_pot,
+                winners_count: 1,
+            });
 
-                    emit!(RoundAdvancedEvent {
-                        game: game.key(),
-                        round: round + 1,
-                        survivors_count: new_survivors.len() as u8,
-                        eliminated_count: eliminated.len() as u8,
-                    });
+            game.state = GameState::Finished;
+            // Reset for next game
+            game.player_count = 0;
+            game.pot_amount = 0;
+            game.current_round = 0;
+            game.block_start_time = 0;
+            for i in 0..MAX_PLAYERS {
+                game.players[i] = Pubkey::default();
+                game.survivors[i] = Pubkey::default();
+            }
+        } else {
+            for surv in &new_survivors {
+                emit!(SurvivorEvent {
+                    game: game.key(),
+                    player: *surv,
+                    round: round + 1,
+                });
+            }
 
-                    // Update game state
-                    game.state = GameState::InProgress { round: round + 1, survivors: new_survivors.clone() };
-                    game.current_round = round + 1;
-                    for i in 0..MAX_PLAYERS {
-                        game.survivors[i] = if i < new_survivors.len() { new_survivors[i] } else { Pubkey::default() };
-                    }
-                    game.last_activity_time = clock.unix_timestamp;
-                    game.block_start_time = clock.unix_timestamp;
-                    game.resolve_slot = clock.slot;
-                }
-            },
-            _ => return err!(ErrorCode::GameNotInProgress),
+            emit!(RoundAdvancedEvent {
+                game: game.key(),
+                round: round + 1,
+                survivors_count: new_survivors.len() as u8,
+                eliminated_count: eliminated.len() as u8,
+            });
+
+            // Update game state
+            game.state = GameState::InProgress;
+            game.current_round = round + 1;
+            for i in 0..MAX_PLAYERS {
+                game.survivors[i] = if i < new_survivors.len() { new_survivors[i] } else { Pubkey::default() };
+            }
+            game.last_activity_time = clock.unix_timestamp;
+            game.block_start_time = clock.unix_timestamp;
+            game.resolve_slot = clock.slot;
         }
 
         Ok(())
@@ -417,7 +412,7 @@ impl Game {
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]
 pub enum GameState {
     Waiting,
-    InProgress { round: u8, survivors: Vec<Pubkey> },
+    InProgress,
     Finished,
 }
 
