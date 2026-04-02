@@ -221,6 +221,35 @@ export default function Home() {
       .map(({ idx }) => idx);
   }, [gameState?.players, actualPlayerCount, isInProgress, survivors]);
 
+  // Cache last non-empty block state so we can display it during "Settling" phase
+  // instead of immediately showing 0 players when the on-chain state resets
+  const cachedBlockStateRef = useRef<{ playerCount: number; activeSlots: number[]; potAmount: number }>({
+    playerCount: 0, activeSlots: [], potAmount: 0,
+  });
+  useEffect(() => {
+    if (actualPlayerCount > 0) {
+      cachedBlockStateRef.current = {
+        playerCount: actualPlayerCount,
+        activeSlots: activeSlotIndexes,
+        potAmount: potAmount,
+      };
+    }
+  }, [actualPlayerCount, activeSlotIndexes, potAmount]);
+
+  // Display values: use cached state during settling, live state otherwise
+  const displayPlayerCount = (isProcessingResult && actualPlayerCount === 0)
+    ? cachedBlockStateRef.current.playerCount
+    : actualPlayerCount;
+  const displayActiveSlots = (isProcessingResult && actualPlayerCount === 0)
+    ? cachedBlockStateRef.current.activeSlots
+    : activeSlotIndexes;
+  const displayPotAmount = (isProcessingResult && actualPlayerCount === 0)
+    ? cachedBlockStateRef.current.potAmount
+    : potAmount;
+  const displayMultiplier = displayPotAmount > 0 && entryFeeSol > 0
+    ? (displayPotAmount * 0.98) / entryFeeSol
+    : null;
+
   const fetchStateRef = useRef(fetchState);
   useEffect(() => { fetchStateRef.current = fetchState; }, [fetchState]);
   const stableFetch = useCallback(() => fetchStateRef.current(), []);
@@ -610,27 +639,26 @@ export default function Home() {
   const serverTimerValueRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const aliveCount = isInProgress ? survivors.length : actualPlayerCount;
-    const canResolveRound = (isWaiting || isInProgress) && aliveCount >= 2;
-
     if (timeRemaining === null) {
       setCountdown(null);
       setIsSpinning(false);
       return;
     }
 
-    // FIX: Activate MiningBlock animations when a round is active with players
-    if (canResolveRound && timeRemaining > 0) {
+    const isRoundActive = (isWaiting || isInProgress) && actualPlayerCount > 0;
+
+    // Activate MiningBlock animations when ANY player is in a round with time remaining
+    if (isRoundActive && timeRemaining > 0) {
       setIsSpinning(true);
     }
 
     // Keep block visuals static; use the separate timer widget only.
     setCountdown(null);
 
-    if (canResolveRound && timeRemaining === 0) {
+    if (isRoundActive && timeRemaining === 0) {
       setIsSpinning(false);
     }
-  }, [timeRemaining, isWaiting, isInProgress, actualPlayerCount, survivors.length]);
+  }, [timeRemaining, isWaiting, isInProgress, actualPlayerCount]);
   
   useEffect(() => {
     const isRoundActive = (isWaiting || isInProgress) && actualPlayerCount > 0;
@@ -955,14 +983,14 @@ export default function Home() {
               {/* Pool */}
               <div className="glass-card card-blue p-3 sm:p-4 text-center">
                 <p className="text-[0.65rem] sm:text-xs text-zinc-500 uppercase font-bold tracking-wider mb-1.5">Prize Pool</p>
-                <p className="text-xl sm:text-2xl lg:text-3xl font-black text-white tabular-nums">{potAmount.toFixed(3)}</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-black text-white tabular-nums">{displayPotAmount.toFixed(3)}</p>
                 <p className="text-[0.65rem] sm:text-xs text-zinc-500 font-semibold mt-0.5">SOL</p>
               </div>
               
               {/* Players */}
               <div className="glass-card card-purple p-3 sm:p-4 text-center">
                 <p className="text-[0.65rem] sm:text-xs text-zinc-500 uppercase font-bold tracking-wider mb-1.5">Players</p>
-                <p className="text-xl sm:text-2xl lg:text-3xl font-black text-white tabular-nums">{isInProgress ? survivors.length : actualPlayerCount}</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-black text-white tabular-nums">{isProcessingResult && actualPlayerCount === 0 ? cachedBlockStateRef.current.playerCount : (isInProgress ? survivors.length : actualPlayerCount)}</p>
                 <p className="text-[0.65rem] sm:text-xs text-zinc-500 font-semibold mt-0.5">1 winner</p>
               </div>
               
@@ -970,7 +998,7 @@ export default function Home() {
               <div className="glass-card p-3 sm:p-4 text-center bg-gradient-to-br from-[#00FFA3]/5 to-[#DC1FFF]/5 border-[#00FFA3]/25">
                 <p className="text-[0.65rem] sm:text-xs text-zinc-500 uppercase font-bold tracking-wider mb-1.5">Multiplier</p>
                 <p className="text-xl sm:text-2xl lg:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF] tabular-nums">
-                  {potentialMultiplier !== null ? `x${potentialMultiplier.toFixed(2)}` : "--"}
+                  {displayMultiplier !== null ? `x${displayMultiplier.toFixed(2)}` : "--"}
                 </p>
                 <p className="text-[0.65rem] sm:text-xs text-zinc-500 font-semibold mt-0.5">if you win</p>
               </div>
@@ -1009,11 +1037,11 @@ export default function Home() {
                     {/* Mining Block */}
                     <div className="w-full h-full">
                       <MiningBlock 
-                        playerCount={actualPlayerCount} 
+                        playerCount={displayPlayerCount} 
                         isSpinning={isSpinning} 
                         rotation={0} 
                         countdown={countdown}
-                        activeSlotIndexes={activeSlotIndexes}
+                        activeSlotIndexes={displayActiveSlots}
                       />
                     </div>
                   </div>
