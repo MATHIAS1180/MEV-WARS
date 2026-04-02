@@ -493,27 +493,6 @@ export function useGame(roomId: number) {
     return action;
   }, [roomId, fetchState]);
 
-  const secureGain = async (): Promise<boolean> => {
-    if (!program || !wallet.publicKey || !provider) throw new Error('Wallet not connected');
-
-    const [gamePda] = PublicKey.findProgramAddressSync(
-      [Buffer.from('room'), Buffer.from([roomId])], program.programId
-    );
-
-    const tx = await program.methods
-      .secureGain(roomId)
-      .accounts({
-        game: gamePda,
-        player: wallet.publicKey,
-      })
-      .transaction();
-
-    const signature = await provider.sendAndConfirm(tx);
-    console.log('secureGain TX confirmed:', signature);
-    fetchState();
-    return true;
-  };
-
   return {
     gameState,
     isLoading,
@@ -521,12 +500,10 @@ export function useGame(roomId: number) {
     chainClockUnix,
     serverTimerRemaining,
     serverTimerDeadlineMs,
-    // FIX: Expose connection status for UI indicator
     connectionStatus,
     joinGame,
     initializeRoom,
     crankRoom,
-    secureGain,
     fetchState,
     gameResult,
     setGameResult,

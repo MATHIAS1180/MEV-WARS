@@ -64,7 +64,7 @@ export default function Home() {
   const { connected, publicKey } = useWallet();
   const [roomId, setRoomId] = useState<number>(101);
   // FIX: Destructure connectionStatus for UI indicator
-  const { gameState, fetchState, joinGame, initializeRoom, crankRoom, secureGain, gameResult, setGameResult, serverTimerRemaining, serverTimerDeadlineMs, connectionStatus } = useGame(roomId);
+  const { gameState, fetchState, joinGame, initializeRoom, crankRoom, gameResult, setGameResult, serverTimerRemaining, serverTimerDeadlineMs, connectionStatus } = useGame(roomId);
 
   // Dynamic viewport sizing
   const [viewportSize, setViewportSize] = useState({ width: 1280, height: 720 });
@@ -798,24 +798,7 @@ export default function Home() {
     }
   };
 
-  const handleSecureGain = async () => {
-    if (!publicKey) return;
-    try {
-      setTxPending(true);
-      const txPromise = secureGain();
-      // FIX: Use notificationManager for deduplication and anti-spam
-      notificationManager.notifyPromise(
-        `secure-${roomId}-${publicKey?.toString()}`,
-        txPromise,
-        { loading: 'Securing gain...', success: 'Gain secured! You received 2x your entry.', error: (e: any) => `Failed: ${e.message}` }
-      );
-      await txPromise;
-    } catch (e) {
-      // Error already handled by toast
-    } finally {
-      setTxPending(false);
-    }
-  };
+
 
   const secondarySections = useMemo(() => (
     <>
@@ -1095,14 +1078,22 @@ export default function Home() {
                         <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-[#00FFA3]" />
                         <p className="text-base sm:text-lg font-black text-[#00FFA3]">You&apos;re In!</p>
                       </div>
-                      <p className="text-center text-xs sm:text-sm text-zinc-400">Position #{((displayPlayerIndex ?? myPlayerIndex) ?? 0) + 1}</p>
+                      <p className="text-center text-xs sm:text-sm text-zinc-400">
+                        {myPlayerIndex !== null
+                          ? `Position #${myPlayerIndex + 1}`
+                          : 'Confirming on-chain…'}
+                      </p>
                     </div>
                   ) : hasJoinedCurrentGame && isInProgress && !isCurrentPlayerAlive ? (
                     <div className="p-3 sm:p-4 bg-gradient-to-r from-[#FF5B5B]/10 to-[#FF6B9D]/10 border-2 border-[#FF5B5B]/40 rounded-xl">
                       <div className="flex items-center justify-center gap-2 mb-1">
                         <p className="text-base sm:text-lg font-black text-[#FF5B5B]">Eliminated</p>
                       </div>
-                      <p className="text-center text-xs sm:text-sm text-zinc-400">Position #{(displayPlayerIndex ?? myPlayerIndex) + 1} • Wait for next game</p>
+                      <p className="text-center text-xs sm:text-sm text-zinc-400">
+                        {(displayPlayerIndex ?? myPlayerIndex) !== null
+                          ? `Position #${((displayPlayerIndex ?? myPlayerIndex) as number) + 1} • `
+                          : ''}Wait for next game
+                      </p>
                     </div>
                   ) : isSpectatingLiveGame ? (
                     <div className="p-3 sm:p-4 bg-gradient-to-r from-white/5 to-white/10 border border-white/15 rounded-xl">
@@ -1112,7 +1103,7 @@ export default function Home() {
                       </div>
                       <p className="text-center text-xs sm:text-sm text-zinc-400">Wait for round end to enter the next game</p>
                     </div>
-                  ) : isFinished && isProcessingResult ? (
+                  ) : isProcessingResult ? (
                     <div className="p-3 sm:p-4 bg-gradient-to-r from-[#9945FF]/10 to-[#03E1FF]/10 border border-[#9945FF]/30 rounded-xl">
                       <div className="flex items-center justify-center gap-2 mb-1">
                         <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 text-[#03E1FF] animate-spin" />
@@ -1139,23 +1130,6 @@ export default function Home() {
                     </button>
                   )}
 
-                  {/* Secure Gain Button - only available from round 2 (multiplier >= 2) */}
-                  {isInProgress && currentRound >= 2 && isCurrentPlayerAlive && (
-                    <button
-                      onClick={handleSecureGain}
-                      disabled={txPending}
-                      className="w-full mt-3 py-2 sm:py-3 px-3 sm:px-4 bg-gradient-to-r from-[#FF6B9D] to-[#DC1FFF] text-white font-black uppercase text-xs sm:text-sm rounded-xl shadow-[0_0_30px_rgba(255,107,157,0.4)] hover:shadow-[0_0_50px_rgba(255,107,157,0.6)] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {txPending ? (
-                        <span className="flex items-center justify-center gap-2">
-                          <Loader2 className="animate-spin w-4 h-4" />
-                          <span>Securing...</span>
-                        </span>
-                      ) : (
-                        `Secure 2x Gain & Exit`
-                      )}
-                    </button>
-                  )}
                   
                   <p className="text-[0.6rem] sm:text-[0.65rem] text-center text-zinc-600 leading-relaxed">
                     Winners are selected automatically on-chain. Provably fair & transparent.

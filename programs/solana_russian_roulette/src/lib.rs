@@ -286,106 +286,6 @@ pub mod solana_russian_roulette {
         Ok(())
     }
 
-    /// Allow a player to secure 2x gain and exit if multiplier >=2
-    pub fn secure_gain(ctx: Context<SecureGain>, room_id: u8) -> Result<()> {
-        let game = &mut ctx.accounts.game;
-        let player = &ctx.accounts.player;
-
-        // Clone the state to avoid borrow checker issues
-        let current_state = game.state.clone();
-
-        match current_state {
-            GameState::InProgress { round, survivors } => {
-                require!(round >= 1, ErrorCode::CannotSecureBeforeRound1); // At least one round passed
-                let multiplier = round as u64; // Round 1 = x1, but since after round, it's round+1? Wait, adjust
-                // Actually, multiplier = current_round, and since round starts at 1, after round 1, multiplier=2
-                require!(multiplier >= 2, ErrorCode::MultiplierTooLow);
-
-                // Check if player is a survivor
-                let survivor_index = survivors.iter().position(|&p| p == player.key());
-                require!(survivor_index.is_some(), ErrorCode::PlayerNotSurvivor);
-
-                let secure_amount = game.entry_fee * 2;
-                require!(game.pot_amount >= secure_amount, ErrorCode::InsufficientPot);
-
-                // Pay the player
-                **game.to_account_info().try_borrow_mut_lamports()? -= secure_amount;
-                **player.to_account_info().try_borrow_mut_lamports()? += secure_amount;
-                game.pot_amount -= secure_amount;
-
-                // Remove from survivors
-                let mut new_survivors = survivors.clone();
-                new_survivors.remove(survivor_index.unwrap());
-
-                emit!(PlayerSecuredEvent {
-                    game: game.key(),
-                    player: player.key(),
-                    amount: secure_amount,
-                    round,
-                });
-
-                if new_survivors.len() <= 1 {
-                    // If only one left or none, end game
-                    if new_survivors.len() == 1 {
-                        let winner = new_survivors[0];
-                        let treasury_key = Pubkey::from_str(TREASURY_PUBKEY).unwrap();
-                        let treasury_account = ctx.remaining_accounts
-                            .iter()
-                            .find(|a| a.key() == treasury_key)
-                            .ok_or(ErrorCode::InvalidTreasury)?;
-
-                        let total_pot = game.pot_amount;
-                        let house_cut = total_pot * 2 / 100;
-                        let winner_amount = total_pot - house_cut;
-
-                        **game.to_account_info().try_borrow_mut_lamports()? -= house_cut;
-                        **treasury_account.try_borrow_mut_lamports()? += house_cut;
-
-                        let winner_acc = ctx.remaining_accounts
-                            .iter()
-                            .find(|a| a.key() == winner)
-                            .ok_or(ErrorCode::PlayerNotInGame)?;
-
-                        **game.to_account_info().try_borrow_mut_lamports()? -= winner_amount;
-                        **winner_acc.try_borrow_mut_lamports()? += winner_amount;
-
-                        emit!(WinnerExtractedEvent {
-                            game: game.key(),
-                            winner,
-                            amount: winner_amount,
-                        });
-                    }
-
-                    emit!(GameSettledEvent {
-                        game: game.key(),
-                        total_pot: game.pot_amount,
-                        winners_count: new_survivors.len() as u8,
-                    });
-
-                    game.state = GameState::Finished;
-                    // Reset
-                    game.player_count = 0;
-                    game.pot_amount = 0;
-                    game.current_round = 0;
-                    game.block_start_time = 0;
-                    for i in 0..MAX_PLAYERS {
-                        game.players[i] = Pubkey::default();
-                        game.survivors[i] = Pubkey::default();
-                    }
-                } else {
-                    // Update survivors
-                    game.state = GameState::InProgress { round, survivors: new_survivors.clone() };
-                    for i in 0..MAX_PLAYERS {
-                        game.survivors[i] = if i < new_survivors.len() { new_survivors[i] } else { Pubkey::default() };
-                    }
-                }
-            },
-            _ => return err!(ErrorCode::GameNotInProgress),
-        }
-
-        Ok(())
-    }
-
     /// Withdraw accumulated fees from treasury (admin only)
     pub fn withdraw_fees(ctx: Context<WithdrawFees>, amount: u64) -> Result<()> {
         let treasury = &ctx.accounts.treasury;
@@ -468,19 +368,6 @@ pub struct AdvanceRound<'info> {
         bump = game.bump
     )]
     pub game: Box<Account<'info, Game>>,
-}
-
-#[derive(Accounts)]
-#[instruction(room_id: u8)]
-pub struct SecureGain<'info> {
-    #[account(
-        mut,
-        seeds = [b"room".as_ref(), &[room_id]],
-        bump = game.bump
-    )]
-    pub game: Box<Account<'info, Game>>,
-    #[account(mut)]
-    pub player: Signer<'info>,
 }
 
 #[derive(Accounts)]
@@ -584,14 +471,6 @@ pub struct SurvivorEvent {
 }
 
 #[event]
-pub struct PlayerSecuredEvent {
-    pub game: Pubkey,
-    pub player: Pubkey,
-    pub amount: u64,
-    pub round: u8,
-}
-
-#[event]
 pub struct FeesWithdrawnEvent {
     pub amount: u64,
     pub recipient: Pubkey,
@@ -622,14 +501,6 @@ pub enum ErrorCode {
     GameNotInProgress,
     #[msg("Game already finished.")]
     GameAlreadyFinished,
-    #[msg("Cannot secure gain before round 1.")]
-    CannotSecureBeforeRound1,
-    #[msg("Multiplier too low to secure.")]
-    MultiplierTooLow,
-    #[msg("Player is not a survivor.")]
-    PlayerNotSurvivor,
-    #[msg("Insufficient pot for secure.")]
-    InsufficientPot,
     #[msg("Unauthorized. Only admin can perform this action.")]
     Unauthorized,
     #[msg("Insufficient funds in treasury.")]
