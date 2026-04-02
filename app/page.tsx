@@ -167,6 +167,8 @@ export default function Home() {
   const [showResult, setShowResult] = useState<RoundOverlayState | null>(null);
   // FIX: Track the animation queue id for the current overlay so we can mark it complete
   const [currentAnimationId, setCurrentAnimationId] = useState<string | null>(null);
+  const currentAnimationIdRef = useRef<string | null>(null);
+  useEffect(() => { currentAnimationIdRef.current = currentAnimationId; }, [currentAnimationId]);
   const [overlayCloseAtMs, setOverlayCloseAtMs] = useState<number | null>(null);
   const [isProcessingResult, setIsProcessingResult] = useState(false);
   // FIX: Optimistic UI — show pending state immediately after user clicks join
@@ -438,8 +440,9 @@ export default function Home() {
       setOverlayCloseAtMs(null);
       setIsProcessingResult(false);
       // FIX: Mark animation complete in queue so next one can play
-      if (currentAnimationId) {
-        animationQueue.complete(currentAnimationId);
+      const animId = currentAnimationIdRef.current;
+      if (animId) {
+        animationQueue.complete(animId);
         setCurrentAnimationId(null);
       }
       myPlayerIndexRef.current = null;
